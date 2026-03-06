@@ -37,6 +37,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
     }, async (request, reply) => {
         const monitors = await prisma.monitor.findMany({
             include: {
+                agent: {
+                    select: { id: true, name: true },
+                },
                 checkResults: {
                     orderBy: { timestamp: 'desc' },
                     take: 1,
@@ -51,6 +54,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
             return {
                 ...m,
+                agentName: m.agent?.name || null,
                 lastCheck: m.checkResults[0] || null,
                 checkResults: undefined,
                 flappingState: state ? {
@@ -77,12 +81,15 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             const monitor = await prisma.monitor.findUnique({
                 where: { id },
                 include: {
-                    checkResults: {
-                        orderBy: { timestamp: 'desc' },
-                        take: limit,
-                    },
+                checkResults: {
+                    orderBy: { timestamp: 'desc' },
+                    take: limit,
                 },
-            });
+                agent: {
+                    select: { id: true, name: true },
+                },
+            },
+        });
 
             if (!monitor) {
                 return reply.status(404).send({ error: 'Monitor not found' });
@@ -93,6 +100,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
             return {
                 ...monitor,
+                agentName: monitor.agent?.name || null,
                 flappingState: state ? {
                     isFlapping,
                     consecutiveFailures: state.consecutiveFailures,

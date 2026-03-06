@@ -5,6 +5,7 @@ import prisma from '../lib/prisma';
 export interface AgentContext {
     id: string;
     name: string;
+    status: string;
     heartbeatIntervalSec: number;
     offlineAfterSec: number;
     keyVersion: number;
@@ -48,6 +49,7 @@ export async function authenticateAgent(
         select: {
             id: true,
             name: true,
+            status: true,
             heartbeatIntervalSec: true,
             offlineAfterSec: true,
             keyVersion: true,
@@ -66,6 +68,7 @@ export async function authenticateAgent(
     request.agent = {
         id: agent.id,
         name: agent.name,
+        status: agent.status,
         heartbeatIntervalSec: agent.heartbeatIntervalSec,
         offlineAfterSec: agent.offlineAfterSec,
         keyVersion: agent.keyVersion,

@@ -8,6 +8,7 @@ import NotificationSettings from './pages/NotificationSettings';
 import NotificationHistoryPage from './pages/NotificationHistoryPage';
 import MonitorHistory from './pages/MonitorHistory';
 import DashboardPage from './pages/DashboardPage';
+import AgentsPage from './pages/AgentsPage';
 import { useMonitors } from './hooks/useMonitors';
 
 export default function App() {
@@ -79,6 +80,9 @@ export default function App() {
                             <Link to="/audit" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                                 📋 Audit Log
                             </Link>
+                            <Link to="/agents" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                                🛰 Agents
+                            </Link>
                         </>
                     )}
                     <button className="btn btn-secondary" onClick={logout}>
@@ -146,6 +150,22 @@ export default function App() {
                     isAdmin ? (
                         <div>
                             <NotificationHistoryPage />
+                        </div>
+                    ) : (
+                        <div className="empty-state"><h3>Unauthorized</h3></div>
+                    )
+                } />
+
+                <Route path="/agents" element={
+                    isAdmin ? (
+                        <div>
+                            <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
+                                <h1>🛰 Agents</h1>
+                                <button className="btn btn-secondary" onClick={() => navigate('/')}>
+                                    ← Back
+                                </button>
+                            </div>
+                            <AgentsPage />
                         </div>
                     ) : (
                         <div className="empty-state"><h3>Unauthorized</h3></div>

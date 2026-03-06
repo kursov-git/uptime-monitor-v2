@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma';
+import { logAction } from './auditService';
 
 const DEFAULT_INTERVAL_MS = 10_000;
 
@@ -43,6 +44,9 @@ export class AgentOfflineMonitorService {
             where: { id: { in: toOffline } },
             data: { status: 'OFFLINE' },
         });
+        if (res.count > 0) {
+            await logAction('AGENT_OFFLINE', null, { agentIds: toOffline });
+        }
 
         return res.count;
     }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Monitor, MonitorFormData } from '../api';
+import { useEffect, useState } from 'react';
+import { Agent, Monitor, MonitorFormData, agentsApi } from '../api';
 
 interface MonitorFormProps {
     monitor?: Monitor;
@@ -9,9 +9,11 @@ interface MonitorFormProps {
 }
 
 export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: MonitorFormProps) {
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [formData, setFormData] = useState<MonitorFormData>({
         name: monitor?.name || '',
         url: monitor?.url || '',
+        agentId: monitor?.agentId || '',
         method: monitor?.method || 'GET',
         intervalSeconds: monitor?.intervalSeconds || 60,
         timeoutSeconds: monitor?.timeoutSeconds || 30,
@@ -48,6 +50,18 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
+    useEffect(() => {
+        const loadAgents = async () => {
+            try {
+                const res = await agentsApi.get<Agent[]>('/');
+                setAgents(res.data);
+            } catch {
+                // Ignore if user has no access or API disabled.
+            }
+        };
+        loadAgents();
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -76,7 +90,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         setSubmitting(true);
 
         try {
-            await onSubmit({ ...formData, authPayload: constructedPayload });
+            await onSubmit({ ...formData, agentId: formData.agentId || null, authPayload: constructedPayload });
         } catch (err: any) {
             const msg = err.response?.data?.errors?.[0]?.message
                 || err.response?.data?.error
@@ -129,6 +143,21 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                     </div>
 
                     <div className="form-row">
+                        <div className="form-group">
+                            <label>Executor</label>
+                            <select
+                                value={formData.agentId || ''}
+                                onChange={e => update('agentId', e.target.value)}
+                            >
+                                <option value="">Builtin Worker</option>
+                                {agents.map(agent => (
+                                    <option key={agent.id} value={agent.id}>
+                                        {agent.name} ({agent.status})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="form-group">
                             <label>Method</label>
                             <select

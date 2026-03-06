@@ -78,4 +78,10 @@ export const notificationsApi = {
     post: <T = any>(url: string, data?: any) => apiClient.post<T>(`/notifications${url}`, data),
 };
 
+export const agentsApi = {
+    get: <T = any>(url: string) => apiClient.get<T>(`/agents${url}`),
+    post: <T = any>(url: string, data?: any) => apiClient.post<T>(`/agents${url}`, data),
+    patch: <T = any>(url: string, data?: any) => apiClient.patch<T>(`/agents${url}`, data),
+};
+
 export * from '@uptime-monitor/shared';

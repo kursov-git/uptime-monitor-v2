@@ -27,6 +27,8 @@ export interface Monitor {
     id: string;
     name: string;
     url: string;
+    agentId?: string | null;
+    agentName?: string | null;
     method: string;
     intervalSeconds: number;
     timeoutSeconds: number;
@@ -54,6 +56,7 @@ export interface Monitor {
 export interface MonitorFormData {
     name: string;
     url: string;
+    agentId?: string | null;
     method: string;
     intervalSeconds: number;
     timeoutSeconds: number;
@@ -65,6 +68,21 @@ export interface MonitorFormData {
     authUrl: string;
     authPayload: string;
     authTokenRegex: string;
+}
+
+export interface Agent {
+    id: string;
+    name: string;
+    status: 'ONLINE' | 'OFFLINE' | string;
+    heartbeatIntervalSec: number;
+    offlineAfterSec: number;
+    lastSeen: string;
+    revokedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    _count?: {
+        monitors: number;
+    };
 }
 
 export interface AuditLogEntry {

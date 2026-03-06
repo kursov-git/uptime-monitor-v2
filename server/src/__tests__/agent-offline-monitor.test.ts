@@ -41,5 +41,8 @@ describe('AgentOfflineMonitorService', () => {
 
         expect(staleNow.status).toBe('OFFLINE');
         expect(freshNow.status).toBe('ONLINE');
+
+        const audit = await prisma.auditLog.findMany();
+        expect(audit.some((a) => a.action === 'AGENT_OFFLINE')).toBe(true);
     });
 });

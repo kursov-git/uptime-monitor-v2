@@ -9,6 +9,7 @@ import { RetentionService } from './services/retentionService';
 import { AgentOfflineMonitorService } from './services/agentOfflineMonitor';
 import monitorRoutes from './routes/monitors';
 import agentRoutes from './routes/agent';
+import agentsRoutes from './routes/agents';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import apikeyRoutes from './routes/apikeys';
@@ -76,6 +77,7 @@ async function registerRoutes() {
     if (ENABLE_AGENT_API) {
         fastify.log.info({ AGENT_SSE_ENABLED }, 'Agent API enabled');
         await fastify.register(agentRoutes, { prefix: '/api/agent' });
+        await fastify.register(agentsRoutes, { prefix: '/api/agents' });
     }
     await fastify.register(userRoutes, { prefix: '/api/users' });
     await fastify.register(apikeyRoutes, { prefix: '/api/apikeys' });

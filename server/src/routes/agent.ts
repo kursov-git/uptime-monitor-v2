@@ -4,6 +4,7 @@ import prisma from '../lib/prisma';
 import { authenticateAgent } from '../services/agentAuth';
 import { agentSseService } from '../services/agentSse';
 import { envBool } from '../lib/utils';
+import { logAction } from '../services/auditService';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -119,6 +120,13 @@ export default async function agentRoutes(fastify: FastifyInstance) {
 
     fastify.post('/results', {
         preHandler: [authenticateAgent],
+        config: {
+            rateLimit: {
+                max: 60,
+                timeWindow: '1 minute',
+            },
+        },
+        bodyLimit: 1_000_000,
     }, async (request, reply) => {
         const parse = resultsSchema.safeParse(request.body);
         if (!parse.success) {
@@ -180,6 +188,12 @@ export default async function agentRoutes(fastify: FastifyInstance) {
 
     fastify.post('/heartbeat', {
         preHandler: [authenticateAgent],
+        config: {
+            rateLimit: {
+                max: 120,
+                timeWindow: '1 minute',
+            },
+        },
     }, async (request, reply) => {
         const parse = heartbeatSchema.safeParse(request.body ?? {});
         if (!parse.success) {
@@ -197,6 +211,10 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 heartbeatIntervalSec: true,
             },
         });
+
+        if (agent.status !== 'ONLINE') {
+            await logAction('AGENT_ONLINE', null, { agentId: agent.id });
+        }
 
         return {
             now: new Date().toISOString(),

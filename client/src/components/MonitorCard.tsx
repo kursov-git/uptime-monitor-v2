@@ -81,6 +81,9 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             </div>
 
             <div className="monitor-url">{monitor.url}</div>
+            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                Executor: <strong>{monitor.agentName || 'Builtin Worker'}</strong>
+            </div>
 
             <div className="monitor-stats">
                 <div className="stat">
