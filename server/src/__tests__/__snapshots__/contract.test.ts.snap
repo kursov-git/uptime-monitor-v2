@@ -1,0 +1,154 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`API Contract > validates /health response shape 1`] = `
+{
+  "status": "ok",
+  "timestamp": "<iso-date>",
+}
+`;
+
+exports[`API Contract > validates auth login and /me contracts 1`] = `
+{
+  "login": {
+    "token": "<jwt>",
+    "user": {
+      "id": "<uuid>",
+      "role": "VIEWER",
+      "username": "contract_user",
+    },
+  },
+  "me": {
+    "createdAt": "<iso-date>",
+    "id": "<uuid>",
+    "role": "VIEWER",
+    "username": "contract_user",
+  },
+}
+`;
+
+exports[`API Contract > validates monitors list and stats contracts 1`] = `
+{
+  "monitor": {
+    "authMethod": "NONE",
+    "authPayload": null,
+    "authTokenRegex": null,
+    "authUrl": null,
+    "createdAt": "<iso-date>",
+    "expectedBody": null,
+    "expectedStatus": 200,
+    "flappingState": null,
+    "headers": null,
+    "id": "<uuid>",
+    "intervalSeconds": 60,
+    "isActive": true,
+    "lastCheck": {
+      "error": null,
+      "id": "<uuid>",
+      "isUp": true,
+      "monitorId": "<uuid>",
+      "responseTimeMs": 37,
+      "statusCode": 200,
+      "timestamp": "<iso-date>",
+    },
+    "method": "GET",
+    "name": "Contract Monitor",
+    "timeoutSeconds": 30,
+    "updatedAt": "<iso-date>",
+    "url": "https://example.com/contract",
+  },
+  "stats": {
+    "limit": 10,
+    "offset": 0,
+    "overallAvgResponseMs": 37,
+    "overallUptimePercent": "100.0",
+    "results": [
+      {
+        "error": null,
+        "id": "<uuid>",
+        "isUp": true,
+        "monitorId": "<uuid>",
+        "responseTimeMs": 37,
+        "statusCode": 200,
+        "timestamp": "<iso-date>",
+      },
+    ],
+    "total": 1,
+  },
+}
+`;
+
+exports[`API Contract > validates notifications history and API key contracts 1`] = `
+{
+  "history": {
+    "history": [
+      {
+        "channel": "TELEGRAM",
+        "error": null,
+        "id": "<uuid>",
+        "monitorId": "<uuid>",
+        "status": "SUCCESS",
+        "timestamp": "<iso-date>",
+      },
+    ],
+    "pagination": {
+      "limit": 20,
+      "page": 1,
+      "total": 1,
+      "totalPages": 1,
+    },
+  },
+  "key": {
+    "createdAt": "<iso-date>",
+    "id": "<uuid>",
+    "key": "<api-key>",
+    "revokedAt": null,
+    "userId": "<uuid>",
+  },
+  "me": {
+    "createdAt": "<iso-date>",
+    "id": "<uuid>",
+    "key": "<api-key>",
+    "revokedAt": null,
+    "userId": "<uuid>",
+  },
+}
+`;
+
+exports[`API Contract > validates users and audit contracts 1`] = `
+{
+  "audit": {
+    "limit": 10,
+    "logs": [
+      {
+        "action": "CREATE_USER",
+        "details": "{"newUser":"viewer_contract","role":"VIEWER"}",
+        "id": "<uuid>",
+        "ipAddress": "127.0.0.1",
+        "timestamp": "<iso-date>",
+        "user": {
+          "username": "contract_admin",
+        },
+        "userId": "<uuid>",
+      },
+    ],
+    "offset": 0,
+    "total": 1,
+  },
+  "users": [
+    {
+      "apiKey": null,
+      "createdAt": "<iso-date>",
+      "id": "<uuid>",
+      "role": "ADMIN",
+      "username": "contract_admin",
+    },
+    {
+      "apiKey": null,
+      "createdAt": "<iso-date>",
+      "id": "<uuid>",
+      "role": "VIEWER",
+      "username": "viewer_contract",
+    },
+  ],
+}
+`;

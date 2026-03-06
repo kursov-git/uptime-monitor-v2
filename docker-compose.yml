@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: uptime-server
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - HOST=0.0.0.0
+      - PORT=3000
+    volumes:
+      - db-data:/data
+    expose:
+      - "3000"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  client:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    container_name: uptime-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  db-data:

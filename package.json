@@ -1,0 +1,21 @@
+{
+    "name": "uptime-monitor-root",
+    "private": true,
+    "scripts": {
+        "prepare": "git config core.hooksPath .githooks || true",
+        "check:paths": "bash ./scripts/check-paths.sh all"
+    },
+    "workspaces": [
+        "client",
+        "server",
+        "e2e",
+        "packages/*"
+    ],
+    "dependencies": {
+        "axios-cookiejar-support": "^6.0.5",
+        "tough-cookie": "^6.0.0"
+    },
+    "devDependencies": {
+        "vite": "^7.3.1"
+    }
+}

@@ -1,0 +1,36 @@
+# Environment
+.env
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+server/dist/
+client/dist/
+
+# Database
+*.db
+*.db-journal
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & Diagnostics
+*.log
+npm-debug.log*
+*.txt
+
+# Testing
+coverage/
+
+# Deployment bundles
+*.tar.gz
+
+# Deploy tools (may contain credentials)
+deploy-tools/
