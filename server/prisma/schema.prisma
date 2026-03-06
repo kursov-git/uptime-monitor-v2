@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -9,54 +9,81 @@ datasource db {
 }
 
 model Monitor {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   name            String
   url             String
-  method          String   @default("GET")
-  intervalSeconds Float    @default(60)
-  timeoutSeconds  Int      @default(30)
-  expectedStatus  Int      @default(200)
+  method          String  @default("GET")
+  intervalSeconds Float   @default(60)
+  timeoutSeconds  Int     @default(30)
+  expectedStatus  Int     @default(200)
   expectedBody    String?
-  headers         String?  // JSON string
-  
-  // Auth configuration for multi-step checks
-  authMethod      String   @default("NONE") // "NONE", "BASIC", "FORM_LOGIN"
-  authUrl         String?
-  authPayload     String?  // JSON string or basic auth encoded
-  authTokenRegex  String?
-  
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  headers         String? // JSON string
 
-  checkResults              CheckResult[]
-  notificationOverride      MonitorNotificationOverride?
+  // Auth configuration for multi-step checks
+  authMethod     String  @default("NONE") // "NONE", "BASIC", "FORM_LOGIN"
+  authUrl        String?
+  authPayload    String? // JSON string or basic auth encoded
+  authTokenRegex String?
+
+  isActive  Boolean  @default(true)
+  agentId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agent                Agent?                       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  checkResults         CheckResult[]
+  notificationOverride MonitorNotificationOverride?
+
+  @@index([agentId, isActive])
 }
 
 model CheckResult {
-  id             String   @id @default(uuid())
-  monitorId      String
-  monitor        Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
-  timestamp      DateTime @default(now())
-  isUp           Boolean
-  responseTimeMs Int
-  statusCode     Int?
-  error          String?
+  id                   String   @id @default(uuid())
+  monitorId            String
+  monitor              Monitor  @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  agentId              String?
+  agent                Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  resultIdempotencyKey String?  @unique
+  timestamp            DateTime @default(now())
+  isUp                 Boolean
+  responseTimeMs       Int
+  statusCode           Int?
+  error                String?
 
   @@index([monitorId, timestamp(sort: Desc)])
+  @@index([agentId, timestamp(sort: Desc)])
+}
+
+model Agent {
+  id                   String    @id @default(uuid())
+  name                 String
+  tokenHash            String    @unique
+  keyVersion           Int       @default(1)
+  status               String    @default("ONLINE")
+  heartbeatIntervalSec Int       @default(30)
+  offlineAfterSec      Int       @default(90)
+  lastSeen             DateTime  @default(now())
+  revokedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  monitors Monitor[]
+  results  CheckResult[]
+
+  @@index([status, lastSeen])
 }
 
 // Пользователи системы
 model User {
-  id           String     @id @default(uuid())
-  username     String     @unique
+  id           String   @id @default(uuid())
+  username     String   @unique
   passwordHash String
-  role         String     @default("VIEWER")
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  role         String   @default("VIEWER")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  apiKey       ApiKey?
-  auditLogs    AuditLog[]
+  apiKey    ApiKey?
+  auditLogs AuditLog[]
 }
 
 // API ключи (один на пользователя, только чтение)
@@ -133,10 +160,10 @@ model MonitorNotificationOverride {
 // История уведомлений
 model NotificationHistory {
   id        String   @id @default(uuid())
-  monitorId String?  // Optional, is null if it's a test notification
-  channel   String   // "TELEGRAM", "ZULIP"
-  status    String   // "SUCCESS", "FAILED"
-  error     String?  // Error message if failed
+  monitorId String? // Optional, is null if it's a test notification
+  channel   String // "TELEGRAM", "ZULIP"
+  status    String // "SUCCESS", "FAILED"
+  error     String? // Error message if failed
   timestamp DateTime @default(now())
 
   @@index([monitorId, timestamp(sort: Desc)])
