@@ -5,6 +5,7 @@ import { validateMonitorInput, CreateMonitorBody } from '../lib/validation';
 import { logAction } from '../services/auditService';
 import { FlappingService } from '../services/flapping';
 import { sseService } from '../services/sse';
+import { agentSseService } from '../services/agentSse';
 import { encrypt, decrypt } from '../lib/crypto';
 
 export default async function monitorRoutes(fastify: FastifyInstance) {
@@ -155,12 +156,13 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             return reply.status(400).send({ errors });
         }
 
-        const { name, url, method, intervalSeconds, timeoutSeconds, expectedStatus, expectedBody, headers, authMethod, authUrl, authPayload, authTokenRegex } = request.body;
+        const { name, url, agentId, method, intervalSeconds, timeoutSeconds, expectedStatus, expectedBody, headers, authMethod, authUrl, authPayload, authTokenRegex } = request.body;
 
         const monitor = await prisma.monitor.create({
             data: {
                 name: name.trim(),
                 url: url.trim(),
+                agentId: agentId === undefined ? null : agentId,
                 method: method || 'GET',
                 intervalSeconds: intervalSeconds || 60,
                 timeoutSeconds: timeoutSeconds || 30,
@@ -177,6 +179,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
         const user = request.user;
         await logAction('CREATE_MONITOR', user?.id, { monitorId: monitor.id, name: monitor.name }, request.ip);
+        if (monitor.agentId) {
+            agentSseService.publish('monitor.upsert', { monitorId: monitor.id, agentId: monitor.agentId });
+        }
 
         return reply.status(201).send(monitor);
     });
@@ -210,6 +215,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 data: {
                     ...(body.name !== undefined && { name: body.name.trim() }),
                     ...(body.url !== undefined && { url: body.url.trim() }),
+                    ...(body.agentId !== undefined && { agentId: body.agentId }),
                     ...(body.method !== undefined && { method: body.method }),
                     ...(body.intervalSeconds !== undefined && { intervalSeconds: body.intervalSeconds }),
                     ...(body.timeoutSeconds !== undefined && { timeoutSeconds: body.timeoutSeconds }),
@@ -225,6 +231,12 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
             const user = request.user;
             await logAction('UPDATE_MONITOR', user?.id, { monitorId: monitor.id, name: monitor.name }, request.ip);
+            if (existing.agentId && existing.agentId !== monitor.agentId) {
+                agentSseService.publish('monitor.delete', { monitorId: monitor.id, agentId: existing.agentId });
+            }
+            if (monitor.agentId) {
+                agentSseService.publish('monitor.upsert', { monitorId: monitor.id, agentId: monitor.agentId });
+            }
 
             return monitor;
         }
@@ -250,6 +262,13 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             const user = request.user;
             const action = monitor.isActive ? 'RESUME_MONITOR' : 'PAUSE_MONITOR';
             await logAction(action, user?.id, { monitorId: monitor.id, name: monitor.name }, request.ip);
+            if (monitor.agentId) {
+                if (monitor.isActive) {
+                    agentSseService.publish('monitor.upsert', { monitorId: monitor.id, agentId: monitor.agentId });
+                } else {
+                    agentSseService.publish('monitor.delete', { monitorId: monitor.id, agentId: monitor.agentId });
+                }
+            }
 
             return monitor;
         }
@@ -271,6 +290,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
             const user = request.user;
             await logAction('DELETE_MONITOR', user?.id, { monitorId: existing.id, name: existing.name }, request.ip);
+            if (existing.agentId) {
+                agentSseService.publish('monitor.delete', { monitorId: existing.id, agentId: existing.agentId });
+            }
 
             return { success: true };
         }

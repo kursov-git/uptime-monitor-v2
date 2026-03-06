@@ -2,6 +2,8 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { authenticateAgent } from '../services/agentAuth';
+import { agentSseService } from '../services/agentSse';
+import { envBool } from '../lib/utils';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -25,6 +27,44 @@ const heartbeatSchema = z.object({
 });
 
 export default async function agentRoutes(fastify: FastifyInstance) {
+    fastify.get('/stream', {
+        preHandler: [authenticateAgent],
+    }, async (request, reply) => {
+        const agent = request.agent!;
+        const sseEnabled = envBool('AGENT_SSE_ENABLED', true);
+        if (!sseEnabled) {
+            return reply.status(503).send({
+                error: 'Agent SSE disabled',
+                command: 'RESYNC_JOBS',
+            });
+        }
+
+        const rawLastEventId = request.headers['last-event-id'];
+        const lastEventId = typeof rawLastEventId === 'string'
+            ? Number.parseInt(rawLastEventId, 10) || 0
+            : 0;
+
+        reply.raw.setHeader('Content-Type', 'text/event-stream');
+        reply.raw.setHeader('Cache-Control', 'no-cache');
+        reply.raw.setHeader('Connection', 'keep-alive');
+        reply.raw.flushHeaders();
+
+        const added = agentSseService.addClient(reply, agent.id);
+        if (!added) {
+            return reply.status(503).send({ error: 'Too many SSE connections' });
+        }
+
+        const replayStatus = agentSseService.replaySince(agent.id, lastEventId);
+        if (replayStatus.stale) {
+            reply.raw.write('event: agent.command\ndata: {"command":"RESYNC_JOBS"}\n\n');
+        } else if (lastEventId > 0) {
+            agentSseService.replayToClient(reply, agent.id, lastEventId);
+        }
+
+        reply.raw.write('event: connected\ndata: {"status":"ok"}\n\n');
+        return reply.hijack();
+    });
+
     fastify.get('/jobs', {
         preHandler: [authenticateAgent],
     }, async (request) => {
@@ -43,7 +83,11 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 timeoutSeconds: true,
                 expectedStatus: true,
                 expectedBody: true,
+                headers: true,
+                authMethod: true,
+                authUrl: true,
                 authPayload: true,
+                authTokenRegex: true,
                 updatedAt: true,
             },
             orderBy: { createdAt: 'asc' },
@@ -60,7 +104,11 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 timeoutMs: job.timeoutSeconds * 1000,
                 expectedStatus: job.expectedStatus,
                 expectedBody: job.expectedBody,
+                headers: job.headers,
+                authMethod: job.authMethod,
+                authUrl: job.authUrl,
                 authPayloadEncrypted: job.authPayload,
+                authTokenRegex: job.authTokenRegex,
                 authPayloadIv: null,
                 authPayloadTag: null,
                 keyVersion: agent.keyVersion,

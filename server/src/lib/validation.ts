@@ -6,6 +6,7 @@ export interface ValidationError {
 export interface CreateMonitorBody {
     name: string;
     url: string;
+    agentId?: string | null;
     method?: string;
     intervalSeconds?: number;
     timeoutSeconds?: number;
@@ -51,6 +52,13 @@ export function validateMonitorInput(body: CreateMonitorBody): ValidationError[]
     if (body.intervalSeconds !== undefined) {
         if (body.intervalSeconds < 0.1 || body.intervalSeconds > 86400) {
             errors.push({ field: 'intervalSeconds', message: 'Interval must be between 0.1 and 86400 seconds' });
+        }
+    }
+
+    if (body.agentId !== undefined && body.agentId !== null) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(body.agentId)) {
+            errors.push({ field: 'agentId', message: 'agentId must be a valid UUID' });
         }
     }
 

@@ -35,5 +35,21 @@ services:
     depends_on:
       - server
 
+  agent:
+    build:
+      context: .
+      dockerfile: ./apps/agent/Dockerfile
+    container_name: uptime-agent
+    restart: unless-stopped
+    environment:
+      - MAIN_SERVER_URL=http://server:3000
+      - AGENT_TOKEN=${AGENT_TOKEN:-}
+      - AGENT_HTTP_TIMEOUT_MS=${AGENT_HTTP_TIMEOUT_MS:-10000}
+      - AGENT_BUFFER_MAX=${AGENT_BUFFER_MAX:-1000}
+      - AGENT_RESULT_MAX_BATCH=${AGENT_RESULT_MAX_BATCH:-500}
+      - ENCRYPTION_KEY_1=${ENCRYPTION_KEY_1:-}
+    depends_on:
+      - server
+
 volumes:
   db-data:
