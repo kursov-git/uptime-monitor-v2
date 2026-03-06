@@ -6,12 +6,15 @@ import rateLimit from '@fastify/rate-limit';
 import prisma from './lib/prisma';
 import { CheckWorker } from './worker';
 import { RetentionService } from './services/retentionService';
+import { AgentOfflineMonitorService } from './services/agentOfflineMonitor';
 import monitorRoutes from './routes/monitors';
+import agentRoutes from './routes/agent';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import apikeyRoutes from './routes/apikeys';
 import auditRoutes from './routes/audit';
 import notificationRoutes from './routes/notifications';
+import { envBool } from './lib/utils';
 
 // JWT secret validation
 const JWT_SECRET = process.env.JWT_SECRET || (() => {
@@ -25,6 +28,9 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
 const CORS_ORIGINS = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
     : ['http://localhost:5173'];
+const ENABLE_AGENT_API = envBool('ENABLE_AGENT_API', true);
+const AGENT_SSE_ENABLED = envBool('AGENT_SSE_ENABLED', true);
+const ENABLE_BUILTIN_WORKER = envBool('ENABLE_BUILTIN_WORKER', true);
 
 const fastify = Fastify({
     logger: {
@@ -67,6 +73,10 @@ fastify.get('/health', async () => {
 async function registerRoutes() {
     await fastify.register(authRoutes, { prefix: '/api/auth' });
     await fastify.register(monitorRoutes, { prefix: '/api/monitors' });
+    if (ENABLE_AGENT_API) {
+        fastify.log.info({ AGENT_SSE_ENABLED }, 'Agent API enabled');
+        await fastify.register(agentRoutes, { prefix: '/api/agent' });
+    }
     await fastify.register(userRoutes, { prefix: '/api/users' });
     await fastify.register(apikeyRoutes, { prefix: '/api/apikeys' });
     await fastify.register(auditRoutes, { prefix: '/api/audit' });
@@ -82,6 +92,7 @@ export async function initApp() {
 
 const worker = new CheckWorker(prisma);
 const retentionService = new RetentionService(prisma);
+const agentOfflineMonitorService = new AgentOfflineMonitorService();
 
 async function start() {
     try {
@@ -94,8 +105,13 @@ async function start() {
         console.log(`🚀 Server running on http://${host}:${port}`);
 
         // Start background services
-        await worker.start();
+        if (ENABLE_BUILTIN_WORKER) {
+            await worker.start();
+        }
         retentionService.start();
+        if (ENABLE_AGENT_API) {
+            agentOfflineMonitorService.start();
+        }
 
     } catch (err) {
         fastify.log.error(err);
@@ -108,6 +124,7 @@ async function shutdown(signal: string) {
     console.log(`\n${signal} received. Shutting down gracefully...`);
     worker.stop();
     retentionService.stop();
+    agentOfflineMonitorService.stop();
     await fastify.close();
     await prisma.$disconnect();
     console.log('👋 Server stopped.');

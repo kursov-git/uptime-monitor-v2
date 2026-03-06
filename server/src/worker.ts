@@ -36,7 +36,7 @@ export class CheckWorker {
 
         // Load all active monitors and schedule them
         const monitors = await this.prisma.monitor.findMany({
-            where: { isActive: true },
+            where: { isActive: true, agentId: null },
         });
 
         for (const monitor of monitors) {
@@ -79,7 +79,7 @@ export class CheckWorker {
                 const updated = await this.prisma.monitor.findUnique({
                     where: { id: monitor.id },
                 });
-                if (updated && updated.isActive && this.running) {
+                if (updated && updated.isActive && updated.agentId === null && this.running) {
                     this.scheduleMonitor(updated);
                 } else {
                     this.timers.delete(monitor.id);
@@ -99,7 +99,7 @@ export class CheckWorker {
 
         try {
             const activeMonitors = await this.prisma.monitor.findMany({
-                where: { isActive: true },
+                where: { isActive: true, agentId: null },
             });
 
             const activeIds = new Set(activeMonitors.map(m => m.id));
