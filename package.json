@@ -3,7 +3,8 @@
     "private": true,
     "scripts": {
         "prepare": "git config core.hooksPath .githooks || true",
-        "check:paths": "bash ./scripts/check-paths.sh all"
+        "check:paths": "bash ./scripts/check-paths.sh all",
+        "loadtest:agent-results": "node ./scripts/loadtest-agent-results.mjs"
     },
     "workspaces": [
         "client",
