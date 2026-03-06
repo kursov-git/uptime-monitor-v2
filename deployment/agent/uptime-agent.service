@@ -1,0 +1,17 @@
+[Unit]
+Description=Uptime Monitor Agent (Docker Compose)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/uptime-agent
+ExecStart=/usr/bin/docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env up -d
+ExecStop=/usr/bin/docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env down
+ExecReload=/usr/bin/docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env up -d
+TimeoutStartSec=120
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target
