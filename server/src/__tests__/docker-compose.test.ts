@@ -7,7 +7,9 @@ describe('Docker Compose Smoke', () => {
         const composePath = path.resolve(__dirname, '../../../docker-compose.yml');
         const compose = fs.readFileSync(composePath, 'utf8');
 
-        expect(compose).toContain('http://localhost:3000/health');
+        expect(compose).toContain('/health');
+        expect(compose).toContain('node');
+        expect(compose).toContain("fetch('http://127.0.0.1:3000/health')");
         expect(compose).not.toContain('http://localhost:3000/api/auth/me');
     });
 });
