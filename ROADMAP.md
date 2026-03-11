@@ -1,124 +1,140 @@
-# 🗺️ Product Roadmap: Uptime Monitor
+# Roadmap
 
-> **Vision:** A reliable, self-hosted uptime monitoring solution for developers and small teams.
-> **Technical Status:** see [CODE_REVIEW.md](./CODE_REVIEW.md)
+This file tracks the current state and the remaining practical backlog.
+It is the active roadmap.
 
-## 🚀 Current Features (v1.2)
+For architecture and operations, use:
+- `docs/ARCHITECTURE.md`
+- `docs/PRODUCTION_TOPOLOGY.md`
+- `docs/OPERATIONS_RUNBOOK.md`
 
-### Monitoring
-- [x] **HTTP/HTTPS Checks** — monitor websites and APIs
-- [x] **Advanced Authentication** — Basic, JSON Form, and CSRF Form Login
-- [x] **Custom Intervals** — 10s to 24h checks
-- [x] **Response Time Tracking** — ms precision
-- [x] **Status Codes** — validates 2xx/3xx/4xx/5xx
+## Current Delivery Status
 
-### Dashboard
-- [x] **Real-time Status** — instant visual feedback (UP/DOWN/PAUSED)
-- [x] **History & Charts** — interactive response time graphs
-- [x] **Detailed Logs** — paginated history of every check
-- [x] **Quick Actions** — Pause/Resume/Edit/Delete monitors
+### Control Plane
 
-### Management
-- [x] **User Roles** — Admin (managed) vs Viewer (read-only)
-- [x] **Audit Logs** — track who changed what
-- [x] **Data Retention** — auto-cleanup of old logs (30 days default)
+Done:
+- Fastify API with JWT auth, API keys, RBAC, audit log
+- monitor CRUD, stats, SSE dashboard updates
+- Telegram and Zulip notifications
+- flapping protection
+- notification history
+- SQLite + Prisma schema and migrations
+- split runtime via `SERVER_ROLE`
+- production JSON logging
+- centralized env validation
+- runtime health endpoint `/health/runtime`
+- backup/restore/runtime-status scripts
 
-### Notifications
-- [x] **Telegram Bot** — alert on UP/DOWN state changes
-- [x] **Zulip** — configurable webhook notifications
-- [x] **Flapping Protection** — suppresses rapid state oscillations
-- [x] **Per-Monitor Overrides** — custom notification settings per monitor
+### Agent Plane
 
-### Deployment
-- [x] **Docker Compose** — one-command build & start
-- [x] **SSH Key Deployment** — `bash deploy.sh` (no hardcoded credentials)
-- [x] **Nginx Reverse Proxy** — client routes API calls through nginx
-- [x] **Split Server Runtime Roles** — API, worker, retention, and agent offline monitor can now run as separate processes via `SERVER_ROLE`
-- [x] **Production Logging Modes** — pretty logs for dev, JSON logs for production
-- [x] **Operations Runbook** — backup/restore, runtime health, split deployment and recovery steps documented
+Done:
+- agent registration UI and API
+- one-time token reveal on create/rotate
+- token revocation
+- agent deletion with monitor-assignment guard
+- agent version persistence and UI visibility
+- agent job bootstrap via `/api/agent/jobs`
+- SSE stream via `/api/agent/stream`
+- batched result ingestion with idempotency
+- heartbeat updates and offline reconciliation
+- shared `@uptime-monitor/checker`
+- lightweight remote runtime with bounded buffer/concurrency
 
-### Testing
-- [x] **Unit Tests** — Vitest setup with validation logic testing
-- [x] **E2E Tests** — Playwright tests for Authentication and Dashboard
-- [x] **GitHub Actions CI** — server integration+build, client test+lint+build, and Chromium E2E on push/PR/manual run
-- [x] **CI Hardening Baseline** — minimal token permissions, concurrency cancel, job timeouts
-- [x] **P0 Technical Hardening** — worker/checker test split, stricter JWT handling, fail-closed secret encryption, stable agent SSE
+### Delivery And Quality
 
----
+Done:
+- server integration tests
+- client tests and lint
+- chromium e2e in CI
+- local CI parity commands documented
+- split control-plane deployment in production
+- live remote agents reporting version `1.0.0`
 
-## 📅 Upcoming Roadmap
+## Completed Hardening
 
-## 🛠️ Technical Backlog Status
+### P0
+- [x] fix worker/checker test boundary
+- [x] remove generic JWT query-token auth from REST API
+- [x] make secret encryption fail-closed in production
+- [x] remove absolute timeout from agent SSE stream
+- [x] make CI a real quality gate
 
-### P0: Hardening Baseline
-- [x] Fix `worker`/`checker` test boundary
-- [x] Remove generic JWT query-token auth from REST API
-- [x] Make secret encryption fail-closed in production
-- [x] Remove absolute timeout from agent SSE stream
-- [x] Make CI a real quality gate
+### P1
+- [x] split API and background jobs into separate runtime roles
+- [x] batch agent result ingestion
+- [x] add production logging mode
+- [x] centralize environment validation
+- [x] ship operational runbook and backup/restore scripts
+- [x] expose agent version and safe deletion flow
 
-### P1: Runtime Separation
-- [x] Split API and background jobs into separate runtime roles
-- [x] Batch agent result ingestion and prepare SQLite/Postgres transition path
-- [x] Add production logging mode without `pino-pretty`
-- [x] Centralize environment validation
+## Remaining Backlog
 
-### P2: Scalability
-- [ ] Prepare Postgres-first deployment path
-- [ ] Add observability for worker lag, agent lag, and dropped results
-- [ ] Version the server/agent protocol contract
+### P2: Reliability And Scale
 
-### Q1 Goals: Resilience & Notifications
-1.  **Email Notifications (SMTP)**
-    -   Current: Telegram + Zulip
-    -   Planned: Email (SMTP), Slack Webhook, Discord
-    -   *Status: Pending*
+#### 1. Postgres deployment path
+Status:
+- not started
 
-2.  **Public Status Pages**
-    -   Create read-only public pages for sharing uptime with customers
-    -   Custom domain support (CNAME)
-    -   *Status: Pending*
+Needed work:
+- Postgres compose or deployment profile
+- migration/testing path from SQLite
+- operational docs update
 
-3.  **Maintenance Windows**
-    -   Schedule downtime to suppress alerts during updates
-    -   One-time or recurring windows
-    -   *Status: Pending*
+#### 2. Observability
+Status:
+- partial only
 
-4.  **Шифрование секретов в БД**
-    -   *Status: Completed (AES-256-GCM implemented)*
+Current state:
+- logs and health endpoints exist
+- no real metrics pipeline yet
 
-5.  **Надёжность доставки уведомлений**
-    -   *Status: Completed (3 retries with exponential backoff implemented)*
+Needed work:
+- worker lag metric
+- agent lag metric
+- dropped results metric
+- queue depth visibility
+- ingestion latency visibility
 
-### Q2 Goals: Enterprise Features
-4.  **Team Management**
-    -   Organizations / Teams
-    -   Invite users via email
-    -   Granular permissions
+#### 3. Protocol versioning
+Status:
+- partial only
 
-5.  **Advanced Checks & Configuration**
-    -   TCP/Ping checks
-    -   Keyword assertions (body must contain "Success")
-    -   SSL Expiry monitoring
-    -   [x] **Customizable Timeouts:** Allow users to define a custom timeout per monitor (currently hardcoded to 30s).
-    -   [x] **Advanced Flapping Diagnostics:** Provide detailed breakdown in the UI why a monitor is considered "flapping" vs "down".
+Current state:
+- agent reports `agentVersion`
+- no explicit protocol negotiation/version contract
 
-6.  **Real-Time & Instant Feedback**
-    -   [x] Transition the dashboard from 10s polling to WebSockets/SSE for instant UI updates when a monitor changes state.
+Needed work:
+- formal server-agent protocol version
+- compatibility policy
+- upgrade/rollback semantics
 
-7.  **Incident Management**
-    -   Create "Incidents" for downtime events
-    -   Post-mortem notes
-    -   Timeline of resolution
+### Product Backlog
 
----
+#### Near-term practical features
+- SMTP/email notifications
+- public status pages
+- maintenance windows
+- export/import of monitors
+- SLA reporting
 
-## 💡 Feature Requests / Backlog
+#### Longer-term features
+- organizations/teams
+- granular permissions
+- incident management
+- extra check types: TCP, ping, SSL expiry
 
-- [ ] **Dark Mode Toggle** (Currently forced Dark Mode)
-- [ ] **Export Data** — CSV/JSON export of check history
-- [ ] **Import Monitors** — Bulk import from JSON
-- [ ] **Webhook Integrations** — Generic webhook for custom alerting
-- [ ] **SLA Reporting** — Calculate 99.9% uptime over custom periods
-- [x] **Singleton PrismaClient** — 8+ инстансов → один `lib/prisma.ts`
-- [x] **История уведомлений** — UI для просмотра отправленных/упавших уведомлений
+## Recommended Order Of Next Work
+
+1. observability for agent plane and worker lag
+2. Postgres deployment path
+3. protocol/version compatibility rules
+4. maintenance windows
+5. email notifications
+
+## Notable Operational Truths
+
+- split runtime is now the preferred control-plane deployment
+- SQLite is still the live database
+- `deploy.sh` is legacy and should not be treated as the default production path
+- current production agent hosts are native Node.js + systemd, while the repo also ships a docker-based agent deployment kit for future greenfield hosts
+- SSH access is expected on port `2332`

@@ -1,193 +1,246 @@
-# Uptime Monitor
+# Uptime Monitor v2
 
-Self-hosted uptime monitoring service with a modern dashboard.
+Self-hosted uptime monitoring with a split control plane, optional remote agents, a React UI, and Fastify-based APIs.
 
-## Features
+This README is the human-facing entry point.
+For implementation and operator truth, read:
+- `AGENTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/PRODUCTION_TOPOLOGY.md`
+- `docs/OPERATIONS_RUNBOOK.md`
 
-- **Monitor HTTP endpoints** with configurable intervals and timeouts
-- **Status validation** — expected status code and response body (regex/substring)
-- **Advanced Authentication** — Basic auth, JSON Form Login, and `CSRF_FORM_LOGIN` support
-- **Custom headers** for authenticated endpoints
-- **Pause/Resume** individual monitors
-- **Notifications** via Telegram and Zulip with flapping protection
-- **Advanced Flapping Diagnostics** in the UI with detailed state tooltips
-- **Per-monitor notification overrides**
-- **User management** with Admin/Viewer roles
-- **API key authentication** for read-only access
-- **Audit logging** of all administrative actions
-- **Automatic data retention** cleanup
-- **Batched agent result ingestion** with idempotency handling
-- **Dark theme UI** with responsive design
-- **Docker deployment** ready
+## What It Does
 
-## Tech Stack
+- monitors HTTP/HTTPS endpoints
+- validates response status and optional body expectations
+- supports authenticated checks including multi-step flows
+- sends notifications through Telegram and Zulip
+- tracks audit history and notification history
+- supports remote execution through registered agents
+- supports builtin worker execution when `agentId` is not assigned
 
-| Component | Technology |
-|-----------|-----------|
-| Backend | Node.js + Fastify + TypeScript |
-| Database | SQLite via Prisma ORM |
-| Frontend | React 18 + Vite |
-| Deployment | Docker + Docker Compose + Nginx |
+## Current State
 
-## Quick Start
+Implemented and working:
+- split backend runtime via `SERVER_ROLE`
+- agent registration, token rotation, revocation, deletion, and version tracking
+- agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
+- production JSON logging
+- centralized env validation
+- backup/restore scripts for SQLite compose deployments
+- CI parity across server, client, and e2e
 
-### Local Development
+Not yet implemented:
+- Postgres production path
+- full observability stack
+- formal protocol versioning beyond `agentVersion`
+
+## Repository Layout
+
+```text
+client/                 React + Vite UI
+server/                 Fastify + Prisma backend
+apps/agent/             Remote agent runtime
+packages/checker/       Shared check engine
+packages/shared/        Shared types/constants
+deployment/agent/       Docker/systemd deployment kit for new agent hosts
+docs/                   Architecture, topology, runbook, rollout references
+scripts/                Backup/restore, runtime diagnostics, agent install/update helpers
+```
+
+## Local Development
+
+### Install
 
 ```bash
-# Server
-cd server
 npm install
+```
+
+### Server
+
+```bash
+cd server
 npx prisma migrate dev
 node prisma/seed.js
 npm run dev
+```
 
-# Client (separate terminal)
+### Client
+
+```bash
 cd client
-npm install
 npm run dev
 ```
 
-Server runs on `http://localhost:3000`, client on `http://localhost:5173`.
+Default local endpoints:
+- server: `http://localhost:3000`
+- client: `http://localhost:5173`
 
-### Split Server Runtime
+## Backend Runtime Modes
 
-The backend can now run as separate processes:
-
-```bash
-cd server
-npm run dev:api
-npm run dev:worker
-npm run dev:retention
-npm run dev:agent-offline-monitor
-```
-
-Production role selection is controlled with `SERVER_ROLE`:
-
-- `all` — API + worker + retention + agent offline monitor
+The backend supports these runtime roles:
+- `all`
 - `api`
 - `worker`
 - `retention`
 - `agent-offline-monitor`
 
-Logging defaults:
-
-- development: `LOG_FORMAT=pretty`
-- production: `LOG_FORMAT=json`
-- override level with `LOG_LEVEL=info|warn|error|debug|trace`
-
-### Docker (Local)
+Development examples:
 
 ```bash
-cp .env.example .env
-# Set JWT_SECRET and ADMIN_PASSWORD in .env
-docker compose up -d --build
+npm --prefix server run dev:api
+npm --prefix server run dev:worker
+npm --prefix server run dev:retention
+npm --prefix server run dev:agent-offline-monitor
 ```
 
-Application will be available at `http://localhost`.
+Production recommendation:
+- use `docker-compose.split.yml`
+- do not use `SERVER_ROLE=all` for the main control plane unless you explicitly want the compatibility mode
 
-### Backups and Ops
+## Main Compose Files
 
-SQLite compose backup:
+### `docker-compose.yml`
+Legacy single-process compose.
+Includes:
+- one server container
+- one client container
+- one local agent container
+
+Good for:
+- local demos
+- simplified environments
+
+### `docker-compose.split.yml`
+Current recommended control-plane deployment.
+Includes:
+- `server` (`SERVER_ROLE=api`)
+- `worker`
+- `retention`
+- `agent-offline-monitor`
+- `client`
+
+This is the current production pattern for the control plane.
+
+## Environment Variables
+
+### Server
+
+Defined and validated in `server/src/lib/env.ts`.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | currently expected to be SQLite in production compose |
+| `JWT_SECRET` | yes in production | required fail-closed in prod |
+| `CORS_ORIGINS` | no | comma-separated |
+| `HOST` | no | default `0.0.0.0` |
+| `PORT` | no | default `3000` |
+| `ENABLE_AGENT_API` | no | default `true` |
+| `AGENT_SSE_ENABLED` | no | default `true` |
+| `ENABLE_BUILTIN_WORKER` | no | default `true` |
+| `LOG_LEVEL` | no | default `info`, `warn` in tests |
+| `LOG_FORMAT` | no | `pretty` in dev, `json` in prod |
+| `SERVER_ROLE` | no | default `all` |
+| `ENCRYPTION_KEY` | operationally required in production | used for secret encryption |
+
+### Agent
+
+Defined and validated in `apps/agent/src/config.ts`.
+
+| Variable | Required | Default |
+|---|---|---|
+| `MAIN_SERVER_URL` | yes | none |
+| `AGENT_TOKEN` | yes | none |
+| `AGENT_HTTP_TIMEOUT_MS` | no | `7000` |
+| `AGENT_BUFFER_MAX` | no | `200` |
+| `AGENT_RESULT_MAX_BATCH` | no | `50` |
+| `AGENT_MAX_CONCURRENCY` | no | `6` |
+| `ENCRYPTION_KEY_1` | optional but required for encrypted monitor auth payloads | none |
+
+## Agent Lifecycle
+
+Important distinction:
+- registering an agent in the UI does not deploy anything
+- it only creates the control-plane record and returns a one-time token
+
+Operator flow:
+1. register agent in UI
+2. receive one-time token
+3. deploy token to a real host
+4. restart agent runtime on that host
+5. wait for heartbeat and version to appear
+
+Supported UI actions:
+- register
+- rotate token
+- revoke access
+- delete agent
+
+Delete rules:
+- deletion is allowed only if the agent has no assigned monitors
+- historical results are preserved with `agentId = null`
+
+## Tests And Verification
+
+### Local CI parity
 
 ```bash
-./scripts/backup-db.sh
-COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server ./scripts/backup-db.sh
+npm --prefix server run test:integration
+npm --prefix server run build
+npm --prefix client test
+npm --prefix client run lint
+npm --prefix client run build
+CI=1 npm --prefix e2e run test
+npm --prefix apps/agent run build
 ```
 
-Restore:
-
-```bash
-./scripts/restore-db.sh /data/backups/uptime-YYYYMMDDTHHMMSSZ.db
-```
-
-Runtime diagnostics:
+### Runtime diagnostics
 
 ```bash
 ./scripts/runtime-status.sh
 COMPOSE_FILE=docker-compose.split.yml ./scripts/runtime-status.sh
 ```
 
-Operational reference:
-- [docs/OPERATIONS_RUNBOOK.md](/home/skris/uptime-monitor-v2/docs/OPERATIONS_RUNBOOK.md)
-
-### Production Deployment (VPS)
-
-Requires one-time SSH key setup:
+### Backup and restore
 
 ```bash
-# Generate key and copy to server
-ssh-keygen -t ed25519 -f ~/.ssh/onedashmsk_admin
-ssh-copy-id -i ~/.ssh/onedashmsk_admin root@YOUR_SERVER_IP
-
-# Add to ~/.ssh/config:
-# Host uptime
-#     HostName YOUR_SERVER_IP
-#     User root
-#     IdentityFile ~/.ssh/onedashmsk_admin
+./scripts/backup-db.sh
+COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server ./scripts/backup-db.sh
+./scripts/restore-db.sh /data/backups/uptime-YYYYMMDDTHHMMSSZ.db
 ```
 
-Then deploy with one command:
+## Production Notes
 
-```bash
-bash deploy.sh
-```
+Read `docs/PRODUCTION_TOPOLOGY.md` before touching production.
 
-The `.env` file on the server is preserved across deploys. Set `ADMIN_PASSWORD` on the server before the first deploy.
+Important current facts:
+- SSH is expected on port `2332`
+- current control plane is deployed in split-runtime compose mode
+- current production agents are native Node.js + systemd on their hosts
+- the repository still contains a docker-based deployment kit for future greenfield agent hosts
 
-## CI (GitHub Actions)
+## Agent Deployment
 
-Workflow: `.github/workflows/ci.yml`
+For new agent hosts, read:
+- `docs/AGENT_DEPLOYMENT_KIT.md`
 
-- Triggers: `push`, `pull_request`, manual `workflow_dispatch`
-- Server job:
-  - `npm --prefix server run test:integration`
-  - `npm --prefix server run build`
-- Client job:
-  - `npm --prefix client test`
-  - `npm --prefix client run lint`
-  - `npm --prefix client run build`
-- E2E job:
-  - `CI=1 npm --prefix e2e run test` (Chromium only in CI)
-- Security/operational defaults:
-  - minimal token permissions (`contents: read`, `actions: write`)
-  - concurrency cancel for stale runs
-  - `timeout-minutes: 20` on each job
+That kit is the canonical greenfield path.
+Do not assume it matches the exact runtime style already present on existing production agent hosts.
 
-## API Endpoints
+## Operations
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/auth/login` | — | Login |
-| GET | `/api/auth/me` | JWT | Current user |
-| GET | `/api/monitors` | JWT/Key | List monitors |
-| GET | `/api/monitors/:id` | JWT/Key | Monitor details |
-| GET | `/api/monitors/:id/stats` | JWT/Key | Check history |
-| POST | `/api/monitors` | Admin | Create monitor |
-| PUT | `/api/monitors/:id` | Admin | Update monitor |
-| PATCH | `/api/monitors/:id/toggle` | Admin | Pause/Resume |
-| DELETE | `/api/monitors/:id` | Admin | Delete monitor |
-| GET | `/api/users` | Admin | List users |
-| POST | `/api/users` | Admin | Create user |
-| DELETE | `/api/users/:id` | Admin | Delete user |
-| PATCH | `/api/users/:id/password` | Admin | Change password |
-| GET | `/api/apikeys/me` | JWT | Get API key |
-| POST | `/api/apikeys/generate` | JWT | Generate key |
-| DELETE | `/api/apikeys/revoke` | JWT | Revoke key |
-| GET | `/api/audit` | Admin | Audit log |
-| GET | `/api/notifications/settings` | Admin | Get settings |
-| PUT | `/api/notifications/settings` | Admin | Update settings |
+For runbook-style instructions, use:
+- `docs/OPERATIONS_RUNBOOK.md`
 
-## Environment Variables
+It covers:
+- health checks
+- split runtime operations
+- backup and restore
+- agent troubleshooting
+- recovery workflow
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `JWT_SECRET` | Yes (production) | auto | JWT signing secret |
-| `ADMIN_PASSWORD` | No | random | Initial admin password |
-| `DATABASE_URL` | Yes | — | SQLite/Postgres connection string |
-| `CORS_ORIGINS` | No | `http://localhost:5173` | Allowed origins |
-| `PORT` | No | `3000` | Server port |
-| `HOST` | No | `0.0.0.0` | Server host |
-| `ENCRYPTION_KEY` | Yes (production) | — | 64-char hex key for AES-256-GCM secret storage |
-| `LOG_LEVEL` | No | `info` | Pino log level |
-| `LOG_FORMAT` | No | `pretty` in dev, `json` in prod | Log output mode |
-| `SERVER_ROLE` | No | `all` | Backend runtime role |
+## Legacy Script Warning
+
+`deploy.sh` still exists, but it should be treated as a legacy helper.
+It is not the preferred current production procedure for the split control plane.
+Review it before using it on any real host.

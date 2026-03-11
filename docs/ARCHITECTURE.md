@@ -1,0 +1,288 @@
+# Architecture
+
+This document describes the current architecture of `uptime-monitor-v2`.
+It is written as an implementation-facing reference, not a marketing overview.
+
+## System Shape
+
+The system has two planes.
+
+### 1. Control Plane
+
+The control plane lives in this repository and consists of:
+- Fastify API in `server/`
+- React UI in `client/`
+- SQLite database managed by Prisma
+- optional builtin scheduler worker
+- background services for retention and agent offline detection
+
+### 2. Execution Plane
+
+The execution plane consists of remote agents built from `apps/agent/`.
+Each agent pulls assigned monitor jobs from the control plane and reports results back.
+
+## Main Components
+
+### Server
+
+Key files:
+- `server/src/index.ts`
+- `server/src/worker.ts`
+- `server/src/routes/*.ts`
+- `server/src/services/*.ts`
+- `server/src/lib/*.ts`
+
+Key responsibilities:
+- auth and RBAC
+- monitor CRUD and stats
+- notification settings and history
+- agent registration and lifecycle management
+- agent jobs, heartbeat, results, SSE stream
+- builtin worker execution for unassigned monitors or single-process mode
+- retention cleanup
+- agent offline reconciliation
+
+### Client
+
+Key files:
+- `client/src/App.tsx`
+- `client/src/pages/*.tsx`
+- `client/src/components/*.tsx`
+- `client/src/api.ts`
+
+Key responsibilities:
+- operator UI
+- auth session handling
+- monitor CRUD and history views
+- user and notification management
+- agent registration and lifecycle management
+
+### Shared Packages
+
+#### `packages/checker`
+Shared HTTP check engine used by:
+- builtin server worker
+- remote agent
+
+#### `packages/shared`
+Shared TypeScript types and constants used by:
+- client
+- server
+- agent
+
+## Runtime Roles
+
+The backend supports explicit runtime separation through `SERVER_ROLE`.
+
+Allowed values:
+- `all`
+- `api`
+- `worker`
+- `retention`
+- `agent-offline-monitor`
+
+### `all`
+Single-process compatibility mode.
+Runs:
+- Fastify API
+- builtin worker if enabled
+- retention service
+- agent offline monitor if agent API enabled
+
+### `api`
+Runs only:
+- Fastify API
+- health endpoints
+- route handlers
+
+### `worker`
+Runs only:
+- builtin check scheduler and executor
+
+### `retention`
+Runs only:
+- retention cleanup loop
+
+### `agent-offline-monitor`
+Runs only:
+- stale agent reconciliation
+
+## Data Model
+
+Core entities:
+- `Monitor`
+- `CheckResult`
+- `Agent`
+- `User`
+- `ApiKey`
+- `AuditLog`
+- `NotificationSettings`
+- `MonitorNotificationOverride`
+- `NotificationHistory`
+
+Important relationships:
+- `Monitor.agentId` is nullable
+  - `null` means builtin worker
+  - non-null means assigned to a remote agent
+- `CheckResult.agentId` is nullable
+  - preserved historical results survive agent deletion by nulling the relation
+- `Agent` has `status`, `lastSeen`, `revokedAt`, and `agentVersion`
+
+## Execution Flow
+
+### Builtin Worker Flow
+
+1. Server starts with builtin worker enabled.
+2. `CheckWorker` schedules active monitors with `agentId = null`.
+3. Each check uses `@uptime-monitor/checker`.
+4. Results are stored in `CheckResult`.
+5. Flapping and notification logic runs from server-side services.
+6. UI receives updates through monitor APIs and SSE.
+
+### Remote Agent Flow
+
+1. Operator registers an agent in the UI.
+2. Control plane creates an `Agent` record and returns a one-time token.
+3. Operator deploys that token to a real host manually.
+4. Agent starts and calls `GET /api/agent/jobs`.
+5. Agent opens `GET /api/agent/stream` for live updates.
+6. Agent executes assigned checks via `@uptime-monitor/checker`.
+7. Agent batches results to `POST /api/agent/results`.
+8. Agent sends liveness to `POST /api/agent/heartbeat`.
+9. Server updates `lastSeen`, `status`, and `agentVersion`.
+10. Offline monitor service marks stale agents `OFFLINE`.
+
+## Agent Protocol Details
+
+### Jobs bootstrap
+Endpoint:
+- `GET /api/agent/jobs`
+
+Returns:
+- assigned monitors only
+- heartbeat interval
+- monitor configuration including auth fields and key version
+
+### Results ingestion
+Endpoint:
+- `POST /api/agent/results`
+
+Behavior:
+- validates payload with zod
+- enforces rate limiting
+- enforces body size limit
+- accepts up to 500 results per request
+- filters out monitors not assigned to the agent
+- deduplicates by `idempotencyKey`
+- stores via batched `createMany` with duplicate-safe fallback logic
+
+### Heartbeat
+Endpoint:
+- `POST /api/agent/heartbeat`
+
+Behavior:
+- updates `lastSeen`
+- sets `status=ONLINE`
+- persists `agentVersion` when provided
+- returns `heartbeatIntervalSec`
+
+### SSE stream
+Endpoint:
+- `GET /api/agent/stream`
+
+Behavior:
+- authenticated per agent token
+- supports `Last-Event-ID`
+- can request `RESYNC_JOBS`
+- used for near-real-time job updates
+
+## Security Model
+
+### User auth
+- JWT auth for browser/admin sessions
+- API keys for read-only access
+- admin-only writes for sensitive endpoints
+
+### Agent auth
+- one-time registration token shown only at create/rotate time
+- database stores only `tokenHash`
+- revoked tokens receive `403`
+
+### Secret handling
+- notification secrets use AES-256-GCM via `server/src/lib/crypto.ts`
+- production requires valid encryption configuration
+- monitor auth payloads are transmitted to agents in encrypted form when applicable
+
+### JWT boundary
+- query-string JWT is reserved for SSE helper auth only
+- regular REST APIs must use headers
+
+## Logging
+
+Server logging uses Pino.
+
+Current policy:
+- development defaults to `pretty`
+- production defaults to `json`
+- server code should not introduce new `console.*`
+
+Agent logging is still stdout/stderr oriented and systemd/docker captures it.
+
+## Health and Diagnostics
+
+### `/health`
+Basic liveness endpoint.
+
+### `/health/runtime`
+Returns:
+- active server role
+- runtime feature flags
+- status of worker, retention, and agent-offline-monitor services inside the current process
+
+In split runtime mode, the API process reports background roles as not running in that process. That is expected.
+External role health should be checked with compose or systemd status.
+
+## Deployment Modes
+
+### Legacy single-process compose
+- file: `docker-compose.yml`
+- includes local `agent` container
+- useful for local/demo setups
+- not the current recommended production topology
+
+### Current recommended control-plane deployment
+- file: `docker-compose.split.yml`
+- split services for API, worker, retention, agent-offline-monitor, and client
+- this is the current production pattern for the control plane
+
+### Remote agent deployment
+Two patterns exist.
+
+Canonical repository kit:
+- docker compose + systemd under `/opt/uptime-agent`
+- files under `deployment/agent/`
+- scripts under `scripts/install-agent.sh`, `scripts/update-agent.sh`, `scripts/uninstall-agent.sh`
+
+Current production reality on existing agent hosts:
+- native Node.js + systemd
+- repo checkout under `/home/skris/uptime-agent`
+- service executes `apps/agent/dist/index.js`
+
+## Known Architectural Constraints
+
+- SQLite remains the production DB
+- no Postgres migration path implemented yet
+- no full metrics stack yet
+- no persistent on-disk queue for agent results
+- current remote hosts use mixed deployment styles
+
+## Main Architectural Invariants
+
+Do not violate these without explicit migration work.
+
+- one monitor has one executor at a time
+- `agentId = null` means builtin worker
+- agent deletion must not destroy historical results
+- split runtime must remain supported
+- production env validation must fail early on bad config
+- remote agents must remain lightweight in resource usage

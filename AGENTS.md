@@ -1,309 +1,296 @@
-# AGENTS.md — Uptime Monitor
+# AGENTS.md
 
-> This file is for AI coding agents (Cursor, Copilot, Windsurf, Antigravity, ChatGPT, etc.).
-> It describes the project architecture, conventions, and strict rules to follow.
+This file is the primary source of truth for AI coding agents working in this repository.
+Read this first, then follow the linked documents.
 
----
+## Purpose
 
-## Project Overview
+`uptime-monitor-v2` is a self-hosted uptime monitoring system with a split control plane and optional remote agents.
 
-**Uptime Monitor** — self-hosted service for monitoring HTTP/HTTPS endpoint availability.
-Checks status codes, response bodies (regex/substring), supports multi-step authentication, and sends notifications via Telegram/Zulip with flapping protection.
+The repository contains:
+- control-plane API and UI
+- builtin monitor worker
+- remote agent runtime
+- deployment and operational tooling
+- tests and CI for all major paths
 
-**Current version:** v1.2
+This document is optimized for agents that need to understand:
+- what is running now
+- which documents are authoritative
+- how to make safe changes without damaging production
+- how the codebase is laid out
 
----
+## Current State Summary
 
-## Tech Stack
+As of 2026-03-11:
+- control plane is production-ready and deployed in split-runtime mode
+- remote agents are deployed and reporting version `1.0.0`
+- agent UI supports register, rotate token, revoke, delete, and version visibility
+- split runtime, backup/restore, runtime diagnostics, and CI parity are implemented
+- SQLite is still the production database
+- Postgres, observability, and a formal versioned protocol remain future work
 
-| Layer        | Technology                                        |
-|--------------|---------------------------------------------------|
-| Backend      | Node.js (v20+), **Fastify** (NOT Express!), TypeScript, Pino logger |
-| Database     | **SQLite** via **Prisma ORM**                     |
-| Frontend     | React 18, Vite, TypeScript, Recharts, Lucide React |
-| Testing      | Vitest (unit), Playwright (E2E)                   |
-| Deployment   | Docker + Docker Compose, Nginx reverse proxy      |
-| Monorepo     | npm workspaces (`client`, `server`, `e2e`, `packages/*`) |
+## Source Of Truth
 
----
+Read documents in this order.
 
-## Project Structure
+1. `AGENTS.md`
+2. `README.md`
+3. `docs/ARCHITECTURE.md`
+4. `docs/PRODUCTION_TOPOLOGY.md`
+5. `docs/OPERATIONS_RUNBOOK.md`
+6. `docs/AGENT_DEPLOYMENT_KIT.md`
+7. `ROADMAP.md`
+8. `CODE_REVIEW.md`
 
-```
-/
-├── client/                    # React frontend (Vite)
-│   ├── src/
-│   │   ├── App.tsx            # Main app with routing
-│   │   ├── api.ts             # Singleton Axios client
-│   │   ├── components/        # Reusable UI components
-│   │   │   ├── ErrorBoundary.tsx
-│   │   │   ├── MonitorCard.tsx
-│   │   │   ├── MonitorForm.tsx
-│   │   │   └── TimeRangeFilter.tsx
-│   │   ├── contexts/          # React contexts (AuthContext)
-│   │   └── pages/             # Route pages
-│   │       ├── LoginPage.tsx
-│   │       ├── MonitorHistory.tsx
-│   │       ├── NotificationSettings.tsx
-│   │       ├── NotificationHistoryPage.tsx
-│   │       ├── AuditLogPage.tsx
-│   │       └── UsersPage.tsx
-│   ├── nginx.conf             # Production Nginx config
-│   └── Dockerfile
-│
-├── server/                    # Fastify backend
-│   ├── src/
-│   │   ├── index.ts           # Runtime entry point; starts API or background role based on SERVER_ROLE
-│   │   ├── worker.ts          # CheckWorker — scheduler-based monitor execution
-│   │   ├── lib/
-│   │   │   ├── prisma.ts      # Singleton PrismaClient
-│   │   │   ├── auth.ts        # JWT/API key auth middleware
-│   │   │   ├── crypto.ts      # AES-256-GCM encryption for secrets
-│   │   │   ├── env.ts         # Centralized server env parsing/validation
-│   │   │   ├── logger.ts      # Shared Pino/Fastify logger config
-│   │   │   ├── serverRoles.ts # Allowed runtime roles: api/worker/retention/agent-offline-monitor/all
-│   │   │   └── validation.ts  # Shared validation logic (unit tested)
-│   │   ├── routes/
-│   │   │   ├── auth.ts        # /api/auth/*
-│   │   │   ├── monitors.ts    # /api/monitors/* — CRUD, toggle, stats, SSE
-│   │   │   ├── users.ts       # /api/users/*
-│   │   │   ├── apikeys.ts     # /api/apikeys/*
-│   │   │   ├── audit.ts       # /api/audit
-│   │   │   └── notifications.ts # /api/notifications/*
-│   │   └── services/
-│   │       ├── flapping.ts       # FlappingService — core anti-oscillation logic
-│   │       ├── agentResults.ts   # Batched agent result persistence with duplicate handling
-│   │       ├── retentionService.ts # Auto-cleanup of old CheckResults
-│   │       ├── sse.ts            # Server-Sent Events for real-time dashboard
-│   │       ├── telegram.ts       # Telegram notifications
-│   │       ├── zulip.ts          # Zulip notifications
-│   │       └── auditService.ts   # Audit log helper
-│   ├── prisma/
-│   │   ├── schema.prisma      # Database schema (READ THIS FIRST!)
-│   │   ├── seed.js            # Production seed (plain JS, no tsx)
-│   │   └── migrations/
-│   ├── Dockerfile
-│   └── vitest.config.ts
-│
+Historical or template documents are not the primary source of truth:
+- `ROADMAP_NEW.md`
+- `docs/V2_TASK_TRACKER.md`
+- `docs/V2_ROLLOUT_PLAN.md`
+- `docs/V2_ROLLBACK_RUNBOOK.md`
+- `docs/V2_CANARY_SIGNOFF.md`
+- `docs/V2_ISSUES_SEED.md`
+
+Use them only for historical context, not for current operational decisions.
+
+## Repository Map
+
+```text
+.
+├── AGENTS.md
+├── README.md
+├── ROADMAP.md
+├── ROADMAP_NEW.md
+├── CODE_REVIEW.md
+├── docker-compose.yml                  # legacy single-process compose
+├── docker-compose.split.yml            # current recommended control-plane compose
+├── deploy.sh                           # legacy deploy script, not the current preferred prod path
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── PRODUCTION_TOPOLOGY.md
+│   ├── OPERATIONS_RUNBOOK.md
+│   ├── AGENT_DEPLOYMENT_KIT.md
+│   └── V2_*.md                         # historical rollout/planning templates
+├── apps/
+│   └── agent/                          # remote agent runtime
+├── client/                             # React + Vite UI
+├── server/                             # Fastify + Prisma backend
 ├── packages/
-│   └── shared/                # @uptime-monitor/shared — shared TypeScript types
-│       └── src/index.ts
-│
-├── e2e/                       # Playwright E2E tests
-│   ├── tests/
-│   └── playwright.config.ts
-│
-├── docker-compose.yml
-├── .github/workflows/ci.yml    # GitHub Actions CI (server/client checks)
-├── deploy.sh                  # One-command SSH deployment script
-├── harden.sh                  # Server hardening script
-├── .env.example
-├── CODE_REVIEW.md             # Technical audit & scorecard
-├── docs/OPERATIONS_RUNBOOK.md # Backup/restore, health checks, split runtime ops
-└── ROADMAP.md                 # Product roadmap & backlog
+│   ├── checker/                        # shared HTTP check engine
+│   └── shared/                         # shared TS types/constants
+├── deployment/
+│   └── agent/                          # docker/systemd deployment kit for agents
+├── scripts/
+│   ├── backup-db.sh
+│   ├── restore-db.sh
+│   ├── runtime-status.sh
+│   ├── install-agent.sh
+│   ├── update-agent.sh
+│   ├── uninstall-agent.sh
+│   └── loadtest-agent-results.mjs
+└── e2e/
 ```
 
----
+## Runtime Topology
 
-## Essential Commands
+There are two distinct runtime surfaces.
 
-### Development
+### Control Plane
+
+Implemented in `server/` and `client/`.
+
+Supported modes:
+- `SERVER_ROLE=all`
+- `SERVER_ROLE=api`
+- `SERVER_ROLE=worker`
+- `SERVER_ROLE=retention`
+- `SERVER_ROLE=agent-offline-monitor`
+
+Current recommended production mode:
+- split runtime using `docker-compose.split.yml`
+- separate services for API, worker, retention, and agent-offline-monitor
+
+### Remote Agents
+
+Implemented in `apps/agent/`.
+
+Agent responsibilities:
+- bootstrap monitor jobs from `/api/agent/jobs`
+- subscribe to `/api/agent/stream`
+- execute checks via `@uptime-monitor/checker`
+- buffer and batch result delivery to `/api/agent/results`
+- send heartbeat to `/api/agent/heartbeat`
+- report `agentVersion`
+
+## Production Topology
+
+For current production details, read `docs/PRODUCTION_TOPOLOGY.md`.
+
+Important operational facts:
+- SSH is expected on port `2332`, not `22`
+- current operator workstation uses SSH aliases for the main hosts
+- control plane is currently deployed in split-runtime compose mode
+- current remote production agents are running as native Node.js + systemd services under a repo checkout, not via the docker-based deployment kit
+- the docker-based deployment kit remains the canonical greenfield install path for future agent hosts
+
+## Safe Workflow For AI Agents
+
+When making changes, follow this sequence.
+
+1. Read `AGENTS.md` and the relevant specific doc.
+2. Inspect current code before assuming the docs are still correct.
+3. Prefer the split-runtime architecture in new work.
+4. Preserve backward compatibility unless the user explicitly requests a breaking change.
+5. Run the smallest relevant verification commands locally.
+6. Update documentation when behavior, deployment, or operations change.
+
+## Hard Rules
+
+### Never do these blindly
+
+- Do not use `deploy.sh` as the default production path without reviewing it.
+  Reason: it is a legacy script oriented around single-process compose and broad container stops.
+- Do not assume port `22` is available on production hosts.
+  Use `2332`.
+- Do not delete an agent that still has assigned monitors.
+  The backend now blocks this for a reason.
+- Do not replace split-runtime production with `SERVER_ROLE=all` unless explicitly requested.
+- Do not assume docker-based agent deployment matches the current production hosts.
+  Current prod agents are native Node.js + systemd.
+- Do not add Prisma enums for SQLite-backed domain values.
+  Use strings.
+- Do not add new `console.*` in server code.
+  Use the shared Pino logger.
+
+### Always do these
+
+- Validate env changes against `server/src/lib/env.ts` and `apps/agent/src/config.ts`.
+- Keep API contracts aligned with `packages/shared` when appropriate.
+- Keep agent and server behavior aligned when touching heartbeat, jobs, results, or SSE.
+- Keep docs current when touching runtime roles, routes, scripts, migrations, or deployment behavior.
+- Use `fastify.inject()` in server tests.
+- Preserve SQLite compatibility unless a deliberate migration plan is part of the task.
+
+## High-Risk Areas
+
+Review these carefully before touching them.
+
+- `server/prisma/schema.prisma`
+- `server/src/index.ts`
+- `server/src/routes/agent.ts`
+- `server/src/routes/agents.ts`
+- `server/src/services/agentResults.ts`
+- `server/src/services/agentSse.ts`
+- `server/src/lib/crypto.ts`
+- `docker-compose.split.yml`
+- `deployment/agent/*`
+
+## Current API Surface That Matters Most
+
+### Control-plane admin APIs
+- `/api/auth/*`
+- `/api/monitors/*`
+- `/api/users/*`
+- `/api/apikeys/*`
+- `/api/audit`
+- `/api/notifications/*`
+- `/api/agents/*`
+
+### Agent APIs
+- `GET /api/agent/jobs`
+- `GET /api/agent/stream`
+- `POST /api/agent/results`
+- `POST /api/agent/heartbeat`
+
+### Health
+- `GET /health`
+- `GET /health/runtime`
+
+## Agent Lifecycle Semantics
+
+The UI and API now distinguish between these operations.
+
+- Register agent:
+  - creates agent record
+  - returns one-time token
+  - does not deploy anything to a host
+- Rotate token:
+  - invalidates current token
+  - returns a new one-time token
+- Revoke access:
+  - sets `revokedAt`
+  - forces the agent effectively offline until re-registered or token-rotated
+- Delete agent:
+  - allowed only when the agent has no assigned monitors
+  - preserves historical results by nulling `agentId` through the DB relation behavior
+- Heartbeat:
+  - updates `lastSeen`
+  - marks agent `ONLINE`
+  - persists `agentVersion` when provided
+
+## Current Verification Commands
+
+Use these commands after meaningful changes.
+
+### Local CI parity
 
 ```bash
-# Backend dev server (hot reload)
-cd server && npm run dev
-
-# Backend API only
-cd server && npm run dev:api
-
-# Background roles
-cd server && npm run dev:worker
-cd server && npm run dev:retention
-cd server && npm run dev:agent-offline-monitor
-
-# Frontend dev server
-cd client && npm run dev
-```
-
-Server: `http://localhost:3000` | Client: `http://localhost:5173`
-
-### Testing
-
-```bash
-# Backend unit tests
-cd server && npm test
-
-# Backend tests with coverage
-cd server && npm run test:integration
-
-# Frontend unit tests
-cd client && npm test
-
-# E2E tests (Playwright)
-cd e2e && npx playwright test
-
-# CI parity (same core checks as GitHub Actions)
 npm --prefix server run test:integration
 npm --prefix server run build
 npm --prefix client test
 npm --prefix client run lint
 npm --prefix client run build
 CI=1 npm --prefix e2e run test
+npm --prefix apps/agent run build
 ```
 
-### CI (GitHub Actions)
-
-- Workflow file: `.github/workflows/ci.yml`
-- Triggers: `push`, `pull_request`, `workflow_dispatch`
-- Jobs:
-  - `server`: `npm --prefix server run test:integration` + `npm --prefix server run build`
-  - `client`: `npm --prefix client test` + `npm --prefix client run lint` + `npm --prefix client run build`
-  - `e2e`: `npm --prefix e2e run test` on Chromium in CI mode
-- Safety defaults:
-  - minimal token permissions (`contents: read`, `actions: write` for artifact upload)
-  - `concurrency` with `cancel-in-progress: true`
-  - `timeout-minutes: 20` per job
-
-### Runtime Roles
-
-- Default mode is `all`: API + builtin worker + retention + agent offline monitor in one process.
-- `SERVER_ROLE=api`: only Fastify API server listens on `HOST`/`PORT`.
-- `SERVER_ROLE=worker`: only the builtin monitor scheduler runs.
-- `SERVER_ROLE=retention`: only retention cleanup loop runs.
-- `SERVER_ROLE=agent-offline-monitor`: only agent offline reconciliation loop runs.
-- For production split-process deployment, prefer separate services over `all`.
-
-### Logging
-
-- Development defaults to `LOG_FORMAT=pretty`.
-- Production defaults to `LOG_FORMAT=json`.
-- `LOG_LEVEL` defaults to `info` (`warn` in tests).
-- Server code should use the shared Pino logger from `server/src/lib/logger.ts`; do not add new `console.*` calls.
-
-### Database
+### Runtime diagnostics
 
 ```bash
-cd server
-npx prisma migrate dev       # Apply migrations
-npx prisma db push           # Push schema without migration
-npx prisma studio            # Visual DB explorer
-node prisma/seed.js           # Seed initial data
+./scripts/runtime-status.sh
+COMPOSE_FILE=docker-compose.split.yml ./scripts/runtime-status.sh
 ```
 
-### Build & Deploy
-
-```bash
-# Local Docker
-docker compose up -d --build
-
-# Production (VPS via SSH keys)
-bash deploy.sh
-```
-
-### Backups and Diagnostics
+### DB operations
 
 ```bash
 ./scripts/backup-db.sh
+COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server ./scripts/backup-db.sh
 ./scripts/restore-db.sh /data/backups/uptime-YYYYMMDDTHHMMSSZ.db
-./scripts/runtime-status.sh
 ```
 
----
+## Known Gaps
 
-## Strict Rules for AI Agents
+These are real remaining gaps, not hypothetical ones.
 
-### 🔴 NEVER DO
+- production still runs on SQLite
+- no full metrics/observability stack yet
+- no Postgres deployment path yet
+- remote agent deployment is not standardized on one single method across all hosts
+- `deploy.sh` is still present and useful for history, but should be treated as legacy
 
-1. **NEVER use `Enum` in Prisma schema** — SQLite does not support enums. Use `String` type with comments indicating valid values (e.g., `// "NONE", "BASIC", "FORM_LOGIN"`).
-2. **NEVER use Express patterns** — the backend is Fastify. Use `request`/`reply` (not `req`/`res`), use `fastify.register()` for plugins, and `fastify.inject()` for testing.
-3. **NEVER add interactive steps** (password prompts, confirmations) to `deploy.sh` — deployment is fully automated over SSH keys.
-4. **NEVER create multiple PrismaClient instances** — import the singleton from `server/src/lib/prisma.ts`.
-5. **NEVER use `seed.ts` in production Docker** — `tsx` is not available in the prod image. Use `seed.js` (plain JS).
-6. **NEVER store secrets in plaintext in the DB** — use `lib/crypto.ts` (AES-256-GCM) for bot tokens, API keys, etc.
+## Documentation Maintenance Rules
 
-### 🟡 ASK FIRST
+When you change any of these, update docs in the same work unit.
 
-1. Before modifying `schema.prisma` — changing the DB schema affects migrations and may require data migration.
-2. Before modifying `docker-compose.yml` or `Dockerfile` — changes affect production deployment.
-3. Before modifying `FlappingService` — this is the core anti-oscillation algorithm with specific business logic.
-4. Before adding new npm dependencies — check if existing packages cover the need.
+- routes or API contracts
+- runtime roles
+- health endpoints
+- env variables
+- deployment method
+- backup/restore behavior
+- agent lifecycle semantics
+- production topology
+- roadmap status
 
-### 🟢 ALWAYS DO
+Minimum docs update set by change type:
+- API/runtime change: `AGENTS.md`, `README.md`, `docs/ARCHITECTURE.md`
+- ops/deploy change: `AGENTS.md`, `docs/PRODUCTION_TOPOLOGY.md`, `docs/OPERATIONS_RUNBOOK.md`
+- roadmap/status change: `ROADMAP.md`, possibly `CODE_REVIEW.md`
 
-1. **Use TypeScript strict mode** — both `server/` and `client/` have strict TS configs.
-2. **Run tests after changes** — `cd server && npm test` and `cd client && npm test`.
-3. **Use existing patterns** — follow the route/service/lib structure already established.
-4. **Import shared types** from `@uptime-monitor/shared` (not relative paths).
-5. **Use Pino logger** (not `console.log`) in server code for structured logging.
-6. **Update `CODE_REVIEW.md`** and **`ROADMAP.md`** when making significant changes.
-7. **Keep the Fastify `.inject()` pattern** for integration tests — don't spin up a real server.
-8. **If CI-related code is changed**, run CI parity commands locally before finishing.
+## If You Are Unsure
 
----
-
-## Architecture Decisions
-
-### Backend
-
-- **Scheduler-based CheckWorker**: Each monitor gets its own `setTimeout` based on `intervalSeconds`. A `syncSchedule()` runs every 30s to reconcile with DB state. No busy-polling.
-- **Split runtime roles**: `SERVER_ROLE` allows the API and each background loop to run in separate processes while keeping `all` as a compatibility mode.
-- **Centralized env parsing**: runtime flags and required server settings are validated in `server/src/lib/env.ts`; the agent validates its own env in `apps/agent/src/config.ts`.
-- **FlappingService**: Tracks rapid UP↔DOWN oscillations. Configurable `flappingFailCount` and `flappingIntervalSec`. State persisted in DB. Suppresses flood notifications.
-- **RetentionService**: Hourly job deletes `CheckResult` records older than `retentionDays` (default 30).
-- **Agent result ingestion**: `/api/agent/results` prefilters assigned monitors, deduplicates idempotency keys, then writes batched rows via `createMany` with recursive duplicate fallback for SQLite-safe behavior.
-- **SSE (Server-Sent Events)**: Real-time dashboard updates. JWT auth via query param for SSE streams.
-- **JWT boundary**: Query-token auth is allowed only for SSE endpoints; REST API requires `Authorization` header or API key.
-- **Auth methods**: `NONE`, `BASIC`, `FORM_LOGIN`, `CSRF_FORM_LOGIN`. CSRF variant fetches login page, extracts CSRF token + cookies via `CookieJar`, then submits form.
-
-### Frontend
-
-- **AuthContext**: Manages JWT tokens and session expiry (intercepting 401 responses with "Session Expired" modal instead of hard reload).
-- **ErrorBoundary**: Global React error boundary for graceful crash handling.
-- **Dark theme**: Currently forced dark mode (no toggle yet).
-
-### Database
-
-- SQLite — lightweight, no separate DB server needed.
-- All enums stored as `String` (SQLite limitation).
-- `headers` and `authPayload` stored as JSON strings.
-- Secrets encrypted with AES-256-GCM via `ENCRYPTION_KEY` env var.
-
----
-
-## Environment Variables
-
-| Variable         | Required          | Default                  | Description                          |
-|------------------|-------------------|--------------------------|--------------------------------------|
-| `JWT_SECRET`     | Yes (production)  | auto-generated           | JWT signing secret                   |
-| `ADMIN_PASSWORD` | No                | random                   | Initial admin password               |
-| `DATABASE_URL`   | Yes               | —                        | SQLite/Postgres connection string    |
-| `CORS_ORIGINS`   | No                | `http://localhost:5173`  | Comma-separated allowed origins      |
-| `PORT`           | No                | `3000`                   | Server port                          |
-| `HOST`           | No                | `0.0.0.0`                | Server bind host                     |
-| `ENCRYPTION_KEY` | Yes (production)  | —                        | 32-byte hex for AES-256-GCM secrets  |
-| `LOG_LEVEL`      | No                | `info` / `warn` in test  | Pino log level                       |
-| `LOG_FORMAT`     | No                | `pretty` / `json` in prod| Logger output mode                   |
-| `SERVER_ROLE`    | No                | `all`                    | `all`, `api`, `worker`, `retention`, `agent-offline-monitor` |
-
----
-
-## Code Style
-
-- **TypeScript strict** in both client and server
-- **Single quotes** for strings
-- **Semicolons** at end of statements
-- **Functional components** (React) — no class components
-- **`async/await`** over raw Promises
-- **Named exports** for services and utilities; **default exports** for Fastify route plugins
-- **Consistent error handling**: routes return `{ error: string }` with appropriate HTTP status codes
-
----
-
-## Key Files to Read First
-
-1. `server/prisma/schema.prisma` — the data model (source of truth)
-2. `server/src/index.ts` — app bootstrap, plugin registration, route mounting
-3. `server/src/worker.ts` — the CheckWorker scheduling and check execution logic
-4. `server/src/services/flapping.ts` — core flapping detection algorithm
-5. `client/src/App.tsx` — frontend routing and layout
-6. `client/src/api.ts` — Axios client configuration and interceptors
+If a document conflicts with code:
+- trust code first
+- then update the document
+- then mention the mismatch in the final response
