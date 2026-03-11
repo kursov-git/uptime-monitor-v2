@@ -32,6 +32,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build Shared Packages
+        run: |
+          npm --prefix packages/shared run build
+          npm --prefix packages/checker run build
+
       - name: Server Tests With Coverage
         run: npm --prefix server run test:integration
 
@@ -61,6 +66,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build Shared Types
+        run: npm --prefix packages/shared run build
+
       - name: Client Tests
         run: npm --prefix client test
 
@@ -86,6 +94,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build Shared Packages
+        run: |
+          npm --prefix packages/shared run build
+          npm --prefix packages/checker run build
+
       - name: Agent Build
         run: npm --prefix apps/agent run build
 
@@ -106,7 +119,12 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npm --prefix e2e exec playwright install --with-deps chromium
+
+      - name: Build Shared Packages
+        run: |
+          npm --prefix packages/shared run build
+          npm --prefix packages/checker run build
 
       - name: E2E Tests
         run: npm --prefix e2e run test
