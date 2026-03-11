@@ -43,39 +43,26 @@ Already delivered:
 
 This baseline is good enough to build product-facing features on top without more foundational rewrites first.
 
+## Recently Delivered
+
+### Rich Telegram Notifications
+
+Status:
+- delivered
+
+Delivered scope:
+- monitor alerts include clearer state transitions
+- monitor alerts include agent attribution or `builtin worker`
+- deep links use configurable `appBaseUrl`
+- agent OFFLINE alerts are sent through the same notification stack
+- notification settings update responses no longer leak raw secrets
+- end-to-end flow was verified against a real remote agent in production
+
 ## Now
 
 These are the highest-priority roadmap items for the next iteration.
 
-### 1. Public Status Page
-
-Goal:
-- one public status page for the whole monitored estate
-
-Why now:
-- strong demo value
-- immediately understandable to non-technical stakeholders
-- natural external-facing companion to the internal dashboard
-
-Scope:
-- one shared public page, not multiple status pages
-- selected monitors only
-- current status by monitor/service
-- simple uptime summary
-- recent incidents or recent status changes
-- stable public slug
-
-Out of scope for this phase:
-- multiple status pages
-- custom domains
-- advanced branding
-
-Success criteria:
-- an operator can choose what is visible publicly
-- a public viewer can see current service health without auth
-- page remains usable on mobile and desktop
-
-### 2. Scheduled Maintenance Windows
+### 1. Scheduled Maintenance Windows
 
 Goal:
 - suppress alerts and clearly mark monitors/services during planned work
@@ -83,6 +70,7 @@ Goal:
 Why now:
 - monitoring without maintenance windows becomes noisy quickly
 - necessary for real operational use
+- highest operator value among the remaining `Now` items
 
 Scope:
 - create maintenance windows manually
@@ -101,37 +89,7 @@ Success criteria:
 - alerts are suppressed correctly during those windows
 - monitor state remains understandable in the UI
 
-### 3. Rich Telegram Notifications
-
-Goal:
-- make Telegram alerts more useful and more contextual
-
-Why now:
-- Telegram is already a first-class channel
-- improving alert clarity gives immediate operator value
-
-Scope:
-- include monitor name
-- include status transition
-- include agent name
-- include response/error details when relevant
-- include direct link back to the control plane
-- improve formatting for:
-  - DOWN
-  - RECOVERED
-  - FLAPPING
-  - AGENT OFFLINE
-
-Explicit product decision:
-- Telegram bot stays notification-first for now
-- no bot console/command surface in this phase
-
-Success criteria:
-- operator can immediately see which monitor failed
-- operator can see which agent ran the failing check
-- alert text is short but decision-useful
-
-### 4. Incident Management Lite
+### 2. Incident Management Lite
 
 Goal:
 - make outages and recoveries first-class product events
@@ -139,6 +97,7 @@ Goal:
 Why now:
 - status pages and alerting become much more coherent with incident objects
 - this adds visible product maturity without becoming heavy process software
+- more leverage after maintenance semantics are in place
 
 Scope:
 - auto-open incident on DOWN
@@ -160,26 +119,38 @@ Success criteria:
 - every meaningful outage can be inspected as one coherent event
 - operator no longer has to reconstruct history from raw check rows only
 
+### 3. Public Status Page
+
+Goal:
+- one public status page for the whole monitored estate
+
+Why now:
+- strong demo value
+- immediately understandable to non-technical stakeholders
+- natural external-facing companion to the internal dashboard
+- best built after maintenance and incidents exist
+
+Scope:
+- one shared public page, not multiple status pages
+- selected monitors only
+- current status by monitor/service
+- simple uptime summary
+- recent incidents or recent status changes
+- stable public slug
+
+Out of scope for this phase:
+- multiple status pages
+- custom domains
+- advanced branding
+
+Success criteria:
+- an operator can choose what is visible publicly
+- a public viewer can see current service health without auth
+- page remains usable on mobile and desktop
+
 ## Now: Epics And User Stories
 
 This section turns the `Now` block into delivery-ready product epics.
-
-### Epic A: Public Status Page
-
-Outcome:
-- external viewers can see one clean public status page without authentication
-
-Primary user stories:
-- as an operator, I want to choose which monitors appear on the public page so I can control what is exposed
-- as a viewer, I want to see current service health quickly so I understand whether the platform is healthy
-- as a viewer, I want to see recent incidents or recent state changes so I understand whether there was a recent disruption
-- as an operator, I want a stable public link so I can share it internally or in demos
-
-Acceptance shape:
-- one public page only
-- no login required
-- selected monitors only
-- mobile-usable layout
 
 ### Epic B: Scheduled Maintenance Windows
 
@@ -196,24 +167,6 @@ Acceptance shape:
 - one-time and recurring windows
 - monitor or monitor-group assignment model to be decided during design
 - alert suppression must be deterministic
-
-### Epic C: Rich Telegram Notifications
-
-Outcome:
-- Telegram alerts become immediately actionable instead of merely informative
-
-Primary user stories:
-- as an operator, I want an alert to tell me which monitor failed so I can triage faster
-- as an operator, I want to see which agent executed the failing check so I know where the result came from
-- as an operator, I want direct control-plane links in the alert so I can jump to the monitor quickly
-- as an operator, I want recovered/flapping/offline alerts to be visually distinct so I do not misread them
-
-Acceptance shape:
-- include monitor name
-- include state transition
-- include agent name when present
-- include concise error/response context
-- include control-plane link
 
 ### Epic D: Incident Management Lite
 
@@ -233,42 +186,27 @@ Acceptance shape:
 - acknowledge
 - no heavy collaboration workflow yet
 
+### Epic A: Public Status Page
+
+Outcome:
+- external viewers can see one clean public status page without authentication
+
+Primary user stories:
+- as an operator, I want to choose which monitors appear on the public page so I can control what is exposed
+- as a viewer, I want to see current service health quickly so I understand whether the platform is healthy
+- as a viewer, I want to see recent incidents or recent state changes so I understand whether there was a recent disruption
+- as an operator, I want a stable public link so I can share it internally or in demos
+
+Acceptance shape:
+- one public page only
+- no login required
+- selected monitors only
+- mobile-usable layout
+
 ## Now: Implementation Backlog
 
 This section is delivery-oriented.
 Each epic is broken down into backend, frontend, data, notifications, and testing workstreams.
-
-### Epic A Backlog: Public Status Page
-
-#### Product decisions
-- one public page only
-- curated subset of monitors
-- no auth
-- one stable slug or public path
-
-#### Backend
-- add public status page configuration model or settings fields
-- add API to manage which monitors are exposed publicly
-- add public read-only endpoint for status page payload
-- expose current state, simple uptime summary, and recent incidents/state changes
-- ensure public endpoint does not leak internal fields
-
-#### Frontend
-- add admin UI for choosing public monitors
-- add public-facing page with a separate unauthenticated route
-- optimize for clean demo presentation and mobile readability
-
-#### Data / schema
-- add fields or table for public status page configuration
-- define whether monitor exposure is boolean flag or relation-backed selection
-
-#### Tests
-- public endpoint contract tests
-- auth boundary tests to ensure only the public page is exposed anonymously
-- UI tests for monitor selection and public rendering
-
-#### Docs
-- update README and runbook when public route is finalized
 
 ### Epic B Backlog: Scheduled Maintenance Windows
 
@@ -307,117 +245,6 @@ Each epic is broken down into backend, frontend, data, notifications, and testin
 #### Docs
 - runbook instructions for planned maintenance usage
 
-### Epic C Backlog: Rich Telegram Notifications
-
-#### Product decisions
-- Telegram remains notification-only for now
-- no bot command surface
-
-#### Backend
-- extend notification message builder to include:
-  - monitor name
-  - transition type
-  - agent name
-  - concise error/status context
-  - control-plane URL
-- add specific message variants for:
-  - DOWN
-  - RECOVERED
-  - FLAPPING
-  - AGENT OFFLINE
-
-#### Configuration
-- add or confirm base URL setting needed for deep links
-- make sure links are stable in production
-
-#### Tests
-- message formatting tests
-- notifier integration tests
-- regression tests to ensure messages still send successfully
-
-#### Docs
-- update notification docs with exact behavior and examples
-
-#### Detailed engineering plan for Epic C
-
-This subsection is intentionally more concrete than the other epics because Epic C is the recommended first implementation slice.
-
-##### Desired behavior
-- every Telegram alert must clearly state:
-  - what changed
-  - which monitor changed
-  - which agent produced the relevant check result, when applicable
-  - why the state changed, in a compact way
-  - where to click in the control plane
-
-##### Expected message shapes
-- DOWN:
-  - monitor name
-  - previous -> current state
-  - agent name or `builtin worker`
-  - status code or error summary
-  - response time if useful
-  - deep link
-- RECOVERED:
-  - monitor name
-  - recovered state
-  - agent name or `builtin worker`
-  - recovery response details
-  - deep link
-- FLAPPING:
-  - monitor name
-  - flapping indicator
-  - optional consecutive failure / state context
-  - deep link
-- AGENT OFFLINE:
-  - agent name
-  - last seen timestamp
-  - optional affected monitor count
-  - deep link to agents page
-
-##### Proposed configuration addition
-- add a canonical server public URL setting for deep links
-
-Rationale:
-- notification links should not be derived from request context
-- split runtime and reverse proxy deployments need one explicit operator-facing URL
-
-Possible implementation shapes:
-- add `APP_BASE_URL` to server env and settings handling
-- or add equivalent field in `NotificationSettings`
-
-Recommendation:
-- prefer one explicit server/base UI URL in persistent settings or env
-- do not hardcode or infer from local request host
-
-##### Likely code areas
-- `server/src/services/flapping.ts`
-- `server/src/services/telegram.ts`
-- `server/src/services/agentOfflineMonitor.ts`
-- `server/src/routes/notifications.ts`
-- `server/prisma/schema.prisma`
-- `client/src/pages/NotificationSettings.tsx`
-- `packages/shared/src/index.ts`
-
-##### Engineering tasks
-- create a single message builder layer for Telegram event formatting
-- normalize event payloads so Telegram formatting is not spread across multiple services
-- inject agent context into monitor-state notifications
-- inject deep-link URL into monitor-state and agent-offline notifications
-- extend notification settings UI/config if a new base URL setting is introduced
-- make sure messages stay under practical Telegram readability limits
-
-##### Test plan
-- unit tests for message builders:
-  - DOWN with remote agent
-  - DOWN with builtin worker
-  - RECOVERED
-  - FLAPPING
-  - AGENT OFFLINE
-- integration tests for notifier send path
-- regression test to ensure empty/missing agent context degrades cleanly
-- snapshot-style tests are acceptable here if kept small and stable
-
 ### Epic D Backlog: Incident Management Lite
 
 #### Product decisions
@@ -453,33 +280,58 @@ Recommendation:
 #### Docs
 - update architecture and runbook once the incident model exists
 
+### Epic A Backlog: Public Status Page
+
+#### Product decisions
+- one public page only
+- curated subset of monitors
+- no auth
+- one stable slug or public path
+
+#### Backend
+- add public status page configuration model or settings fields
+- add API to manage which monitors are exposed publicly
+- add public read-only endpoint for status page payload
+- expose current state, simple uptime summary, and recent incidents/state changes
+- ensure public endpoint does not leak internal fields
+
+#### Frontend
+- add admin UI for choosing public monitors
+- add public-facing page with a separate unauthenticated route
+- optimize for clean demo presentation and mobile readability
+
+#### Data / schema
+- add fields or table for public status page configuration
+- define whether monitor exposure is boolean flag or relation-backed selection
+
+#### Tests
+- public endpoint contract tests
+- auth boundary tests to ensure only the public page is exposed anonymously
+- UI tests for monitor selection and public rendering
+
+#### Docs
+- update README and runbook when public route is finalized
+
 ## Suggested Delivery Sequence
 
 This is the recommended implementation order inside the `Now` bucket.
 
 ### Sequence 1
-- Rich Telegram Notifications
-
-Reason:
-- smallest surface area
-- immediate operator value
-- low schema risk
-
-### Sequence 2
 - Scheduled Maintenance Windows
 
 Reason:
 - directly reduces false alert fatigue
-- foundational for more trustworthy monitoring
+- highest operational leverage
+- clean prerequisite for incident semantics
 
-### Sequence 3
+### Sequence 2
 - Incident Management Lite
 
 Reason:
 - gives outages a first-class model
-- improves both operator UX and future status page value
+- improves operator UX and future demo value
 
-### Sequence 4
+### Sequence 3
 - Public Status Page
 
 Reason:
@@ -491,21 +343,18 @@ Reason:
 To avoid overloading one release, use this slice order.
 
 ### Slice 1
-- Telegram alert enrichment
-
-### Slice 2
 - one-time maintenance windows
 
-### Slice 3
+### Slice 2
 - recurring maintenance windows
 
-### Slice 4
+### Slice 3
 - incident open/close lifecycle
 
-### Slice 5
+### Slice 4
 - incident timeline + acknowledge
 
-### Slice 6
+### Slice 5
 - public status page using incidents and selected monitors
 
 ## Numbered Execution Backlog
@@ -513,17 +362,17 @@ To avoid overloading one release, use this slice order.
 This is the concrete task list for the current `Now` roadmap.
 It is meant to be used as a lightweight delivery board.
 
-### Epic C: Rich Telegram Notifications
+### Completed: Epic C Rich Telegram Notifications
 
-- [ ] T001 Define final Telegram message spec for DOWN / RECOVERED / FLAPPING / AGENT OFFLINE
-- [ ] T002 Choose canonical deep-link source (`APP_BASE_URL` or equivalent setting)
-- [ ] T003 Add configuration support for operator-facing base URL
-- [ ] T004 Implement shared Telegram message builder for monitor events
-- [ ] T005 Inject agent context into monitor event notifications
-- [ ] T006 Implement dedicated agent-offline Telegram notification format
-- [ ] T007 Add or update notification settings UI for link/base URL configuration
-- [ ] T008 Add unit/integration tests for Telegram message variants
-- [ ] T009 Update notification documentation with examples
+- [x] T001 Define final Telegram message spec for DOWN / RECOVERED / FLAPPING / AGENT OFFLINE
+- [x] T002 Choose canonical deep-link source (`APP_BASE_URL` or equivalent setting)
+- [x] T003 Add configuration support for operator-facing base URL
+- [x] T004 Implement shared Telegram message builder for monitor events
+- [x] T005 Inject agent context into monitor event notifications
+- [x] T006 Implement dedicated agent-offline Telegram notification format
+- [x] T007 Add or update notification settings UI for link/base URL configuration
+- [x] T008 Add unit/integration tests for Telegram message variants
+- [x] T009 Update notification documentation with examples
 
 ### Epic B: Scheduled Maintenance Windows
 
@@ -568,13 +417,13 @@ It is meant to be used as a lightweight delivery board.
 ## Recommended First Sprint
 
 If work starts immediately, the most pragmatic first sprint is:
-- T001-T009
 - T010-T012
+- T014-T018
 
 This gives:
-- richer Telegram alerts
-- first maintenance-window foundation
-- minimal schema and configuration risk
+- maintenance-window foundation
+- first real alert-suppression behavior
+- clear operator-facing value without status-page surface area
 
 ## Recommended Second Sprint
 
@@ -759,11 +608,10 @@ Avoid features that:
 
 ## Current Suggested Build Order
 
-1. Public status page
-2. Scheduled maintenance windows
-3. Rich Telegram notifications with agent attribution
-4. Incident management lite
-5. SSL expiry monitoring
-6. TCP checks
-7. Agent fleet basics
-8. Lightweight host/service context
+1. Scheduled maintenance windows
+2. Incident management lite
+3. Public status page
+4. SSL expiry monitoring
+5. TCP checks
+6. Agent fleet basics
+7. Lightweight host/service context
