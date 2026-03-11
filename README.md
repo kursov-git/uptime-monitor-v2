@@ -28,7 +28,7 @@ Implemented and working:
 - production JSON logging
 - centralized env validation
 - backup/restore scripts for SQLite compose deployments
-- CI parity across server, client, and e2e
+- CI parity across server, client, agent, and e2e
 
 Not yet implemented:
 - Postgres production path

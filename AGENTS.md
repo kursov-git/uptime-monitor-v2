@@ -26,7 +26,7 @@ As of 2026-03-11:
 - control plane is production-ready and deployed in split-runtime mode
 - remote agents are deployed and reporting version `1.0.0`
 - agent UI supports register, rotate token, revoke, delete, and version visibility
-- split runtime, backup/restore, runtime diagnostics, and CI parity are implemented
+- split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database
 - Postgres, observability, and a formal versioned protocol remain future work
 

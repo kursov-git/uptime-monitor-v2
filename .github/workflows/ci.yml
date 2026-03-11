@@ -7,7 +7,9 @@ on:
 
 permissions:
   contents: read
-  actions: write
+
+env:
+  NODE_VERSION: 20
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -24,7 +26,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install Dependencies
@@ -53,7 +55,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install Dependencies
@@ -68,6 +70,25 @@ jobs:
       - name: Client Build
         run: npm --prefix client run build
 
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Agent Build
+        run: npm --prefix apps/agent run build
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -78,7 +99,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install Dependencies
