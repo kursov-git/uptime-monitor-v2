@@ -68,6 +68,7 @@ describe('persistAgentResults', () => {
         expect(result.acceptedCount).toBe(1);
         expect(result.duplicateCount).toBe(2);
         expect(result.failed).toEqual([]);
+        expect(result.persistedKeys).toEqual(['new-a']);
 
         const rows = await prisma.checkResult.findMany({
             where: { monitorId: monitor.id },

@@ -157,7 +157,11 @@ export class CheckWorker {
             }, 'Monitor check completed');
 
             // Handle flapping/notifications
-            await this.flappingService.handleCheckResult(monitor, result.isUp, result.error);
+            await this.flappingService.handleCheckResult(monitor, result.isUp, result.error, {
+                executorLabel: 'builtin worker',
+                statusCode: result.statusCode,
+                responseTimeMs: result.responseTimeMs,
+            });
 
             // Broadcast the latest state to any connected clients
             // To ensure the UI accurately reflects any potential state changes (like DOWN)

@@ -98,6 +98,7 @@ export interface AuditLogEntry {
 }
 
 export interface NotificationSettings {
+    appBaseUrl: string | null;
     telegramBotToken: string;
     telegramChatId: string;
     telegramEnabled: boolean;

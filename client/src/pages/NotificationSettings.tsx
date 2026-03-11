@@ -4,6 +4,7 @@ import { notificationsApi } from '../api';
 
 interface Settings {
     id: string;
+    appBaseUrl: string | null;
     telegramEnabled: boolean;
     telegramBotToken: string | null;
     telegramChatId: string | null;
@@ -119,6 +120,18 @@ export default function NotificationSettings() {
 
             {/* Telegram Section */}
             <div className="settings-section">
+                <div className="form-group">
+                    <label>App Base URL for alert links</label>
+                    <input
+                        type="url"
+                        value={settings.appBaseUrl || ''}
+                        onChange={e => update('appBaseUrl', e.target.value)}
+                        placeholder="https://uptime.example.com"
+                    />
+                    <div style={{ marginTop: 6, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+                        Used for deep links in Telegram and agent offline alerts. Leave empty if you do not want links in messages.
+                    </div>
+                </div>
                 <h3>
                     📬 Telegram
                     <label className="toggle" style={{ marginLeft: 'auto' }}>

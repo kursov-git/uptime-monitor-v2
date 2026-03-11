@@ -11,6 +11,18 @@ function maskSecret(value: string): string {
     return '*'.repeat(value.length - 4) + value.slice(-4);
 }
 
+function serializeSettings(settings: Awaited<ReturnType<typeof prisma.notificationSettings.findFirstOrThrow>>) {
+    return {
+        ...settings,
+        telegramBotToken: settings.telegramBotToken
+            ? maskSecret(decrypt(settings.telegramBotToken))
+            : null,
+        zulipApiKey: settings.zulipApiKey
+            ? maskSecret(decrypt(settings.zulipApiKey))
+            : null,
+    };
+}
+
 export default async function notificationRoutes(fastify: FastifyInstance) {
     // GET /api/notifications/settings — get global settings
     fastify.get('/settings', {
@@ -21,16 +33,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
             settings = await prisma.notificationSettings.create({ data: {} });
         }
 
-        // Decrypt secrets before returning, mask tokens for security
-        return {
-            ...settings,
-            telegramBotToken: settings.telegramBotToken
-                ? maskSecret(decrypt(settings.telegramBotToken))
-                : null,
-            zulipApiKey: settings.zulipApiKey
-                ? maskSecret(decrypt(settings.zulipApiKey))
-                : null,
-        };
+        return serializeSettings(settings);
     });
 
     // PUT /api/notifications/settings — update global settings
@@ -46,6 +49,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         const body = request.body;
         const data: Record<string, unknown> = {};
         const allowedFields = [
+            'appBaseUrl',
             'telegramEnabled', 'telegramBotToken', 'telegramChatId',
             'zulipEnabled', 'zulipBotEmail', 'zulipApiKey', 'zulipServerUrl',
             'zulipStream', 'zulipTopic',
@@ -53,6 +57,19 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
         ] as const;
         for (const key of allowedFields) {
             if (key in body) data[key] = body[key];
+        }
+
+        if ('appBaseUrl' in data) {
+            const rawValue = typeof data.appBaseUrl === 'string' ? data.appBaseUrl.trim() : '';
+            if (!rawValue) {
+                data.appBaseUrl = null;
+            } else {
+                try {
+                    data.appBaseUrl = new URL(rawValue).toString().replace(/\/+$/, '');
+                } catch {
+                    return reply.status(400).send({ error: 'appBaseUrl must be a valid absolute URL' });
+                }
+            }
         }
 
         // Encrypt sensitive fields before writing
@@ -76,7 +93,7 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
             data,
         });
 
-        return updated;
+        return serializeSettings(updated);
     });
 
     // POST /api/notifications/test/telegram — send test message

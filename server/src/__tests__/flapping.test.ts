@@ -23,6 +23,7 @@ describe('FlappingService', () => {
         // Create a basic notification setting
         await prisma.notificationSettings.create({
             data: {
+                appBaseUrl: 'https://uptime.example.com',
                 flappingFailCount: 3,
                 flappingIntervalSec: 300,
                 telegramEnabled: true,
@@ -67,7 +68,11 @@ describe('FlappingService', () => {
     it('should notify on the third consecutive failure', async () => {
         await service.handleCheckResult(dummyMonitor, false, 'Err 1');
         await service.handleCheckResult(dummyMonitor, false, 'Err 2');
-        await service.handleCheckResult(dummyMonitor, false, 'Err 3');
+        await service.handleCheckResult(dummyMonitor, false, 'Err 3', {
+            executorLabel: 'cloudruvm1',
+            statusCode: 502,
+            responseTimeMs: 187,
+        });
 
         const state = FlappingService.getDiagnosticState(dummyMonitor.id);
         expect(state?.consecutiveFailures).toBe(3);
@@ -79,6 +84,10 @@ describe('FlappingService', () => {
         expect(history.length).toBe(1);
         expect(history[0].channel).toBe('TELEGRAM');
         expect(history[0].status).toBe('SUCCESS');
+        expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('Check source: cloudruvm1');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('HTTP status: 502');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('Open monitor history');
     });
 
     it('should send a recovery notification when it comes back UP', async () => {

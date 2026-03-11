@@ -19,6 +19,7 @@ interface PersistOutcome {
     acceptedCount: number;
     duplicateCount: number;
     failed: AgentResultFailure[];
+    persistedKeys: string[];
 }
 
 type CheckResultCreateManyInput = Prisma.CheckResultCreateManyInput;
@@ -33,7 +34,7 @@ async function insertEntries(
     entries: CheckResultCreateManyInput[]
 ): Promise<PersistOutcome> {
     if (entries.length === 0) {
-        return { acceptedCount: 0, duplicateCount: 0, failed: [] };
+        return { acceptedCount: 0, duplicateCount: 0, failed: [], persistedKeys: [] };
     }
 
     try {
@@ -42,6 +43,9 @@ async function insertEntries(
             acceptedCount: entries.length,
             duplicateCount: 0,
             failed: [],
+            persistedKeys: entries
+                .map((entry) => entry.resultIdempotencyKey)
+                .filter((value): value is string => Boolean(value)),
         };
     } catch (err: any) {
         if (entries.length === 1) {
@@ -50,6 +54,7 @@ async function insertEntries(
                     acceptedCount: 0,
                     duplicateCount: 1,
                     failed: [],
+                    persistedKeys: [],
                 };
             }
 
@@ -60,6 +65,7 @@ async function insertEntries(
                     idempotencyKey: entries[0].resultIdempotencyKey || 'unknown',
                     reason: 'DB_WRITE_FAILED',
                 }],
+                persistedKeys: [],
             };
         }
 
@@ -71,6 +77,7 @@ async function insertEntries(
             acceptedCount: leftResult.acceptedCount + rightResult.acceptedCount,
             duplicateCount: leftResult.duplicateCount + rightResult.duplicateCount,
             failed: [...leftResult.failed, ...rightResult.failed],
+            persistedKeys: [...leftResult.persistedKeys, ...rightResult.persistedKeys],
         };
     }
 }
@@ -96,7 +103,7 @@ export async function persistAgentResults(
     }
 
     if (uniqueResults.length === 0) {
-        return { acceptedCount: 0, duplicateCount, failed };
+        return { acceptedCount: 0, duplicateCount, failed, persistedKeys: [] };
     }
 
     const existingKeys = await prisma.checkResult.findMany({
@@ -131,5 +138,6 @@ export async function persistAgentResults(
         acceptedCount: insertOutcome.acceptedCount,
         duplicateCount: duplicateCount + insertOutcome.duplicateCount,
         failed: [...failed, ...insertOutcome.failed],
+        persistedKeys: insertOutcome.persistedKeys,
     };
 }

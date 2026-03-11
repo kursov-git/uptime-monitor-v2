@@ -87,4 +87,25 @@ describe('Notifications API (Integration)', () => {
         expect(data.pagination.total).toBe(2);
         expect(data.history.length).toBe(2);
     });
+
+    it('masks secrets in notification settings update responses', async () => {
+        const res = await app.inject({
+            method: 'PUT',
+            url: '/api/notifications/settings',
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: {
+                telegramEnabled: true,
+                telegramBotToken: '123456:ABCDEFsecret',
+                telegramChatId: '-100123',
+            },
+        });
+
+        expect(res.statusCode).toBe(200);
+        const data = JSON.parse(res.body);
+        expect(data.telegramBotToken).toContain('****');
+        expect(data.telegramBotToken).not.toBe('123456:ABCDEFsecret');
+
+        const stored = await prisma.notificationSettings.findFirstOrThrow();
+        expect(stored.telegramBotToken).toBe('123456:ABCDEFsecret');
+    });
 });

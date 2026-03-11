@@ -1,12 +1,18 @@
 import prisma from '../lib/prisma';
 import { logAction } from './auditService';
 import { logger } from '../lib/logger';
+import { TelegramNotifier } from './telegram';
+import { ZulipNotifier } from './zulip';
+import { decrypt } from '../lib/crypto';
+import { buildAgentOfflineMessage, htmlToNotifierText } from './notificationMessages';
 
 const DEFAULT_INTERVAL_MS = 10_000;
 const offlineMonitorLogger = logger.child({ component: 'agent-offline-monitor' });
 
 export class AgentOfflineMonitorService {
     private timer: NodeJS.Timeout | null = null;
+    private telegramNotifier = new TelegramNotifier();
+    private zulipNotifier = new ZulipNotifier();
 
     start(intervalMs = DEFAULT_INTERVAL_MS) {
         if (this.timer) return;
@@ -37,25 +43,94 @@ export class AgentOfflineMonitorService {
             },
             select: {
                 id: true,
+                name: true,
                 lastSeen: true,
                 offlineAfterSec: true,
+                _count: {
+                    select: {
+                        monitors: true,
+                    },
+                },
             },
         });
 
-        const toOffline = agents
-            .filter((agent) => now.getTime() - agent.lastSeen.getTime() > agent.offlineAfterSec * 1000)
-            .map((agent) => agent.id);
+        const toOffline = agents.filter(
+            (agent) => now.getTime() - agent.lastSeen.getTime() > agent.offlineAfterSec * 1000
+        );
 
         if (toOffline.length === 0) return 0;
 
         const res = await prisma.agent.updateMany({
-            where: { id: { in: toOffline } },
+            where: { id: { in: toOffline.map((agent) => agent.id) } },
             data: { status: 'OFFLINE' },
         });
         if (res.count > 0) {
-            await logAction('AGENT_OFFLINE', null, { agentIds: toOffline });
+            await logAction('AGENT_OFFLINE', null, { agentIds: toOffline.map((agent) => agent.id) });
+            await this.sendOfflineNotifications(toOffline);
         }
 
         return res.count;
+    }
+
+    private async sendOfflineNotifications(
+        agents: Array<{
+            id: string;
+            name: string;
+            lastSeen: Date;
+            offlineAfterSec: number;
+            _count: { monitors: number };
+        }>
+    ): Promise<void> {
+        const settings = await prisma.notificationSettings.findFirst();
+        if (!settings) {
+            return;
+        }
+
+        for (const agent of agents) {
+            const message = buildAgentOfflineMessage(
+                agent.name,
+                agent.lastSeen,
+                agent.offlineAfterSec,
+                {
+                    appBaseUrl: settings.appBaseUrl,
+                    monitorsCount: agent._count.monitors,
+                }
+            );
+
+            if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId) {
+                const result = await this.telegramNotifier.send({
+                    botToken: decrypt(settings.telegramBotToken),
+                    chatId: settings.telegramChatId,
+                }, message);
+
+                await prisma.notificationHistory.create({
+                    data: {
+                        monitorId: null,
+                        channel: 'TELEGRAM',
+                        status: result.success ? 'SUCCESS' : 'FAILED',
+                        error: result.error || null,
+                    },
+                });
+            }
+
+            if (settings.zulipEnabled && settings.zulipBotEmail && settings.zulipApiKey && settings.zulipServerUrl) {
+                const result = await this.zulipNotifier.send({
+                    botEmail: settings.zulipBotEmail,
+                    apiKey: decrypt(settings.zulipApiKey),
+                    serverUrl: settings.zulipServerUrl,
+                    stream: settings.zulipStream || 'alerts',
+                    topic: settings.zulipTopic || 'uptime-monitor',
+                }, htmlToNotifierText(message));
+
+                await prisma.notificationHistory.create({
+                    data: {
+                        monitorId: null,
+                        channel: 'ZULIP',
+                        status: result.success ? 'SUCCESS' : 'FAILED',
+                        error: result.error || null,
+                    },
+                });
+            }
+        }
     }
 }

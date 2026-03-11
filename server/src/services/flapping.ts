@@ -2,6 +2,11 @@ import { PrismaClient, Monitor } from '@prisma/client';
 import { TelegramNotifier, TelegramConfig } from './telegram';
 import { ZulipNotifier, ZulipConfig } from './zulip';
 import { decrypt } from '../lib/crypto';
+import {
+    buildMonitorDownMessage,
+    buildMonitorRecoveryMessage,
+    htmlToNotifierText,
+} from './notificationMessages';
 
 interface MonitorState {
     consecutiveFailures: number;
@@ -48,7 +53,16 @@ export class FlappingService {
         return this.states.get(monitorId) || null;
     }
 
-    async handleCheckResult(monitor: Monitor, isUp: boolean, error: string | null): Promise<void> {
+    async handleCheckResult(
+        monitor: Monitor,
+        isUp: boolean,
+        error: string | null,
+        context: {
+            executorLabel?: string;
+            statusCode?: number | null;
+            responseTimeMs?: number | null;
+        } = {}
+    ): Promise<void> {
         const state = this.getState(monitor.id);
 
         if (isUp) {
@@ -57,9 +71,14 @@ export class FlappingService {
                 const recoverySettings = await this.getSettings(monitor.id);
                 await this.sendNotification(
                     monitor,
-                    `✅ <b>${monitor.name}</b> is back UP\n` +
-                    `URL: ${monitor.url}\n` +
-                    `Was down for ${state.consecutiveFailures} checks`,
+                    buildMonitorRecoveryMessage(
+                        monitor,
+                        state.consecutiveFailures,
+                        {
+                            ...context,
+                            appBaseUrl: recoverySettings.appBaseUrl,
+                        }
+                    ),
                     recoverySettings
                 );
             }
@@ -93,11 +112,16 @@ export class FlappingService {
 
                 await this.sendNotification(
                     monitor,
-                    `🔴 <b>${monitor.name}</b> is DOWN\n` +
-                    `URL: ${monitor.url}\n` +
-                    `Failures: ${state.consecutiveFailures}\n` +
-                    `Down for: ${Math.round(downTimeSec)}s\n` +
-                    (error ? `Error: ${error}` : ''),
+                    buildMonitorDownMessage(
+                        monitor,
+                        error,
+                        state.consecutiveFailures,
+                        downTimeSec,
+                        {
+                            ...context,
+                            appBaseUrl: settings.appBaseUrl,
+                        }
+                    ),
                     settings
                 );
             }
@@ -126,6 +150,7 @@ export class FlappingService {
         const global = await this.prisma.notificationSettings.findFirst();
 
         return {
+            appBaseUrl: global?.appBaseUrl ?? null,
             flappingFailCount: override?.flappingFailCount ?? global?.flappingFailCount ?? 3,
             flappingIntervalSec: override?.flappingIntervalSec ?? global?.flappingIntervalSec ?? 300,
             telegramEnabled: override?.telegramEnabled ?? global?.telegramEnabled ?? false,
@@ -179,8 +204,7 @@ export class FlappingService {
                 stream: settings.zulipStream,
                 topic: settings.zulipTopic,
             };
-            // Convert HTML to plain text for Zulip
-            const plainMessage = message.replace(/<\/?b>/g, '**').replace(/<br>/g, '\n');
+            const plainMessage = htmlToNotifierText(message);
             const result = await this.zulipNotifier.send(config, plainMessage);
             await this.prisma.notificationHistory.create({
                 data: {

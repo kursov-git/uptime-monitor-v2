@@ -114,6 +114,8 @@ model AuditLog {
 model NotificationSettings {
   id String @id @default(uuid())
 
+  appBaseUrl String?
+
   // Telegram
   telegramEnabled  Boolean @default(false)
   telegramBotToken String?

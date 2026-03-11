@@ -6,6 +6,7 @@ import { agentSseService } from '../services/agentSse';
 import { logAction } from '../services/auditService';
 import { persistAgentResults, type AgentResultInput } from '../services/agentResults';
 import { serverEnv } from '../lib/env';
+import { FlappingService } from '../services/flapping';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -142,9 +143,28 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 id: { in: monitorIds },
                 agentId: agent.id,
             },
-            select: { id: true },
+            select: {
+                id: true,
+                name: true,
+                url: true,
+                method: true,
+                intervalSeconds: true,
+                timeoutSeconds: true,
+                expectedStatus: true,
+                expectedBody: true,
+                headers: true,
+                authMethod: true,
+                authUrl: true,
+                authPayload: true,
+                authTokenRegex: true,
+                isActive: true,
+                agentId: true,
+                createdAt: true,
+                updatedAt: true,
+            },
         });
         const allowedSet = new Set(allowedMonitors.map(m => m.id));
+        const allowedMonitorMap = new Map(allowedMonitors.map((monitor) => [monitor.id, monitor]));
 
         let acceptedCount = 0;
         let duplicateCount = 0;
@@ -173,6 +193,33 @@ export default async function agentRoutes(fastify: FastifyInstance) {
         acceptedCount += persisted.acceptedCount;
         duplicateCount += persisted.duplicateCount;
         failed.push(...persisted.failed);
+
+        if (persisted.persistedKeys.length > 0) {
+            const persistedKeySet = new Set(persisted.persistedKeys);
+            const flappingService = new FlappingService(prisma);
+
+            for (const result of acceptedResults) {
+                if (!persistedKeySet.has(result.idempotencyKey)) {
+                    continue;
+                }
+
+                const monitor = allowedMonitorMap.get(result.monitorId);
+                if (!monitor) {
+                    continue;
+                }
+
+                await flappingService.handleCheckResult(
+                    monitor,
+                    result.isUp,
+                    result.error,
+                    {
+                        executorLabel: agent.name,
+                        statusCode: result.statusCode,
+                        responseTimeMs: result.responseTimeMs,
+                    }
+                );
+            }
+        }
 
         return {
             acceptedCount,
