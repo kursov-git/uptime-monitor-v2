@@ -31,6 +31,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
                 id: true,
                 name: true,
                 status: true,
+                agentVersion: true,
                 heartbeatIntervalSec: true,
                 offlineAfterSec: true,
                 lastSeen: true,
@@ -69,6 +70,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
                 id: true,
                 name: true,
                 status: true,
+                agentVersion: true,
                 heartbeatIntervalSec: true,
                 offlineAfterSec: true,
                 lastSeen: true,
@@ -107,6 +109,7 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
                 id: true,
                 name: true,
                 status: true,
+                agentVersion: true,
                 heartbeatIntervalSec: true,
                 offlineAfterSec: true,
                 lastSeen: true,
@@ -171,5 +174,49 @@ export default async function agentsRoutes(fastify: FastifyInstance) {
         await logAction('AGENT_REVOKED', request.user?.id, { agentId: id }, request.ip);
 
         return revoked;
+    });
+
+    fastify.delete<{ Params: { id: string } }>('/:id', {
+        preHandler: [authenticateJWT, blockApiKeyWrites, requireAdmin],
+    }, async (request, reply) => {
+        const { id } = request.params;
+        const existing = await prisma.agent.findUnique({
+            where: { id },
+            include: {
+                _count: {
+                    select: {
+                        monitors: true,
+                        results: true,
+                    },
+                },
+            },
+        });
+
+        if (!existing) {
+            return reply.status(404).send({ error: 'Agent not found' });
+        }
+
+        if (existing._count.monitors > 0) {
+            return reply.status(409).send({
+                error: 'Agent still has assigned monitors. Unassign or move them before deleting the agent.',
+            });
+        }
+
+        await prisma.agent.delete({
+            where: { id },
+        });
+
+        await logAction(
+            'AGENT_DELETED',
+            request.user?.id,
+            {
+                agentId: id,
+                name: existing.name,
+                preservedResults: existing._count.results,
+            },
+            request.ip
+        );
+
+        return reply.status(204).send();
     });
 }

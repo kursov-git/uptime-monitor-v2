@@ -3,8 +3,9 @@ import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { authenticateAgent } from '../services/agentAuth';
 import { agentSseService } from '../services/agentSse';
-import { envBool } from '../lib/utils';
 import { logAction } from '../services/auditService';
+import { persistAgentResults, type AgentResultInput } from '../services/agentResults';
+import { serverEnv } from '../lib/env';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -32,8 +33,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
         preHandler: [authenticateAgent],
     }, async (request, reply) => {
         const agent = request.agent!;
-        const sseEnabled = envBool('AGENT_SSE_ENABLED', true);
-        if (!sseEnabled) {
+        if (!serverEnv.agentSseEnabled) {
             return reply.status(503).send({
                 error: 'Agent SSE disabled',
                 command: 'RESYNC_JOBS',
@@ -150,34 +150,29 @@ export default async function agentRoutes(fastify: FastifyInstance) {
         let duplicateCount = 0;
         const failed: Array<{ idempotencyKey: string; reason: string }> = [];
 
-        for (const item of results) {
-            if (!allowedSet.has(item.monitorId)) {
-                failed.push({ idempotencyKey: item.idempotencyKey, reason: 'MONITOR_NOT_ASSIGNED_TO_AGENT' });
-                continue;
-            }
-
-            try {
-                await prisma.checkResult.create({
-                    data: {
-                        monitorId: item.monitorId,
-                        agentId: agent.id,
-                        resultIdempotencyKey: item.idempotencyKey,
-                        timestamp: item.checkedAt ? new Date(item.checkedAt) : new Date(),
-                        isUp: item.isUp,
-                        responseTimeMs: item.responseTimeMs,
-                        statusCode: item.statusCode ?? null,
-                        error: item.error ?? null,
-                    },
-                });
-                acceptedCount += 1;
-            } catch (err: any) {
-                if (err?.code === 'P2002') {
-                    duplicateCount += 1;
-                    continue;
+        const acceptedResults: AgentResultInput[] = results
+            .filter((item) => {
+                if (allowedSet.has(item.monitorId)) {
+                    return true;
                 }
-                failed.push({ idempotencyKey: item.idempotencyKey, reason: 'DB_WRITE_FAILED' });
-            }
-        }
+
+                failed.push({ idempotencyKey: item.idempotencyKey, reason: 'MONITOR_NOT_ASSIGNED_TO_AGENT' });
+                return false;
+            })
+            .map((item) => ({
+                idempotencyKey: item.idempotencyKey,
+                monitorId: item.monitorId,
+                timestamp: item.checkedAt ? new Date(item.checkedAt) : new Date(),
+                isUp: item.isUp,
+                responseTimeMs: item.responseTimeMs,
+                statusCode: item.statusCode ?? null,
+                error: item.error ?? null,
+            }));
+
+        const persisted = await persistAgentResults(prisma, agent.id, acceptedResults);
+        acceptedCount += persisted.acceptedCount;
+        duplicateCount += persisted.duplicateCount;
+        failed.push(...persisted.failed);
 
         return {
             acceptedCount,
@@ -201,9 +196,11 @@ export default async function agentRoutes(fastify: FastifyInstance) {
         }
 
         const agent = request.agent!;
+        const reportedVersion = parse.data.agentVersion?.trim() || null;
         const updated = await prisma.agent.update({
             where: { id: agent.id },
             data: {
+                ...(reportedVersion ? { agentVersion: reportedVersion } : {}),
                 lastSeen: new Date(),
                 status: 'ONLINE',
             },

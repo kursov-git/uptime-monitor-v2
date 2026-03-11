@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { monitorsApi, apiClient, CheckResult, Monitor } from '../api';
-import { NotificationHistoryEntry } from '@uptime-monitor/shared';
+import type { NotificationHistoryEntry } from '@uptime-monitor/shared';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';

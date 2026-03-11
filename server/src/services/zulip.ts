@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { sleep } from '../lib/utils';
+import { logger } from '../lib/logger';
+
+const zulipLogger = logger.child({ component: 'zulip-notifier' });
 
 export interface ZulipConfig {
     botEmail: string;
@@ -43,10 +46,10 @@ export class ZulipNotifier {
                 lastError = err.message || 'Unknown Zulip API error';
                 if (attempt < retries - 1) {
                     const delay = 1000 * Math.pow(2, attempt);
-                    console.warn(`Zulip send failed (attempt ${attempt + 1}/${retries}), retrying in ${delay}ms...`);
+                    zulipLogger.warn({ attempt: attempt + 1, retries, delay, error: lastError }, 'Zulip send failed, retrying');
                     await sleep(delay);
                 } else {
-                    console.error(`Zulip notification error after ${retries} attempts:`, lastError);
+                    zulipLogger.error({ retries, error: lastError }, 'Zulip notification failed');
                     return { success: false, error: lastError };
                 }
             }

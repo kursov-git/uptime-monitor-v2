@@ -14,6 +14,10 @@ COPY server ./server
 # Install all workspace dependencies
 RUN npm ci
 
+# Build workspace packages consumed at runtime by Node.js
+RUN npm --prefix packages/shared run build
+RUN npm --prefix packages/checker run build
+
 WORKDIR /app/server
 RUN npx prisma generate
 RUN npm run build

@@ -15,31 +15,15 @@ import userRoutes from './routes/users';
 import apikeyRoutes from './routes/apikeys';
 import auditRoutes from './routes/audit';
 import notificationRoutes from './routes/notifications';
-import { envBool } from './lib/utils';
+import { validateEncryptionConfig } from './lib/crypto';
+import { type ServerRole } from './lib/serverRoles';
+import { createFastifyLoggerOptions, logger } from './lib/logger';
+import { serverEnv } from './lib/env';
 
-// JWT secret validation
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-    if (process.env.NODE_ENV === 'production') {
-        throw new Error('JWT_SECRET environment variable is required in production');
-    }
-    console.warn('⚠️  Using default JWT secret — NOT suitable for production!');
-    return 'development-secret-change-in-production';
-})();
-
-const CORS_ORIGINS = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
-    : ['http://localhost:5173'];
-const ENABLE_AGENT_API = envBool('ENABLE_AGENT_API', true);
-const AGENT_SSE_ENABLED = envBool('AGENT_SSE_ENABLED', true);
-const ENABLE_BUILTIN_WORKER = envBool('ENABLE_BUILTIN_WORKER', true);
+const env = serverEnv;
 
 const fastify = Fastify({
-    logger: {
-        transport: {
-            target: 'pino-pretty',
-            options: { colorize: true },
-        },
-    },
+    logger: createFastifyLoggerOptions(env),
 });
 
 
@@ -50,12 +34,12 @@ async function registerPlugins() {
     });
 
     await fastify.register(cors, {
-        origin: CORS_ORIGINS,
+        origin: env.corsOrigins,
         credentials: true,
     });
 
     await fastify.register(jwt, {
-        secret: JWT_SECRET,
+        secret: env.jwtSecret,
         sign: { expiresIn: '24h' },
     });
 
@@ -70,12 +54,30 @@ fastify.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
+fastify.get('/health/runtime', async () => {
+    return {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        serverRole: env.serverRole,
+        runtime: {
+            agentApiEnabled: env.enableAgentApi,
+            agentSseEnabled: env.agentSseEnabled,
+            builtinWorkerEnabled: env.enableBuiltinWorker,
+        },
+        services: {
+            worker: worker.getStatus(),
+            retention: retentionService.getStatus(),
+            agentOfflineMonitor: agentOfflineMonitorService.getStatus(),
+        },
+    };
+});
+
 // Register routes
 async function registerRoutes() {
     await fastify.register(authRoutes, { prefix: '/api/auth' });
     await fastify.register(monitorRoutes, { prefix: '/api/monitors' });
-    if (ENABLE_AGENT_API) {
-        fastify.log.info({ AGENT_SSE_ENABLED }, 'Agent API enabled');
+    if (env.enableAgentApi) {
+        fastify.log.info({ AGENT_SSE_ENABLED: env.agentSseEnabled }, 'Agent API enabled');
         await fastify.register(agentRoutes, { prefix: '/api/agent' });
         await fastify.register(agentsRoutes, { prefix: '/api/agents' });
     }
@@ -95,24 +97,61 @@ export async function initApp() {
 const worker = new CheckWorker(prisma);
 const retentionService = new RetentionService(prisma);
 const agentOfflineMonitorService = new AgentOfflineMonitorService();
+let shutdownPromise: Promise<void> | null = null;
+
+async function startApiServer() {
+    await initApp();
+    await fastify.listen({ port: env.port, host: env.host });
+    fastify.log.info({ host: env.host, port: env.port }, 'API server listening');
+}
+
+async function startBackgroundRole(role: Exclude<ServerRole, 'all' | 'api'>) {
+    if (role === 'worker') {
+        await worker.start();
+        return;
+    }
+
+    if (role === 'retention') {
+        retentionService.start();
+        return;
+    }
+
+    if (role === 'agent-offline-monitor') {
+        if (!env.enableAgentApi) {
+            fastify.log.warn('Skipping agent-offline-monitor role because ENABLE_AGENT_API=false');
+            return;
+        }
+
+        agentOfflineMonitorService.start();
+    }
+}
 
 async function start() {
     try {
-        await initApp();
-
-        const port = Number(process.env.PORT) || 3000;
-        const host = process.env.HOST || '0.0.0.0';
-
-        await fastify.listen({ port, host });
-        console.log(`🚀 Server running on http://${host}:${port}`);
-
-        // Start background services
-        if (ENABLE_BUILTIN_WORKER) {
-            await worker.start();
+        if (!process.env.JWT_SECRET && env.nodeEnv !== 'production') {
+            logger.warn('Using default JWT secret. This is not suitable for production.');
         }
-        retentionService.start();
-        if (ENABLE_AGENT_API) {
-            agentOfflineMonitorService.start();
+        validateEncryptionConfig();
+        fastify.log.info({ serverRole: env.serverRole }, 'Starting runtime');
+
+        if (env.serverRole === 'all' || env.serverRole === 'api') {
+            await startApiServer();
+        }
+
+        if (env.serverRole === 'all') {
+            if (env.enableBuiltinWorker) {
+                await worker.start();
+            } else {
+                fastify.log.info('Builtin worker disabled by ENABLE_BUILTIN_WORKER=false');
+            }
+
+            retentionService.start();
+
+            if (env.enableAgentApi) {
+                agentOfflineMonitorService.start();
+            }
+        } else if (env.serverRole !== 'api') {
+            await startBackgroundRole(env.serverRole);
         }
 
     } catch (err) {
@@ -123,14 +162,22 @@ async function start() {
 
 // Graceful shutdown
 async function shutdown(signal: string) {
-    console.log(`\n${signal} received. Shutting down gracefully...`);
-    worker.stop();
-    retentionService.stop();
-    agentOfflineMonitorService.stop();
-    await fastify.close();
-    await prisma.$disconnect();
-    console.log('👋 Server stopped.');
-    process.exit(0);
+    if (shutdownPromise) {
+        return shutdownPromise;
+    }
+
+    shutdownPromise = (async () => {
+        fastify.log.info({ signal }, 'Shutting down gracefully');
+        worker.stop();
+        retentionService.stop();
+        agentOfflineMonitorService.stop();
+        await fastify.close();
+        await prisma.$disconnect();
+        fastify.log.info('Server stopped');
+        process.exit(0);
+    })();
+
+    return shutdownPromise;
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

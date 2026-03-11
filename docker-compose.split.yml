@@ -1,0 +1,105 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: uptime-server-api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - HOST=0.0.0.0
+      - PORT=3000
+      - SERVER_ROLE=api
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
+      - AGENT_SSE_ENABLED=${AGENT_SSE_ENABLED:-true}
+      - ENABLE_BUILTIN_WORKER=false
+    volumes:
+      - db-data:/data
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health/runtime').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: uptime-server-worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVER_ROLE=worker
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+    volumes:
+      - db-data:/data
+    depends_on:
+      - server
+
+  retention:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: uptime-server-retention
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVER_ROLE=retention
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+    volumes:
+      - db-data:/data
+    depends_on:
+      - server
+
+  agent-offline-monitor:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: uptime-server-agent-offline
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - SERVER_ROLE=agent-offline-monitor
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
+    volumes:
+      - db-data:/data
+    depends_on:
+      - server
+
+  client:
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
+    container_name: uptime-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  db-data:

@@ -3,6 +3,9 @@ import { performCheck } from '@uptime-monitor/checker';
 import { FlappingService } from './services/flapping';
 import { sseService } from './services/sse';
 import { decrypt } from './lib/crypto';
+import { logger } from './lib/logger';
+
+const workerLogger = logger.child({ component: 'check-worker' });
 
 export class CheckWorker {
     private prisma: PrismaClient;
@@ -18,7 +21,7 @@ export class CheckWorker {
 
     async start() {
         this.running = true;
-        console.log('🔄 CheckWorker starting...');
+        workerLogger.info('CheckWorker starting');
 
         // Load all active monitors and schedule them
         const monitors = await this.prisma.monitor.findMany({
@@ -29,7 +32,7 @@ export class CheckWorker {
             this.scheduleMonitor(monitor);
         }
 
-        console.log(`📋 Scheduled ${monitors.length} monitors.`);
+        workerLogger.info({ scheduledMonitors: monitors.length }, 'CheckWorker scheduled monitors');
 
         // Sync with DB every 30s for new/removed monitors
         this.syncInterval = setInterval(() => this.refreshSchedule(), 30000);
@@ -37,7 +40,7 @@ export class CheckWorker {
 
     stop() {
         this.running = false;
-        console.log('⏹️  CheckWorker stopping...');
+        workerLogger.info('CheckWorker stopping');
 
         // Clear all timers
         for (const [id, timer] of this.timers) {
@@ -49,6 +52,14 @@ export class CheckWorker {
             clearInterval(this.syncInterval);
             this.syncInterval = null;
         }
+    }
+
+    getStatus() {
+        return {
+            running: this.running,
+            scheduledMonitors: this.timers.size,
+            syncLoopActive: this.syncInterval !== null,
+        };
     }
 
     private scheduleMonitor(monitor: Monitor) {
@@ -72,7 +83,7 @@ export class CheckWorker {
                 }
             } catch (err) {
 
-                console.error(`Failed to fetch monitor ${monitor.id} for rescheduling`, err);
+                workerLogger.error({ err, monitorId: monitor.id }, 'Failed to fetch monitor for rescheduling');
                 this.timers.delete(monitor.id);
             }
         }, delayMs);
@@ -105,7 +116,7 @@ export class CheckWorker {
                 }
             }
         } catch (err) {
-            console.error('Error refreshing schedule:', err);
+            workerLogger.error({ err }, 'Error refreshing worker schedule');
         }
     }
 
@@ -136,10 +147,14 @@ export class CheckWorker {
                 },
             });
 
-            console.log(
-                `${result.isUp ? '✅' : '❌'} ${monitor.name} (${monitor.url}) — ${result.responseTimeMs}ms` +
-                (result.error ? ` — ${result.error}` : '')
-            );
+            workerLogger.info({
+                monitorId: monitor.id,
+                monitorName: monitor.name,
+                url: monitor.url,
+                isUp: result.isUp,
+                responseTimeMs: result.responseTimeMs,
+                error: result.error ?? null,
+            }, 'Monitor check completed');
 
             // Handle flapping/notifications
             await this.flappingService.handleCheckResult(monitor, result.isUp, result.error);
@@ -154,7 +169,7 @@ export class CheckWorker {
             }
 
         } catch (err) {
-            console.error(`Error saving check result for ${monitor.name}:`, err);
+            workerLogger.error({ err, monitorId: monitor.id, monitorName: monitor.name }, 'Error saving check result');
         }
     }
 }

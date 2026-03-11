@@ -107,6 +107,38 @@ describe('API Contract', () => {
         expect(normalizeForSnapshot(parsed)).toMatchSnapshot();
     });
 
+    it('validates /health/runtime response shape', async () => {
+        const res = await app.inject({ method: 'GET', url: '/health/runtime' });
+        expect(res.statusCode).toBe(200);
+
+        const body = JSON.parse(res.body);
+        const parsed = z.object({
+            status: z.literal('ok'),
+            timestamp: isoDate,
+            serverRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']),
+            runtime: z.object({
+                agentApiEnabled: z.boolean(),
+                agentSseEnabled: z.boolean(),
+                builtinWorkerEnabled: z.boolean(),
+            }),
+            services: z.object({
+                worker: z.object({
+                    running: z.boolean(),
+                    scheduledMonitors: z.number(),
+                    syncLoopActive: z.boolean(),
+                }),
+                retention: z.object({
+                    running: z.boolean(),
+                }),
+                agentOfflineMonitor: z.object({
+                    running: z.boolean(),
+                }),
+            }),
+        }).parse(body);
+
+        expect(normalizeForSnapshot(parsed)).toMatchSnapshot();
+    });
+
     it('validates auth login and /me contracts', async () => {
         const passwordHash = await bcrypt.hash('secret123', 10);
         await prisma.user.create({

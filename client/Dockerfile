@@ -13,6 +13,9 @@ COPY client ./client
 # Install dependencies for workspaces
 RUN npm install
 
+# Build shared workspace types consumed by the client TS build
+RUN npm --prefix packages/shared run build
+
 # Move into client and build
 WORKDIR /app/client
 RUN npm run build

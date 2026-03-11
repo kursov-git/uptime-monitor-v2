@@ -33,14 +33,40 @@
 - [x] **Docker Compose** — one-command build & start
 - [x] **SSH Key Deployment** — `bash deploy.sh` (no hardcoded credentials)
 - [x] **Nginx Reverse Proxy** — client routes API calls through nginx
+- [x] **Split Server Runtime Roles** — API, worker, retention, and agent offline monitor can now run as separate processes via `SERVER_ROLE`
+- [x] **Production Logging Modes** — pretty logs for dev, JSON logs for production
+- [x] **Operations Runbook** — backup/restore, runtime health, split deployment and recovery steps documented
 
 ### Testing
 - [x] **Unit Tests** — Vitest setup with validation logic testing
 - [x] **E2E Tests** — Playwright tests for Authentication and Dashboard
+- [x] **GitHub Actions CI** — server integration+build, client test+lint+build, and Chromium E2E on push/PR/manual run
+- [x] **CI Hardening Baseline** — minimal token permissions, concurrency cancel, job timeouts
+- [x] **P0 Technical Hardening** — worker/checker test split, stricter JWT handling, fail-closed secret encryption, stable agent SSE
 
 ---
 
 ## 📅 Upcoming Roadmap
+
+## 🛠️ Technical Backlog Status
+
+### P0: Hardening Baseline
+- [x] Fix `worker`/`checker` test boundary
+- [x] Remove generic JWT query-token auth from REST API
+- [x] Make secret encryption fail-closed in production
+- [x] Remove absolute timeout from agent SSE stream
+- [x] Make CI a real quality gate
+
+### P1: Runtime Separation
+- [x] Split API and background jobs into separate runtime roles
+- [x] Batch agent result ingestion and prepare SQLite/Postgres transition path
+- [x] Add production logging mode without `pino-pretty`
+- [x] Centralize environment validation
+
+### P2: Scalability
+- [ ] Prepare Postgres-first deployment path
+- [ ] Add observability for worker lag, agent lag, and dropped results
+- [ ] Version the server/agent protocol contract
 
 ### Q1 Goals: Resilience & Notifications
 1.  **Email Notifications (SMTP)**

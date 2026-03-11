@@ -30,19 +30,6 @@ export async function authenticateJWT(
             return;
         }
 
-        // Try JWT token from query string (used for SSE /stream endpoint)
-        const queryToken = (request.query as any)?.token;
-        if (queryToken && typeof queryToken === 'string') {
-            // fastify-jwt doesn't automatically look at query strings, so we manually verify
-            try {
-                const decoded = await request.server.jwt.verify(queryToken);
-                request.user = decoded as JwtPayload;
-                return;
-            } catch (err) {
-                return reply.status(401).send({ error: 'Invalid query token' });
-            }
-        }
-
         // Second, try API Key
         const apiKey = request.headers['x-api-key'] as string;
         if (apiKey) {
@@ -69,6 +56,24 @@ export async function authenticateJWT(
     } catch (err) {
         return reply.status(401).send({ error: 'Invalid token' });
     }
+}
+
+export async function authenticateSseJWT(
+    request: FastifyRequest,
+    reply: FastifyReply
+): Promise<void> {
+    const queryToken = (request.query as { token?: unknown })?.token;
+    if (typeof queryToken === 'string' && queryToken.length > 0) {
+        try {
+            const decoded = await request.server.jwt.verify(queryToken);
+            request.user = decoded as JwtPayload;
+            return;
+        } catch {
+            return reply.status(401).send({ error: 'Invalid query token' });
+        }
+    }
+
+    return authenticateJWT(request, reply);
 }
 
 // Require specific role

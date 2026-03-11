@@ -91,4 +91,86 @@ describe('Agents API (Integration)', () => {
         expect(actions).toContain('AGENT_TOKEN_ROTATED');
         expect(actions).toContain('AGENT_REVOKED');
     });
+
+    it('deletes an unassigned agent and preserves historical results via set-null', async () => {
+        const token = await createAdminToken();
+
+        const createRes = await app.inject({
+            method: 'POST',
+            url: '/api/agents',
+            headers: { Authorization: `Bearer ${token}` },
+            payload: {
+                name: 'to-delete',
+            },
+        });
+
+        expect(createRes.statusCode).toBe(201);
+        const created = JSON.parse(createRes.body);
+
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'historical-monitor',
+                url: 'https://example.com/historical',
+            },
+        });
+
+        await prisma.checkResult.create({
+            data: {
+                monitorId: monitor.id,
+                agentId: created.agent.id,
+                isUp: true,
+                responseTimeMs: 50,
+            },
+        });
+
+        const deleteRes = await app.inject({
+            method: 'DELETE',
+            url: `/api/agents/${created.agent.id}`,
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        expect(deleteRes.statusCode).toBe(204);
+
+        const deletedAgent = await prisma.agent.findUnique({ where: { id: created.agent.id } });
+        expect(deletedAgent).toBeNull();
+
+        const result = await prisma.checkResult.findFirstOrThrow();
+        expect(result.agentId).toBeNull();
+
+        const audit = await prisma.auditLog.findMany({ orderBy: { timestamp: 'asc' } });
+        expect(audit.map((entry) => entry.action)).toContain('AGENT_DELETED');
+    });
+
+    it('rejects deleting an agent that still has assigned monitors', async () => {
+        const token = await createAdminToken();
+
+        const createRes = await app.inject({
+            method: 'POST',
+            url: '/api/agents',
+            headers: { Authorization: `Bearer ${token}` },
+            payload: {
+                name: 'assigned-agent',
+            },
+        });
+
+        expect(createRes.statusCode).toBe(201);
+        const created = JSON.parse(createRes.body);
+
+        await prisma.monitor.create({
+            data: {
+                name: 'bound-monitor',
+                url: 'https://example.com/bound',
+                agentId: created.agent.id,
+            },
+        });
+
+        const deleteRes = await app.inject({
+            method: 'DELETE',
+            url: `/api/agents/${created.agent.id}`,
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        expect(deleteRes.statusCode).toBe(409);
+        expect(JSON.parse(deleteRes.body).error).toContain('assigned monitors');
+    });
 });

@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import { performCheck } from '@uptime-monitor/checker';
+import { CURRENT_AGENT_VERSION } from '@uptime-monitor/shared';
+import { agentEnv } from './config';
 
 type AgentJob = {
     monitorId: string;
@@ -28,18 +30,12 @@ type BufferedResult = {
     error?: string | null;
 };
 
-const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL;
-const AGENT_TOKEN = process.env.AGENT_TOKEN;
-const AGENT_HTTP_TIMEOUT_MS = Number(process.env.AGENT_HTTP_TIMEOUT_MS || 10_000);
-const AGENT_BUFFER_MAX = Number(process.env.AGENT_BUFFER_MAX || 1000);
-const AGENT_RESULT_MAX_BATCH = Number(process.env.AGENT_RESULT_MAX_BATCH || 500);
-
-if (!MAIN_SERVER_URL) {
-    throw new Error('MAIN_SERVER_URL is required');
-}
-if (!AGENT_TOKEN) {
-    throw new Error('AGENT_TOKEN is required');
-}
+const MAIN_SERVER_URL = agentEnv.mainServerUrl;
+const AGENT_TOKEN = agentEnv.agentToken;
+const AGENT_HTTP_TIMEOUT_MS = agentEnv.httpTimeoutMs;
+const AGENT_BUFFER_MAX = agentEnv.bufferMax;
+const AGENT_RESULT_MAX_BATCH = agentEnv.resultMaxBatch;
+const AGENT_MAX_CONCURRENCY = agentEnv.maxConcurrency;
 
 class AgentRuntime {
     private jobs = new Map<string, AgentJob>();
@@ -133,6 +129,10 @@ class AgentRuntime {
     private async runCheck(monitorId: string) {
         const job = this.jobs.get(monitorId);
         if (!job) return;
+        if (this.inFlightChecks >= AGENT_MAX_CONCURRENCY) {
+            console.warn(`Concurrency cap reached (${AGENT_MAX_CONCURRENCY}), skipping cycle for ${monitorId}`);
+            return;
+        }
 
         this.inFlightChecks += 1;
         try {
@@ -210,7 +210,7 @@ class AgentRuntime {
                     'POST',
                     '/api/agent/heartbeat',
                     {
-                        agentVersion: 'v2-dev',
+                        agentVersion: CURRENT_AGENT_VERSION,
                         queueSize: this.queue.length,
                         inFlightChecks: this.inFlightChecks,
                     }
@@ -254,7 +254,6 @@ class AgentRuntime {
         const res = await fetch(`${MAIN_SERVER_URL}/api/agent/stream`, {
             method: 'GET',
             headers,
-            signal: AbortSignal.timeout(AGENT_HTTP_TIMEOUT_MS * 6),
         });
 
         if (!res.ok || !res.body) {

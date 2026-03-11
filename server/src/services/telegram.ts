@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { sleep } from '../lib/utils';
+import { logger } from '../lib/logger';
+
+const telegramLogger = logger.child({ component: 'telegram-notifier' });
 
 export interface TelegramConfig {
     botToken: string;
@@ -25,10 +28,10 @@ export class TelegramNotifier {
                 lastError = err.message || 'Unknown Telegram API error';
                 if (attempt < retries - 1) {
                     const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-                    console.warn(`Telegram send failed (attempt ${attempt + 1}/${retries}), retrying in ${delay}ms...`);
+                    telegramLogger.warn({ attempt: attempt + 1, retries, delay, error: lastError }, 'Telegram send failed, retrying');
                     await sleep(delay);
                 } else {
-                    console.error(`Telegram notification error after ${retries} attempts:`, lastError);
+                    telegramLogger.error({ retries, error: lastError }, 'Telegram notification failed');
                     return { success: false, error: lastError };
                 }
             }

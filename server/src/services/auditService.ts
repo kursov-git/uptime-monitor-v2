@@ -1,4 +1,7 @@
 import prisma from '../lib/prisma';
+import { logger } from '../lib/logger';
+
+const auditLogger = logger.child({ component: 'audit-service' });
 
 export async function logAction(
     action: string,
@@ -16,6 +19,6 @@ export async function logAction(
             },
         });
     } catch (err) {
-        console.error('Failed to log audit action:', err);
+        auditLogger.error({ err, action, userId: userId ?? null }, 'Failed to log audit action');
     }
 }

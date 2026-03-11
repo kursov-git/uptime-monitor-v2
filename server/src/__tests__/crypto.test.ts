@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { encrypt, decrypt } from '../lib/crypto';
+import { encrypt, decrypt, validateEncryptionConfig } from '../lib/crypto';
 
 describe('crypto', () => {
     const originalKey = process.env.ENCRYPTION_KEY;
@@ -22,6 +22,12 @@ describe('crypto', () => {
             const text = 'my-secret-bot-token';
             expect(encrypt(text)).toBe(text);
             expect(decrypt(text)).toBe(text);
+        });
+
+        it('should fail to decrypt encrypted values without a key', () => {
+            expect(() => decrypt('enc:deadbeef:deadbeef:deadbeef')).toThrow(
+                'Encrypted value found but ENCRYPTION_KEY is not set'
+            );
         });
     });
 
@@ -57,6 +63,34 @@ describe('crypto', () => {
 
         it('should pass through non-encrypted values (backward compat)', () => {
             expect(decrypt('plain-text-value')).toBe('plain-text-value');
+        });
+    });
+
+    describe('production validation', () => {
+        const originalNodeEnv = process.env.NODE_ENV;
+
+        afterAll(() => {
+            if (originalNodeEnv) {
+                process.env.NODE_ENV = originalNodeEnv;
+            } else {
+                delete process.env.NODE_ENV;
+            }
+        });
+
+        it('requires ENCRYPTION_KEY in production', () => {
+            process.env.NODE_ENV = 'production';
+            delete process.env.ENCRYPTION_KEY;
+            expect(() => validateEncryptionConfig()).toThrow(
+                'ENCRYPTION_KEY environment variable is required in production'
+            );
+        });
+
+        it('rejects invalid production ENCRYPTION_KEY format', () => {
+            process.env.NODE_ENV = 'production';
+            process.env.ENCRYPTION_KEY = 'invalid-key';
+            expect(() => validateEncryptionConfig()).toThrow(
+                'ENCRYPTION_KEY must be a 64-character hex string'
+            );
         });
     });
 });

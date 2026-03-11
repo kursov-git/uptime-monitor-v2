@@ -2,12 +2,28 @@ import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
-const AUTH_TAG_LENGTH = 16;
+const KEY_HEX_LENGTH = 64;
 
 function getKey(): Buffer | null {
     const keyHex = process.env.ENCRYPTION_KEY;
     if (!keyHex) return null;
+    if (!/^[0-9a-fA-F]+$/.test(keyHex) || keyHex.length !== KEY_HEX_LENGTH) {
+        throw new Error('ENCRYPTION_KEY must be a 64-character hex string');
+    }
+
     return Buffer.from(keyHex, 'hex');
+}
+
+export function validateEncryptionConfig(): void {
+    if (process.env.NODE_ENV !== 'production') {
+        return;
+    }
+
+    if (!process.env.ENCRYPTION_KEY) {
+        throw new Error('ENCRYPTION_KEY environment variable is required in production');
+    }
+
+    getKey();
 }
 
 /**
@@ -39,8 +55,7 @@ export function decrypt(ciphertext: string): string {
 
     const key = getKey();
     if (!key) {
-        console.warn('⚠️  Encrypted value found but ENCRYPTION_KEY is not set');
-        return ciphertext;
+        throw new Error('Encrypted value found but ENCRYPTION_KEY is not set');
     }
 
     const parts = ciphertext.split(':');

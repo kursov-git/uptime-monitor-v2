@@ -1,4 +1,5 @@
 export type Role = 'ADMIN' | 'VIEWER';
+export const CURRENT_AGENT_VERSION = '1.0.0';
 
 export interface User {
     id: string;
@@ -74,6 +75,7 @@ export interface Agent {
     id: string;
     name: string;
     status: 'ONLINE' | 'OFFLINE' | string;
+    agentVersion: string | null;
     heartbeatIntervalSec: number;
     offlineAfterSec: number;
     lastSeen: string;

@@ -43,7 +43,11 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         if (monitor.authMethod === 'BASIC') return '';
         try {
             const p = JSON.parse(monitor.authPayload);
-            const { username, email, login, password, ...rest } = p;
+            const rest = { ...p };
+            delete rest.username;
+            delete rest.email;
+            delete rest.login;
+            delete rest.password;
             return Object.keys(rest).length > 0 ? JSON.stringify(rest, null, 2) : '';
         } catch { return ''; }
     });
@@ -74,7 +78,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
             if (loginExtra.trim() !== '') {
                 try {
                     extraObj = JSON.parse(loginExtra);
-                } catch (e) {
+                } catch {
                     setError('Additional JSON Payload must be a valid JSON object');
                     return;
                 }

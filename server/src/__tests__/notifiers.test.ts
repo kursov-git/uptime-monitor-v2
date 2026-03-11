@@ -10,9 +10,13 @@ vi.mock('axios', () => ({
     },
 }));
 
-vi.mock('../lib/utils', () => ({
-    sleep: vi.fn().mockResolvedValue(undefined),
-}));
+vi.mock('../lib/utils', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../lib/utils')>();
+    return {
+        ...actual,
+        sleep: vi.fn().mockResolvedValue(undefined),
+    };
+});
 
 describe('Notification Notifiers', () => {
     const mockedPost = vi.mocked(axios.post);

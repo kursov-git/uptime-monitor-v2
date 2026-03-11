@@ -146,6 +146,14 @@ describe('Agent API (Integration)', () => {
                     },
                     {
                         idempotencyKey: 'idem-2-abcdef',
+                        monitorId: ownMonitor.id,
+                        checkedAt: new Date().toISOString(),
+                        isUp: true,
+                        responseTimeMs: 42,
+                        statusCode: 200,
+                    },
+                    {
+                        idempotencyKey: 'idem-3-abcdef',
                         monitorId: foreignMonitor.id,
                         checkedAt: new Date().toISOString(),
                         isUp: false,
@@ -158,7 +166,7 @@ describe('Agent API (Integration)', () => {
 
         expect(first.statusCode).toBe(200);
         const firstBody = JSON.parse(first.body);
-        expect(firstBody.acceptedCount).toBe(1);
+        expect(firstBody.acceptedCount).toBe(2);
         expect(firstBody.duplicateCount).toBe(0);
         expect(firstBody.failed).toHaveLength(1);
 
@@ -185,10 +193,41 @@ describe('Agent API (Integration)', () => {
         expect(secondBody.acceptedCount).toBe(0);
         expect(secondBody.duplicateCount).toBe(1);
 
+        const third = await app.inject({
+            method: 'POST',
+            url: '/api/agent/results',
+            headers: { Authorization: `Bearer ${token}` },
+            payload: {
+                results: [
+                    {
+                        idempotencyKey: 'idem-dup-payload',
+                        monitorId: ownMonitor.id,
+                        checkedAt: new Date().toISOString(),
+                        isUp: true,
+                        responseTimeMs: 44,
+                        statusCode: 200,
+                    },
+                    {
+                        idempotencyKey: 'idem-dup-payload',
+                        monitorId: ownMonitor.id,
+                        checkedAt: new Date().toISOString(),
+                        isUp: true,
+                        responseTimeMs: 44,
+                        statusCode: 200,
+                    },
+                ],
+            },
+        });
+
+        expect(third.statusCode).toBe(200);
+        const thirdBody = JSON.parse(third.body);
+        expect(thirdBody.acceptedCount).toBe(1);
+        expect(thirdBody.duplicateCount).toBe(1);
+
         const rows = await prisma.checkResult.findMany();
-        expect(rows).toHaveLength(1);
-        expect(rows[0].agentId).toBe(agent.id);
-        expect(rows[0].monitorId).toBe(ownMonitor.id);
+        expect(rows).toHaveLength(3);
+        expect(rows.every((row) => row.agentId === agent.id)).toBe(true);
+        expect(rows.every((row) => row.monitorId === ownMonitor.id)).toBe(true);
     });
 
     it('heartbeat updates status and lastSeen', async () => {
@@ -224,5 +263,6 @@ describe('Agent API (Integration)', () => {
         const updated = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } });
         expect(updated.status).toBe('ONLINE');
         expect(updated.lastSeen.getTime()).toBeGreaterThan(oldSeen.getTime());
+        expect(updated.agentVersion).toBe('0.1.0');
     });
 });

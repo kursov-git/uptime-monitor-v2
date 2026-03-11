@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma';
-import { authenticateJWT, requireAdmin, blockApiKeyWrites } from '../lib/auth';
+import { authenticateJWT, authenticateSseJWT, requireAdmin, blockApiKeyWrites } from '../lib/auth';
 import { validateMonitorInput, CreateMonitorBody } from '../lib/validation';
 import { logAction } from '../services/auditService';
 import { FlappingService } from '../services/flapping';
@@ -11,7 +11,7 @@ import { encrypt, decrypt } from '../lib/crypto';
 export default async function monitorRoutes(fastify: FastifyInstance) {
     // GET /api/monitors/stream — Server-Sent Events for monitor updates
     fastify.get('/stream', {
-        preHandler: [authenticateJWT],
+        preHandler: [authenticateSseJWT],
     }, async (request, reply) => {
         reply.raw.setHeader('Content-Type', 'text/event-stream');
         reply.raw.setHeader('Cache-Control', 'no-cache');

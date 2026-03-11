@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../api';
-import { NotificationHistoryEntry, Monitor } from '@uptime-monitor/shared';
+import type { NotificationHistoryEntry, Monitor } from '@uptime-monitor/shared';
 
 export default function NotificationHistoryPage() {
     const navigate = useNavigate();

@@ -1,0 +1,14 @@
+.git
+.github
+.run
+node_modules
+**/node_modules
+**/dist
+coverage
+*.log
+*.pid
+*.tar.gz
+.env
+deploy-tools
+e2e/test-results
+e2e/playwright-report

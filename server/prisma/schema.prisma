@@ -60,6 +60,7 @@ model Agent {
   tokenHash            String    @unique
   keyVersion           Int       @default(1)
   status               String    @default("ONLINE")
+  agentVersion         String?
   heartbeatIntervalSec Int       @default(30)
   offlineAfterSec      Int       @default(90)
   lastSeen             DateTime  @default(now())

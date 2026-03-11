@@ -2,8 +2,15 @@
   "name": "@uptime-monitor/checker",
   "version": "1.0.0",
   "description": "Shared HTTP checker engine for server worker and remote agents",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "typescript": "^5.6.3"
+  },
   "dependencies": {
     "axios": "^1.13.6",
     "axios-cookiejar-support": "^6.0.5",

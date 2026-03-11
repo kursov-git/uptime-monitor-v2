@@ -48,7 +48,7 @@ export default function NotificationSettings() {
             await notificationsApi.put('/settings', settings);
             setMessage('✅ Settings saved');
             setTimeout(() => setMessage(''), 3000);
-        } catch (err) {
+        } catch {
             setMessage('❌ Failed to save settings');
         } finally {
             setSaving(false);

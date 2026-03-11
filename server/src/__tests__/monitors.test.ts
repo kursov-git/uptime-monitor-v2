@@ -112,7 +112,7 @@ describe('Monitors API (Integration)', () => {
         expect(res.statusCode).toBe(401);
     });
 
-    it('should allow JWT query token for authenticated read endpoints', async () => {
+    it('should reject JWT query token on regular REST endpoints', async () => {
         await prisma.monitor.create({
             data: { name: 'Query Token Monitor', url: 'http://query-token.test', method: 'GET' }
         });
@@ -122,10 +122,8 @@ describe('Monitors API (Integration)', () => {
             url: `/api/monitors/?token=${adminToken}`,
         });
 
-        expect(res.statusCode).toBe(200);
-        const data = JSON.parse(res.body);
-        expect(Array.isArray(data)).toBe(true);
-        expect(data[0].name).toBe('Query Token Monitor');
+        expect(res.statusCode).toBe(401);
+        expect(JSON.parse(res.body).error).toBe('Authentication required');
     });
 
     it('should reject invalid JWT query token', async () => {
@@ -135,7 +133,7 @@ describe('Monitors API (Integration)', () => {
         });
 
         expect(res.statusCode).toBe(401);
-        expect(JSON.parse(res.body).error).toBe('Invalid query token');
+        expect(JSON.parse(res.body).error).toBe('Authentication required');
     });
 
     it('should allow API key read access but block write operations', async () => {

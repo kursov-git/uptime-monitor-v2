@@ -2,9 +2,12 @@
     "name": "@uptime-monitor/shared",
     "version": "1.0.0",
     "description": "Shared types for uptime monitor",
-    "main": "src/index.ts",
-    "types": "src/index.ts",
-    "dependencies": {
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc -p tsconfig.json"
+    },
+    "devDependencies": {
         "typescript": "^5.0.0"
     }
 }

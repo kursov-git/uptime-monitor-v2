@@ -1,4 +1,7 @@
 import { PrismaClient } from '@prisma/client';
+import { logger } from '../lib/logger';
+
+const retentionLogger = logger.child({ component: 'retention-service' });
 
 export class RetentionService {
     private prisma: PrismaClient;
@@ -9,7 +12,7 @@ export class RetentionService {
     }
 
     start() {
-        console.log('🗑️  RetentionService started (runs every hour).');
+        retentionLogger.info('RetentionService started');
         // Run cleanup immediately and then every hour
         this.cleanup();
         this.interval = setInterval(() => this.cleanup(), 60 * 60 * 1000);
@@ -20,7 +23,13 @@ export class RetentionService {
             clearInterval(this.interval);
             this.interval = null;
         }
-        console.log('⏹️  RetentionService stopped.');
+        retentionLogger.info('RetentionService stopped');
+    }
+
+    getStatus() {
+        return {
+            running: this.interval !== null,
+        };
     }
 
     private async cleanup() {
@@ -39,7 +48,7 @@ export class RetentionService {
             });
 
             if (result.count > 0) {
-                console.log(`🗑️  Retention cleanup: removed ${result.count} check results older than ${retentionDays} days.`);
+                retentionLogger.info({ deletedCount: result.count, retentionDays }, 'Deleted old check results');
             }
 
             // Clean old audit logs (same retention period)
@@ -50,7 +59,7 @@ export class RetentionService {
             });
 
             if (auditResult.count > 0) {
-                console.log(`🗑️  Retention cleanup: removed ${auditResult.count} audit logs older than ${retentionDays} days.`);
+                retentionLogger.info({ deletedCount: auditResult.count, retentionDays }, 'Deleted old audit logs');
             }
 
             // Clean old notification history (same retention period)
@@ -61,11 +70,11 @@ export class RetentionService {
             });
 
             if (notifResult.count > 0) {
-                console.log(`🗑️  Retention cleanup: removed ${notifResult.count} notification history entries older than ${retentionDays} days.`);
+                retentionLogger.info({ deletedCount: notifResult.count, retentionDays }, 'Deleted old notification history');
             }
 
         } catch (err) {
-            console.error('Retention cleanup error:', err);
+            retentionLogger.error({ err }, 'Retention cleanup error');
         }
     }
 }

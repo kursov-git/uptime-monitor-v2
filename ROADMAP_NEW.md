@@ -354,5 +354,5 @@ enum AgentStatus {
 5. Все уведомления/логи/результаты содержат `agentName`.
 6. Token rotation/revoke работают и покрыты тестами.
 7. API контракт зафиксирован тестами, CI зелёный.
-8. Canary rollout и rollback-playbook подтверждены на staging.
-
+8. GitHub Actions CI использует минимальные permissions, concurrency cancel и timeout для джоб.
+9. Canary rollout и rollback-playbook подтверждены на staging.

@@ -16,6 +16,7 @@ Self-hosted uptime monitoring service with a modern dashboard.
 - **API key authentication** for read-only access
 - **Audit logging** of all administrative actions
 - **Automatic data retention** cleanup
+- **Batched agent result ingestion** with idempotency handling
 - **Dark theme UI** with responsive design
 - **Docker deployment** ready
 
@@ -48,6 +49,32 @@ npm run dev
 
 Server runs on `http://localhost:3000`, client on `http://localhost:5173`.
 
+### Split Server Runtime
+
+The backend can now run as separate processes:
+
+```bash
+cd server
+npm run dev:api
+npm run dev:worker
+npm run dev:retention
+npm run dev:agent-offline-monitor
+```
+
+Production role selection is controlled with `SERVER_ROLE`:
+
+- `all` — API + worker + retention + agent offline monitor
+- `api`
+- `worker`
+- `retention`
+- `agent-offline-monitor`
+
+Logging defaults:
+
+- development: `LOG_FORMAT=pretty`
+- production: `LOG_FORMAT=json`
+- override level with `LOG_LEVEL=info|warn|error|debug|trace`
+
 ### Docker (Local)
 
 ```bash
@@ -58,20 +85,45 @@ docker compose up -d --build
 
 Application will be available at `http://localhost`.
 
+### Backups and Ops
+
+SQLite compose backup:
+
+```bash
+./scripts/backup-db.sh
+COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server ./scripts/backup-db.sh
+```
+
+Restore:
+
+```bash
+./scripts/restore-db.sh /data/backups/uptime-YYYYMMDDTHHMMSSZ.db
+```
+
+Runtime diagnostics:
+
+```bash
+./scripts/runtime-status.sh
+COMPOSE_FILE=docker-compose.split.yml ./scripts/runtime-status.sh
+```
+
+Operational reference:
+- [docs/OPERATIONS_RUNBOOK.md](/home/skris/uptime-monitor-v2/docs/OPERATIONS_RUNBOOK.md)
+
 ### Production Deployment (VPS)
 
 Requires one-time SSH key setup:
 
 ```bash
 # Generate key and copy to server
-ssh-keygen -t ed25519 -f ~/.ssh/uptime_deploy
-ssh-copy-id -i ~/.ssh/uptime_deploy root@YOUR_SERVER_IP
+ssh-keygen -t ed25519 -f ~/.ssh/onedashmsk_admin
+ssh-copy-id -i ~/.ssh/onedashmsk_admin root@YOUR_SERVER_IP
 
 # Add to ~/.ssh/config:
 # Host uptime
 #     HostName YOUR_SERVER_IP
 #     User root
-#     IdentityFile ~/.ssh/uptime_deploy
+#     IdentityFile ~/.ssh/onedashmsk_admin
 ```
 
 Then deploy with one command:
@@ -81,6 +133,25 @@ bash deploy.sh
 ```
 
 The `.env` file on the server is preserved across deploys. Set `ADMIN_PASSWORD` on the server before the first deploy.
+
+## CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml`
+
+- Triggers: `push`, `pull_request`, manual `workflow_dispatch`
+- Server job:
+  - `npm --prefix server run test:integration`
+  - `npm --prefix server run build`
+- Client job:
+  - `npm --prefix client test`
+  - `npm --prefix client run lint`
+  - `npm --prefix client run build`
+- E2E job:
+  - `CI=1 npm --prefix e2e run test` (Chromium only in CI)
+- Security/operational defaults:
+  - minimal token permissions (`contents: read`, `actions: write`)
+  - concurrency cancel for stale runs
+  - `timeout-minutes: 20` on each job
 
 ## API Endpoints
 
@@ -112,7 +183,11 @@ The `.env` file on the server is preserved across deploys. Set `ADMIN_PASSWORD` 
 |----------|----------|---------|-------------|
 | `JWT_SECRET` | Yes (production) | auto | JWT signing secret |
 | `ADMIN_PASSWORD` | No | random | Initial admin password |
-| `DATABASE_URL` | No | `file:./prisma/dev.db` | SQLite path |
+| `DATABASE_URL` | Yes | — | SQLite/Postgres connection string |
 | `CORS_ORIGINS` | No | `http://localhost:5173` | Allowed origins |
 | `PORT` | No | `3000` | Server port |
 | `HOST` | No | `0.0.0.0` | Server host |
+| `ENCRYPTION_KEY` | Yes (production) | — | 64-char hex key for AES-256-GCM secret storage |
+| `LOG_LEVEL` | No | `info` | Pino log level |
+| `LOG_FORMAT` | No | `pretty` in dev, `json` in prod | Log output mode |
+| `SERVER_ROLE` | No | `all` | Backend runtime role |

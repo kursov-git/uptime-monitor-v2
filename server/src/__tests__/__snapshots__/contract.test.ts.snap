@@ -7,6 +7,32 @@ exports[`API Contract > validates /health response shape 1`] = `
 }
 `;
 
+exports[`API Contract > validates /health/runtime response shape 1`] = `
+{
+  "runtime": {
+    "agentApiEnabled": true,
+    "agentSseEnabled": true,
+    "builtinWorkerEnabled": true,
+  },
+  "serverRole": "all",
+  "services": {
+    "agentOfflineMonitor": {
+      "running": false,
+    },
+    "retention": {
+      "running": false,
+    },
+    "worker": {
+      "running": false,
+      "scheduledMonitors": 0,
+      "syncLoopActive": false,
+    },
+  },
+  "status": "ok",
+  "timestamp": "<iso-date>",
+}
+`;
+
 exports[`API Contract > validates auth login and /me contracts 1`] = `
 {
   "login": {
