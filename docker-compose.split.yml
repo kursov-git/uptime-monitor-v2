@@ -8,7 +8,7 @@ services:
     environment:
       - DATABASE_URL=file:/data/uptime.db
       - JWT_SECRET=${JWT_SECRET}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:80}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://ping-agent.ru,https://www.ping-agent.ru,http://localhost:5173}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - HOST=0.0.0.0
       - PORT=3000
@@ -96,10 +96,39 @@ services:
       dockerfile: ./client/Dockerfile
     container_name: uptime-client
     restart: unless-stopped
+    environment:
+      - SSL_DOMAINS=${SSL_DOMAINS:-ping-agent.ru,www.ping-agent.ru}
+      - SSL_CERT_NAME=${SSL_CERT_NAME:-ping-agent.ru}
+      - SSL_WATCH_INTERVAL_SEC=${SSL_WATCH_INTERVAL_SEC:-60}
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - webroot:/var/www/certbot
     depends_on:
       - server
 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    restart: unless-stopped
+    environment:
+      - SSL_DOMAINS=${SSL_DOMAINS:-ping-agent.ru,www.ping-agent.ru}
+      - SSL_CERT_NAME=${SSL_CERT_NAME:-ping-agent.ru}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-}
+      - CERTBOT_STAGING=${CERTBOT_STAGING:-false}
+      - CERTBOT_RENEW_INTERVAL_SEC=${CERTBOT_RENEW_INTERVAL_SEC:-43200}
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - webroot:/var/www/certbot
+      - ./scripts/certbot-entrypoint.sh:/usr/local/bin/certbot-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/certbot-entrypoint.sh"]
+
 volumes:
   db-data:
+  certbot-etc:
+  certbot-var:
+  webroot:
