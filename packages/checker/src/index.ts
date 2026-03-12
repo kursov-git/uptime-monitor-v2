@@ -2,6 +2,9 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
+import { assertSafeCheckTargets } from './targetGuards';
+
+export { assertSafeCheckTargets, getBlockedTargetReasonFromUrl } from './targetGuards';
 
 const RETRY_CONFIG = {
     retries: 3,
@@ -25,6 +28,7 @@ export interface PerformCheckInput {
     authUrl: string | null;
     authPayload: string | null;
     authTokenRegex: string | null;
+    allowPrivateTargets?: boolean;
 }
 
 export interface PerformCheckResult {
@@ -41,6 +45,13 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
     let error: string | null = null;
 
     try {
+        await assertSafeCheckTargets([
+            { label: 'primary', url: input.url },
+            { label: 'auth', url: input.authUrl },
+        ], {
+            allowPrivateTargets: input.allowPrivateTargets,
+        });
+
         const headers: Record<string, string> = {};
         if (input.headers) {
             try {

@@ -4,6 +4,7 @@ import { initApp } from '../index';
 import prisma from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import { AUTH_COOKIE_MAX_AGE_SEC } from '../lib/authCookies';
+import { resetLoginAbuseTrackingForTests } from '../routes/auth';
 
 let app: FastifyInstance;
 
@@ -64,6 +65,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+    resetLoginAbuseTrackingForTests();
     await prisma.apiKey.deleteMany();
     await prisma.auditLog.deleteMany();
     await prisma.user.deleteMany();
@@ -207,6 +209,36 @@ describe('Auth API (Integration)', () => {
             url: '/api/auth/login',
             payload: {
                 username: 'rate_limit_user',
+                password: 'wrongpassword',
+            },
+        });
+
+        expect(blocked.statusCode).toBe(429);
+        expect(JSON.parse(blocked.body)).toEqual({
+            statusCode: 429,
+            error: 'Too many login attempts. Please try again later.',
+        });
+    });
+
+    it('blocks password spraying from one ip across many usernames', async () => {
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+            const response = await app.inject({
+                method: 'POST',
+                url: '/api/auth/login',
+                payload: {
+                    username: `spray_target_${attempt}`,
+                    password: 'wrongpassword',
+                },
+            });
+
+            expect(response.statusCode).toBe(401);
+        }
+
+        const blocked = await app.inject({
+            method: 'POST',
+            url: '/api/auth/login',
+            payload: {
+                username: 'spray_target_final',
                 password: 'wrongpassword',
             },
         });

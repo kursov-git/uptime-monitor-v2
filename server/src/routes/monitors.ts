@@ -1,12 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma';
 import { authenticateJWT, authenticateSseJWT, requireAdmin, blockApiKeyWrites } from '../lib/auth';
-import { validateMonitorInput, CreateMonitorBody } from '../lib/validation';
+import { validateMonitorInputWithOptions, CreateMonitorBody } from '../lib/validation';
 import { logAction } from '../services/auditService';
 import { FlappingService } from '../services/flapping';
 import { sseService } from '../services/sse';
 import { agentSseService } from '../services/agentSse';
 import { encrypt, decrypt } from '../lib/crypto';
+import { serverEnv } from '../lib/env';
 
 export default async function monitorRoutes(fastify: FastifyInstance) {
     // GET /api/monitors/stream — Server-Sent Events for monitor updates
@@ -159,7 +160,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
     fastify.post<{ Body: CreateMonitorBody }>('/', {
         preHandler: [authenticateJWT, blockApiKeyWrites, requireAdmin],
     }, async (request, reply) => {
-        const errors = validateMonitorInput(request.body);
+        const errors = validateMonitorInputWithOptions(request.body, {
+            allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
+        });
         if (errors.length > 0) {
             return reply.status(400).send({ errors });
         }
@@ -207,15 +210,25 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             }
 
             const body = request.body;
-            if (body.name !== undefined || body.url !== undefined) {
-                const errors = validateMonitorInput({
-                    name: body.name || existing.name,
-                    url: body.url || existing.url,
-                    ...body,
-                });
-                if (errors.length > 0) {
-                    return reply.status(400).send({ errors });
-                }
+            const errors = validateMonitorInputWithOptions({
+                name: body.name ?? existing.name,
+                url: body.url ?? existing.url,
+                method: body.method ?? existing.method,
+                intervalSeconds: body.intervalSeconds ?? existing.intervalSeconds,
+                timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
+                expectedStatus: body.expectedStatus ?? existing.expectedStatus,
+                expectedBody: body.expectedBody ?? existing.expectedBody ?? undefined,
+                headers: body.headers ?? existing.headers ?? undefined,
+                authMethod: body.authMethod ?? existing.authMethod,
+                authUrl: body.authUrl ?? existing.authUrl ?? undefined,
+                authPayload: body.authPayload ?? (existing.authPayload ? decrypt(existing.authPayload) : undefined),
+                authTokenRegex: body.authTokenRegex ?? existing.authTokenRegex ?? undefined,
+                agentId: body.agentId ?? existing.agentId,
+            }, {
+                allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
+            });
+            if (errors.length > 0) {
+                return reply.status(400).send({ errors });
             }
 
             const monitor = await prisma.monitor.update({

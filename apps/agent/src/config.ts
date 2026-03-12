@@ -7,6 +7,7 @@ const envSchema = z.object({
     AGENT_BUFFER_MAX: z.coerce.number().int().positive().optional(),
     AGENT_RESULT_MAX_BATCH: z.coerce.number().int().positive().optional(),
     AGENT_MAX_CONCURRENCY: z.coerce.number().int().positive().optional(),
+    ALLOW_PRIVATE_MONITOR_TARGETS: z.string().optional(),
 });
 
 export interface AgentEnv {
@@ -16,6 +17,7 @@ export interface AgentEnv {
     bufferMax: number;
     resultMaxBatch: number;
     maxConcurrency: number;
+    allowPrivateMonitorTargets: boolean;
 }
 
 export function readAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv {
@@ -28,6 +30,7 @@ export function readAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv 
         bufferMax: raw.AGENT_BUFFER_MAX ?? 200,
         resultMaxBatch: raw.AGENT_RESULT_MAX_BATCH ?? 50,
         maxConcurrency: raw.AGENT_MAX_CONCURRENCY ?? 6,
+        allowPrivateMonitorTargets: raw.ALLOW_PRIVATE_MONITOR_TARGETS === 'true',
     };
 }
 

@@ -82,6 +82,18 @@ Delivered scope:
 - browser session lifetime is now explicitly capped at 12 hours
 - the new auth/session model is covered by integration, contract, and client regression tests
 
+### Security Hardening Phase 3
+
+Status:
+- delivered
+
+Delivered scope:
+- login abuse now emits stable `SECURITY_LOGIN_*` markers for fail2ban or log-based response
+- password spraying from a single IP is rate-limited in addition to the per-user login limiter
+- checker execution now blocks loopback, RFC1918, link-local, and metadata targets by default
+- `nginx` now supports configurable allowlists for admin/browser traffic, agent API traffic, and `/health/runtime`
+- production enablement of allowlists remains an operator choice, not a code gap
+
 ## Now
 
 These are the highest-priority roadmap items for the next iteration.
@@ -539,10 +551,10 @@ It is meant to be used as a lightweight delivery board.
 - [x] T044 Remove the compatibility JWT body from `/api/auth/login` after the cookie-only flow is fully accepted
 - [x] T045 Add server-side session revocation semantics for logout, password change, role change, and user deletion
 - [x] T046 Revisit browser session lifetime and rotation policy after revocation design lands
-- [ ] T047 Split or otherwise narrow admin/browser and agent/control-plane exposure at the edge
+- [x] T047 Split or otherwise narrow admin/browser and agent/control-plane exposure at the edge
 - [ ] T048 Add production edge restriction for admin UI and admin APIs
 - [ ] T049 Restrict `/api/agent/*` to expected source networks or private paths where feasible
-- [ ] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
+- [x] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
 - [ ] T051 Remove legacy plaintext agent-token compatibility after migration verification
 - [ ] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
 - [ ] T053 Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys

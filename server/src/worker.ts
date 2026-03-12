@@ -4,6 +4,7 @@ import { FlappingService } from './services/flapping';
 import { sseService } from './services/sse';
 import { decrypt } from './lib/crypto';
 import { logger } from './lib/logger';
+import { serverEnv } from './lib/env';
 
 const workerLogger = logger.child({ component: 'check-worker' });
 
@@ -133,6 +134,7 @@ export class CheckWorker {
             authUrl: monitor.authUrl,
             authPayload,
             authTokenRegex: monitor.authTokenRegex,
+            allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
         });
 
         // Store result

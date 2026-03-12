@@ -12,9 +12,11 @@ const rawEnvSchema = z.object({
     CORS_ORIGINS: z.string().optional(),
     HOST: z.string().trim().min(1).optional(),
     PORT: z.coerce.number().int().min(1).max(65535).optional(),
+    TRUST_PROXY: z.string().optional(),
     ENABLE_AGENT_API: z.string().optional(),
     AGENT_SSE_ENABLED: z.string().optional(),
     ENABLE_BUILTIN_WORKER: z.string().optional(),
+    ALLOW_PRIVATE_MONITOR_TARGETS: z.string().optional(),
     LOG_LEVEL: z.enum(LOG_LEVELS).optional(),
     LOG_FORMAT: z.enum(LOG_FORMATS).optional(),
     SERVER_ROLE: z.string().optional(),
@@ -27,9 +29,11 @@ export interface ServerEnv {
     corsOrigins: string[];
     host: string;
     port: number;
+    trustProxy: boolean;
     enableAgentApi: boolean;
     agentSseEnabled: boolean;
     enableBuiltinWorker: boolean;
+    allowPrivateMonitorTargets: boolean;
     logLevel: (typeof LOG_LEVELS)[number];
     logFormat: (typeof LOG_FORMATS)[number];
     serverRole: ServerRole;
@@ -57,9 +61,11 @@ export function readServerEnv(source: NodeJS.ProcessEnv = process.env): ServerEn
             : ['http://localhost:5173'],
         host: raw.HOST ?? '0.0.0.0',
         port: raw.PORT ?? 3000,
+        trustProxy: parseBoolEnv(raw.TRUST_PROXY, false),
         enableAgentApi: parseBoolEnv(raw.ENABLE_AGENT_API, true),
         agentSseEnabled: parseBoolEnv(raw.AGENT_SSE_ENABLED, true),
         enableBuiltinWorker: parseBoolEnv(raw.ENABLE_BUILTIN_WORKER, true),
+        allowPrivateMonitorTargets: parseBoolEnv(raw.ALLOW_PRIVATE_MONITOR_TARGETS, false),
         logLevel: raw.LOG_LEVEL ?? (nodeEnv === 'test' ? 'warn' : 'info'),
         logFormat: raw.LOG_FORMAT ?? (nodeEnv === 'production' ? 'json' : 'pretty'),
         serverRole: resolveServerRole(raw.SERVER_ROLE),

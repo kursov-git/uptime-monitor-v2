@@ -12,6 +12,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - HOST=0.0.0.0
       - PORT=3000
+      - TRUST_PROXY=${TRUST_PROXY:-true}
       - SERVER_ROLE=api
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_LEVEL=${LOG_LEVEL:-info}
@@ -19,6 +20,7 @@ services:
       - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
       - AGENT_SSE_ENABLED=${AGENT_SSE_ENABLED:-true}
       - ENABLE_BUILTIN_WORKER=false
+      - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
     volumes:
       - db-data:/data
     expose:
@@ -100,6 +102,9 @@ services:
       - SSL_DOMAINS=${SSL_DOMAINS:-ping-agent.ru,www.ping-agent.ru}
       - SSL_CERT_NAME=${SSL_CERT_NAME:-ping-agent.ru}
       - SSL_WATCH_INTERVAL_SEC=${SSL_WATCH_INTERVAL_SEC:-60}
+      - ADMIN_ALLOWLIST=${ADMIN_ALLOWLIST:-}
+      - AGENT_ALLOWLIST=${AGENT_ALLOWLIST:-}
+      - RUNTIME_HEALTH_ALLOWLIST=${RUNTIME_HEALTH_ALLOWLIST:-}
     ports:
       - "80:80"
       - "443:443"

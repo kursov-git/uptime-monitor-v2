@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidUrl, isValidJson, validateMonitorInput } from '../lib/validation';
+import { isValidUrl, isValidJson, validateMonitorInput, validateMonitorInputWithOptions } from '../lib/validation';
 
 describe('isValidUrl', () => {
     it('should accept valid HTTP URLs', () => {
@@ -59,6 +59,44 @@ describe('validateMonitorInput', () => {
             intervalSeconds: 5,
             expectedStatus: 200,
         });
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should reject loopback monitor targets by default', () => {
+        const errors = validateMonitorInput({
+            name: 'Internal Monitor',
+            url: 'http://127.0.0.1:8080/health',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'url',
+            message: 'Target URL is not allowed: loopback',
+        });
+    });
+
+    it('should reject private auth urls by default', () => {
+        const errors = validateMonitorInput({
+            name: 'Form Login Monitor',
+            url: 'https://example.com/health',
+            authMethod: 'FORM_LOGIN',
+            authUrl: 'http://192.168.1.10/login',
+            authPayload: '{"username":"test","password":"secret"}',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'authUrl',
+            message: 'Auth URL is not allowed: rfc1918-private',
+        });
+    });
+
+    it('should allow private targets when explicitly enabled', () => {
+        const errors = validateMonitorInputWithOptions({
+            name: 'Private Monitor',
+            url: 'http://10.0.0.15/health',
+        }, {
+            allowPrivateTargets: true,
+        });
+
         expect(errors).toHaveLength(0);
     });
 });

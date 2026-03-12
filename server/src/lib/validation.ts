@@ -1,3 +1,5 @@
+import { getBlockedTargetReasonFromUrl } from './networkGuards';
+
 export interface ValidationError {
     field: string;
     message: string;
@@ -39,6 +41,13 @@ export function isValidJson(str: string | undefined | null): boolean {
 }
 
 export function validateMonitorInput(body: CreateMonitorBody): ValidationError[] {
+    return validateMonitorInputWithOptions(body, {});
+}
+
+export function validateMonitorInputWithOptions(
+    body: CreateMonitorBody,
+    options: { allowPrivateTargets?: boolean }
+): ValidationError[] {
     const errors: ValidationError[] = [];
 
     if (!body.name || body.name.trim().length === 0) {
@@ -47,6 +56,13 @@ export function validateMonitorInput(body: CreateMonitorBody): ValidationError[]
 
     if (!body.url || !isValidUrl(body.url)) {
         errors.push({ field: 'url', message: 'Valid HTTP/HTTPS URL is required' });
+    } else {
+        const blockedReason = getBlockedTargetReasonFromUrl(body.url, {
+            allowPrivateTargets: options.allowPrivateTargets,
+        });
+        if (blockedReason) {
+            errors.push({ field: 'url', message: `Target URL is not allowed: ${blockedReason}` });
+        }
     }
 
     if (body.intervalSeconds !== undefined) {
@@ -84,6 +100,15 @@ export function validateMonitorInput(body: CreateMonitorBody): ValidationError[]
 
     if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && (!body.authUrl || !isValidUrl(body.authUrl))) {
         errors.push({ field: 'authUrl', message: 'Valid HTTP/HTTPS login URL is required for form login' });
+    }
+
+    if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && body.authUrl && isValidUrl(body.authUrl)) {
+        const blockedReason = getBlockedTargetReasonFromUrl(body.authUrl, {
+            allowPrivateTargets: options.allowPrivateTargets,
+        });
+        if (blockedReason) {
+            errors.push({ field: 'authUrl', message: `Auth URL is not allowed: ${blockedReason}` });
+        }
     }
 
     if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && !body.authPayload) {

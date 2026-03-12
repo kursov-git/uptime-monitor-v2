@@ -65,6 +65,53 @@ describe('Monitors API (Integration)', () => {
         expect(data.id).toBeDefined();
     });
 
+    it('should reject private monitor targets by default', async () => {
+        const res = await app.inject({
+            method: 'POST',
+            url: '/api/monitors/',
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: {
+                name: 'Internal Target',
+                url: 'http://127.0.0.1:8080/health',
+                method: 'GET',
+            }
+        });
+
+        expect(res.statusCode).toBe(400);
+        expect(JSON.parse(res.body).errors).toContainEqual({
+            field: 'url',
+            message: 'Target URL is not allowed: loopback',
+        });
+    });
+
+    it('should reject private auth URLs on monitor update', async () => {
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'Auth Target',
+                url: 'https://example.com/health',
+                method: 'GET',
+                authMethod: 'NONE',
+            }
+        });
+
+        const res = await app.inject({
+            method: 'PUT',
+            url: `/api/monitors/${monitor.id}`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: {
+                authMethod: 'FORM_LOGIN',
+                authUrl: 'http://192.168.1.15/login',
+                authPayload: '{"username":"alice","password":"secret"}',
+            }
+        });
+
+        expect(res.statusCode).toBe(400);
+        expect(JSON.parse(res.body).errors).toContainEqual({
+            field: 'authUrl',
+            message: 'Auth URL is not allowed: rfc1918-private',
+        });
+    });
+
     it('should FORBID VIEWER from creating monitors', async () => {
         const res = await app.inject({
             method: 'POST',

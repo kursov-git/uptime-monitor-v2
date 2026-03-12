@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import axiosRetry from 'axios-retry';
 import { performCheck } from '../../../packages/checker/src';
 
+const mockLookup = vi.hoisted(() => vi.fn());
+
 const mockAxiosInstance = vi.hoisted(() => {
     const fn = vi.fn();
     (fn as any).interceptors = { request: { use: vi.fn() }, response: { use: vi.fn() } };
@@ -20,6 +22,12 @@ vi.mock('axios-cookiejar-support', () => ({
     wrapper: (instance: unknown) => instance,
 }));
 
+vi.mock('node:dns/promises', () => ({
+    default: {
+        lookup: mockLookup,
+    },
+}));
+
 vi.mock('axios-retry', () => ({
     default: vi.fn(),
     isNetworkOrIdempotentRequestError: vi.fn(() => false),
@@ -28,6 +36,7 @@ vi.mock('axios-retry', () => ({
 describe('checker', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     });
 
     it('returns success for expected status', async () => {
@@ -184,5 +193,47 @@ describe('checker', () => {
         expect(mainCall.method).toBe('GET');
         expect(mainCall.url).toBe('https://service.example.com/endpoint');
         expect(mainCall.headers.Authorization).toBe('Bearer bearer-xyz');
+    });
+
+    it('blocks direct loopback targets before issuing a request', async () => {
+        const result = await performCheck({
+            url: 'http://127.0.0.1/internal',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(false);
+        expect(result.statusCode).toBeNull();
+        expect(result.error).toBe('primary target is not allowed: loopback');
+        expect(mockAxiosInstance).not.toHaveBeenCalled();
+    });
+
+    it('blocks hostname targets that resolve to private addresses', async () => {
+        mockLookup.mockResolvedValueOnce([{ address: '10.0.0.5', family: 4 }]);
+
+        const result = await performCheck({
+            url: 'https://private.example.com/health',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(false);
+        expect(result.statusCode).toBeNull();
+        expect(result.error).toContain('primary target resolves to a disallowed address: 10.0.0.5');
+        expect(mockAxiosInstance).not.toHaveBeenCalled();
     });
 });

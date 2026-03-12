@@ -26,6 +26,7 @@ const env = serverEnv;
 
 const fastify = Fastify({
     logger: createFastifyLoggerOptions(env),
+    trustProxy: env.trustProxy,
 });
 
 

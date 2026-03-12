@@ -25,6 +25,7 @@ write_files:
             AGENT_BUFFER_MAX: ${AGENT_BUFFER_MAX:-1000}
             AGENT_RESULT_MAX_BATCH: ${AGENT_RESULT_MAX_BATCH:-500}
             AGENT_MAX_CONCURRENCY: ${AGENT_MAX_CONCURRENCY:-6}
+            ALLOW_PRIVATE_MONITOR_TARGETS: ${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
           security_opt:
             - no-new-privileges:true
           cap_drop:
@@ -47,6 +48,7 @@ write_files:
       AGENT_BUFFER_MAX=1000
       AGENT_RESULT_MAX_BATCH=500
       AGENT_MAX_CONCURRENCY=6
+      ALLOW_PRIVATE_MONITOR_TARGETS=false
   - path: /etc/systemd/system/uptime-agent.service
     permissions: "0644"
     content: |

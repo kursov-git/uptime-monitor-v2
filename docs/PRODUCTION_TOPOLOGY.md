@@ -35,6 +35,14 @@ Public responsibilities:
 - split background runtime
 - SQLite database storage in docker volume
 
+Edge hardening capabilities now available in the `client` nginx container:
+- `ADMIN_ALLOWLIST` for browser UI and non-agent `/api/*`
+- `AGENT_ALLOWLIST` for `/api/agent/*`
+- `RUNTIME_HEALTH_ALLOWLIST` for `/health/runtime`
+
+Current production setting:
+- allowlists are implemented in code but not enabled by default until operator source IP policy is finalized
+
 Current public domain:
 - `ping-agent.ru`
 - `www.ping-agent.ru`
@@ -169,6 +177,7 @@ Before updating dockerized agents, create tar backups of:
 - `/health`
 - `/health/runtime`
 - recent `server` logs for `/api/agent/*`
+- recent `server` logs for `SECURITY_LOGIN_*` markers when investigating login abuse
 
 ### Agent hosts
 - `systemctl status uptime-agent`

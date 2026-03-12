@@ -34,6 +34,8 @@ Recommended defaults:
 - explicit `JWT_SECRET`
 - explicit `ENCRYPTION_KEY`
 - explicit `DATABASE_URL`
+- `TRUST_PROXY=true` when the API sits behind the `client` nginx reverse proxy
+- explicit edge allowlists once trusted operator/agent source ranges are known
 
 ## Health Checks
 
@@ -138,6 +140,81 @@ docker compose -f docker-compose.split.yml exec -T client ls -la /etc/letsencryp
 Staging dry-run option:
 - set `CERTBOT_STAGING=true` before the first request to avoid Let's Encrypt rate limits while validating DNS/firewall behavior
 - switch it back to `false` before requesting the real certificate
+
+## Edge Restriction Minimum
+
+The `client` nginx layer now supports configurable allowlists without code changes.
+
+Supported env vars:
+- `ADMIN_ALLOWLIST`
+  Comma-separated IPs/CIDRs allowed to reach the browser UI and non-agent `/api/*`.
+- `AGENT_ALLOWLIST`
+  Comma-separated IPs/CIDRs allowed to reach `/api/agent/*`.
+- `RUNTIME_HEALTH_ALLOWLIST`
+  Comma-separated IPs/CIDRs allowed to reach `/health/runtime`.
+  If unset, external `/health/runtime` is denied by default.
+
+Recommended operator flow:
+1. Identify stable operator source IPs or put the admin UI behind a Zero Trust/VPN layer.
+2. Set `ADMIN_ALLOWLIST` to those trusted ranges.
+3. Inventory current agent egress IPs, then set `AGENT_ALLOWLIST`.
+4. If remote runtime health must be queried externally, set `RUNTIME_HEALTH_ALLOWLIST` to a narrow ops range.
+5. Recreate `client` after env changes:
+
+```bash
+docker compose -f docker-compose.split.yml up -d --build client
+```
+
+Example:
+
+```bash
+ADMIN_ALLOWLIST=203.0.113.10,198.51.100.0/24
+AGENT_ALLOWLIST=82.202.137.51,193.124.118.92
+RUNTIME_HEALTH_ALLOWLIST=203.0.113.10
+```
+
+Notes:
+- leave the values empty only when the edge is protected elsewhere
+- `ADMIN_ALLOWLIST` affects the SPA and non-agent APIs together
+- these controls are intentionally opt-in so rollout does not accidentally lock out the current operator
+
+## Login Abuse Signals
+
+The API now emits stable security log markers for login abuse handling:
+- `SECURITY_LOGIN_FAILED`
+- `SECURITY_LOGIN_ACCOUNT_LOCKED`
+- `SECURITY_LOGIN_RATE_LIMITED`
+- `SECURITY_LOGIN_IP_BLOCKED`
+- `SECURITY_LOGIN_BANNED`
+
+These are intended for:
+- fail2ban
+- log-based alerting
+- manual incident investigation
+
+Example:
+
+```bash
+docker compose -f docker-compose.split.yml logs --tail=200 server | grep SECURITY_LOGIN_
+```
+
+## Monitor Target Guardrails
+
+HTTP checks now block these target categories by default:
+- loopback
+- RFC1918 private IPv4
+- IPv6 ULA/private
+- link-local
+- cloud metadata endpoints
+
+This applies to:
+- builtin worker checks
+- remote agent checks
+- monitor creation/update validation for obvious blocked targets
+
+Escape hatch:
+- set `ALLOW_PRIVATE_MONITOR_TARGETS=true` only when private/internal monitoring is an intentional requirement
+- if you enable it, compensate with network isolation and a stricter trust model for who can create monitors
 
 ## Backups
 

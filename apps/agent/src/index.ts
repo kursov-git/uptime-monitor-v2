@@ -36,6 +36,7 @@ const AGENT_HTTP_TIMEOUT_MS = agentEnv.httpTimeoutMs;
 const AGENT_BUFFER_MAX = agentEnv.bufferMax;
 const AGENT_RESULT_MAX_BATCH = agentEnv.resultMaxBatch;
 const AGENT_MAX_CONCURRENCY = agentEnv.maxConcurrency;
+const ALLOW_PRIVATE_MONITOR_TARGETS = agentEnv.allowPrivateMonitorTargets;
 
 class AgentRuntime {
     private jobs = new Map<string, AgentJob>();
@@ -149,6 +150,7 @@ class AgentRuntime {
                 authUrl: job.authUrl || null,
                 authPayload,
                 authTokenRegex: job.authTokenRegex || null,
+                allowPrivateTargets: ALLOW_PRIVATE_MONITOR_TARGETS,
             });
 
             this.enqueue({
