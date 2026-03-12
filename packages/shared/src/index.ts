@@ -79,6 +79,9 @@ export interface Agent {
     heartbeatIntervalSec: number;
     offlineAfterSec: number;
     lastSeen: string;
+    lastSeenIp: string | null;
+    lastSeenCountry: string | null;
+    lastSeenCity: string | null;
     revokedAt: string | null;
     createdAt: string;
     updatedAt: string;

@@ -1,8 +1,16 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { FastifyInstance } from 'fastify';
 import { initApp } from '../index';
 import prisma from '../lib/prisma';
 import { hashAgentToken } from '../services/agentAuth';
+
+vi.mock('../services/geoip', () => ({
+    resolveAgentGeo: vi.fn(() => ({
+        ip: '203.0.113.10',
+        country: 'RU',
+        city: 'Moscow',
+    })),
+}));
 
 let app: FastifyInstance;
 
@@ -230,7 +238,7 @@ describe('Agent API (Integration)', () => {
         expect(rows.every((row) => row.monitorId === ownMonitor.id)).toBe(true);
     });
 
-    it('heartbeat updates status and lastSeen', async () => {
+    it('heartbeat updates status, lastSeen, and connection geo metadata', async () => {
         const token = 'agent-heartbeat-token';
         const oldSeen = new Date(Date.now() - 10 * 60 * 1000);
 
@@ -264,5 +272,8 @@ describe('Agent API (Integration)', () => {
         expect(updated.status).toBe('ONLINE');
         expect(updated.lastSeen.getTime()).toBeGreaterThan(oldSeen.getTime());
         expect(updated.agentVersion).toBe('0.1.0');
+        expect(updated.lastSeenIp).toBe('203.0.113.10');
+        expect(updated.lastSeenCountry).toBe('RU');
+        expect(updated.lastSeenCity).toBe('Moscow');
     });
 });

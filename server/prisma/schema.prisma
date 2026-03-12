@@ -64,6 +64,9 @@ model Agent {
   heartbeatIntervalSec Int       @default(30)
   offlineAfterSec      Int       @default(90)
   lastSeen             DateTime  @default(now())
+  lastSeenIp           String?
+  lastSeenCountry      String?
+  lastSeenCity         String?
   revokedAt            DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

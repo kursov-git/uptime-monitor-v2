@@ -46,21 +46,22 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
         <div className="card monitor-card">
             <div className="monitor-card-header">
                 <div className="monitor-name">{monitor.name}</div>
-                {isAdmin && (
-                    <div className="monitor-actions">
+                <div className="monitor-actions">
+                    <button
+                        className="btn btn-icon btn-sm btn-secondary"
+                        onClick={() => onHistory(monitor)}
+                        title="History"
+                    >
+                        📊
+                    </button>
+                    {isAdmin && (
+                        <>
                         <button
                             className="btn btn-icon btn-sm btn-secondary"
                             onClick={() => onToggle(monitor.id)}
                             title={monitor.isActive ? 'Pause' : 'Resume'}
                         >
                             {monitor.isActive ? '⏸' : '▶️'}
-                        </button>
-                        <button
-                            className="btn btn-icon btn-sm btn-secondary"
-                            onClick={() => onHistory(monitor)}
-                            title="History"
-                        >
-                            📊
                         </button>
                         <button
                             className="btn btn-icon btn-sm btn-secondary"
@@ -76,8 +77,9 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                         >
                             🗑
                         </button>
-                    </div>
-                )}
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="monitor-url">{monitor.url}</div>

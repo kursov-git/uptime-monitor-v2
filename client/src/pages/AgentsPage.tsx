@@ -15,6 +15,14 @@ function getAgentVersionLabel(version: string | null): string {
     return version || CURRENT_AGENT_VERSION;
 }
 
+function formatAgentLocation(agent: Agent): string {
+    const countryName = agent.lastSeenCountry
+        ? new Intl.DisplayNames(['ru', 'en'], { type: 'region' }).of(agent.lastSeenCountry) || agent.lastSeenCountry
+        : null;
+    const parts = [countryName, agent.lastSeenCity].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : 'Unknown location';
+}
+
 export default function AgentsPage() {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
@@ -362,6 +370,7 @@ sudo bash scripts/install-agent.sh`
                     {agents.map((agent) => {
                         const versionState = getAgentVersionState(agent.agentVersion);
                         const monitorsAssigned = agent._count?.monitors ?? 0;
+                        const isOnline = agent.status === 'ONLINE';
                         return (
                         <div className="card" key={agent.id}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -369,7 +378,17 @@ sudo bash scripts/install-agent.sh`
                                     <div style={{ fontWeight: 700 }}>{agent.name}</div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>ID: {agent.id}</div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Status: <strong>{agent.status}</strong> | lastSeen: {new Date(agent.lastSeen).toLocaleString()}
+                                        Status:{' '}
+                                        <strong style={{ color: isOnline ? '#22c55e' : '#ef4444' }}>
+                                            {isOnline ? 'ONLINE' : agent.status}
+                                        </strong>
+                                        {' '}| lastSeen: {new Date(agent.lastSeen).toLocaleString()}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                                        IP: <strong>{agent.lastSeenIp || 'Unknown IP'}</strong>
+                                    </div>
+                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                                        Geo: <strong>{formatAgentLocation(agent)}</strong>
                                     </div>
                                     <div style={{ fontSize: 12, color: versionState === 'OUTDATED' ? '#f59e0b' : 'var(--color-text-secondary)' }}>
                                         Agent version: <strong>{getAgentVersionLabel(agent.agentVersion)}</strong>

@@ -10,6 +10,7 @@ import { FlappingService } from '../services/flapping';
 import { TelegramNotifier } from '../services/telegram';
 import { ZulipNotifier } from '../services/zulip';
 import { decrypt } from '../lib/crypto';
+import { resolveAgentGeo } from '../services/geoip';
 import { buildAgentOnlineMessage, htmlToNotifierText } from '../services/notificationMessages';
 
 const resultItemSchema = z.object({
@@ -316,6 +317,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
         const agent = request.agent!;
         const reportedVersion = parse.data.agentVersion?.trim() || null;
         const recoveredAt = new Date();
+        const geo = resolveAgentGeo(request.ip);
         const currentAgent = await prisma.agent.findUnique({
             where: { id: agent.id },
             select: {
@@ -333,6 +335,9 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             data: {
                 ...(reportedVersion ? { agentVersion: reportedVersion } : {}),
                 lastSeen: recoveredAt,
+                lastSeenIp: geo.ip,
+                lastSeenCountry: geo.country,
+                lastSeenCity: geo.city,
                 status: 'ONLINE',
             },
             select: {
