@@ -406,6 +406,7 @@ Each epic is broken down into backend, frontend, data, notifications, and testin
 - separate admin/browser and agent/control-plane traffic where feasible
 - add edge restriction for admin UI and APIs:
   - IP allowlist
+  - Tailscale / WireGuard private admin path
   - VPN / private access
   - Zero Trust access proxy
 - restrict `/api/agent/*` to expected source paths or addresses where feasible
@@ -553,7 +554,9 @@ It is meant to be used as a lightweight delivery board.
 - [x] T046 Revisit browser session lifetime and rotation policy after revocation design lands
 - [x] T047 Split or otherwise narrow admin/browser and agent/control-plane exposure at the edge
 - [ ] T048 Add production edge restriction for admin UI and admin APIs
+  Preferred practical path for this deployment: move admin access behind Tailscale, with `ADMIN_ALLOWLIST` remaining the lightweight fallback.
 - [ ] T049 Restrict `/api/agent/*` to expected source networks or private paths where feasible
+  Preferred practical path for this deployment: use `AGENT_ALLOWLIST` for the current public-agent topology; consider Tailscale/WireGuard only if agents are later moved onto a private path.
 - [x] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
 - [ ] T051 Remove legacy plaintext agent-token compatibility after migration verification
 - [ ] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
