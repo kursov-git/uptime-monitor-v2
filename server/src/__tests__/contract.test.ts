@@ -45,6 +45,14 @@ const monitorSchema = z.object({
     flappingState: z.any().nullable().optional(),
 });
 
+const publicStatusBucketSchema = z.object({
+    timestamp: isoDate,
+    totalChecks: z.number(),
+    upChecks: z.number(),
+    uptimePercent: z.number().nullable(),
+    avgResponseTimeMs: z.number().nullable(),
+});
+
 const publicStatusSchema = z.object({
     generatedAt: isoDate,
     monitorCount: z.number(),
@@ -54,6 +62,7 @@ const publicStatusSchema = z.object({
         paused: z.number(),
         unknown: z.number(),
     }),
+    history24h: z.array(publicStatusBucketSchema).length(24),
     monitors: z.array(z.object({
         id: uuid,
         name: z.string(),
@@ -62,6 +71,7 @@ const publicStatusSchema = z.object({
         isActive: z.boolean(),
         status: z.enum(['up', 'down', 'paused', 'unknown']),
         uptimePercent24h: z.string(),
+        history24h: z.array(publicStatusBucketSchema).length(24),
         lastCheck: z.object({
             id: uuid,
             monitorId: uuid,
@@ -291,6 +301,17 @@ describe('API Contract', () => {
                 isUp: true,
                 responseTimeMs: 84,
                 statusCode: 200,
+            },
+        });
+
+        await prisma.checkResult.create({
+            data: {
+                monitorId: publicMonitor.id,
+                isUp: false,
+                responseTimeMs: 210,
+                statusCode: 503,
+                error: 'Service unavailable',
+                timestamp: new Date(Date.now() - 60 * 60 * 1000),
             },
         });
 

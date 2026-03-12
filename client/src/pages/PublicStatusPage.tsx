@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import { publicApi, type PublicStatusResponse } from '../api';
+import {
+    Area,
+    AreaChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 
 function formatTimestamp(value: string | null): string {
     if (!value) {
@@ -14,6 +23,14 @@ function getStatusLabel(status: PublicStatusResponse['monitors'][number]['status
     if (status === 'down') return 'Degraded';
     if (status === 'paused') return 'Paused';
     return 'Unknown';
+}
+
+function formatHourLabel(value: string): string {
+    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatAvailabilityValue(value: number | null): string {
+    return value === null ? '—' : `${value.toFixed(1)}%`;
 }
 
 export default function PublicStatusPage() {
@@ -39,6 +56,31 @@ export default function PublicStatusPage() {
     }, []);
 
     const summary = data?.summary ?? { up: 0, down: 0, paused: 0, unknown: 0 };
+    const availabilitySeries = data?.history24h.map((bucket) => ({
+        time: formatHourLabel(bucket.timestamp),
+        availability: bucket.uptimePercent,
+        responseTimeMs: bucket.avgResponseTimeMs,
+        checks: bucket.totalChecks,
+    })) ?? [];
+    const latestAvailability = availabilitySeries[availabilitySeries.length - 1]?.availability ?? null;
+
+    const OverviewTooltip = ({ active, payload }: any) => {
+        if (!active || !payload?.[0]) return null;
+
+        const point = payload[0].payload;
+        return (
+            <div className="history-tooltip">
+                <div className="history-tooltip-time">{point.time}</div>
+                <div className="history-tooltip-value">
+                    Availability {formatAvailabilityValue(point.availability)}
+                </div>
+                <div className="history-tooltip-time">
+                    {point.responseTimeMs === null ? 'No checks' : `Avg response ${point.responseTimeMs}ms`}
+                </div>
+                <div className="history-tooltip-time">Checks {point.checks}</div>
+            </div>
+        );
+    };
 
     return (
         <div className="public-status-page">
@@ -62,6 +104,57 @@ export default function PublicStatusPage() {
                     <div className="public-status-pill unknown">Unknown {summary.unknown}</div>
                 </div>
 
+                {!loading && !error && data && data.monitors.length > 0 && (
+                    <div className="card public-status-chart-card">
+                        <div className="public-status-chart-header">
+                            <div>
+                                <div className="public-status-kicker">24h Availability</div>
+                                <h2>Public service health</h2>
+                            </div>
+                            <div className="public-status-chart-meta">
+                                <div>Current</div>
+                                <strong>{formatAvailabilityValue(latestAvailability)}</strong>
+                            </div>
+                        </div>
+                        <ResponsiveContainer width="100%" height={280}>
+                            <AreaChart data={availabilitySeries} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="publicStatusAvailability" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.45} />
+                                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.16)" vertical={false} />
+                                <XAxis
+                                    dataKey="time"
+                                    stroke="#94a3b8"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    minTickGap={20}
+                                />
+                                <YAxis
+                                    stroke="#94a3b8"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    domain={[0, 100]}
+                                    tickFormatter={(value) => `${value}%`}
+                                />
+                                <Tooltip content={<OverviewTooltip />} />
+                                <Area
+                                    type="monotone"
+                                    dataKey="availability"
+                                    stroke="#22c55e"
+                                    strokeWidth={3}
+                                    fill="url(#publicStatusAvailability)"
+                                    connectNulls={false}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="card"><div className="empty-state"><h3>Loading public status…</h3></div></div>
                 ) : error ? (
@@ -80,6 +173,32 @@ export default function PublicStatusPage() {
                                     <span className={`status-badge ${monitor.status}`}>
                                         {getStatusLabel(monitor.status)}
                                     </span>
+                                </div>
+                                <div className="public-status-sparkline">
+                                    <ResponsiveContainer width="100%" height={72}>
+                                        <AreaChart
+                                            data={monitor.history24h.map((bucket) => ({
+                                                time: formatHourLabel(bucket.timestamp),
+                                                availability: bucket.uptimePercent,
+                                            }))}
+                                            margin={{ top: 6, right: 0, left: 0, bottom: 0 }}
+                                        >
+                                            <defs>
+                                                <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.4} />
+                                                    <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.04} />
+                                                </linearGradient>
+                                            </defs>
+                                            <Area
+                                                type="monotone"
+                                                dataKey="availability"
+                                                stroke={monitor.status === 'down' ? '#ef4444' : '#3b82f6'}
+                                                strokeWidth={2}
+                                                fill={`url(#monitorAvailability-${monitor.id})`}
+                                                connectNulls={false}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
                                 <div className="public-status-stats">
                                     <div>

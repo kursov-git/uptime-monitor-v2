@@ -135,6 +135,15 @@ export interface PublicStatusMonitor {
     status: 'up' | 'down' | 'paused' | 'unknown';
     lastCheck: CheckResult | null;
     uptimePercent24h: string;
+    history24h: PublicStatusBucket[];
+}
+
+export interface PublicStatusBucket {
+    timestamp: string;
+    totalChecks: number;
+    upChecks: number;
+    uptimePercent: number | null;
+    avgResponseTimeMs: number | null;
 }
 
 export interface PublicStatusResponse {
@@ -146,6 +155,7 @@ export interface PublicStatusResponse {
         paused: number;
         unknown: number;
     };
+    history24h: PublicStatusBucket[];
     monitors: PublicStatusMonitor[];
 }
 
