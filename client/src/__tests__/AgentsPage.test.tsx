@@ -13,7 +13,7 @@ describe('AgentsPage', () => {
         vi.restoreAllMocks();
     });
 
-    it('renders online status and last seen IP/location metadata', async () => {
+    it('renders online status and normalized last seen IP/location metadata', async () => {
         vi.spyOn(agentsApi, 'get').mockResolvedValueOnce({
             data: [
                 {
@@ -34,6 +34,24 @@ describe('AgentsPage', () => {
                         monitors: 2,
                     },
                 },
+                {
+                    id: 'agent-2',
+                    name: 'ruvdskzn',
+                    status: 'ONLINE',
+                    agentVersion: '1.0.0',
+                    heartbeatIntervalSec: 30,
+                    offlineAfterSec: 90,
+                    lastSeen: '2026-03-12T18:02:00.000Z',
+                    lastSeenIp: '203.0.113.11',
+                    lastSeenCountry: 'RU',
+                    lastSeenCity: "Kazan'",
+                    revokedAt: null,
+                    createdAt: '2026-03-12T17:02:00.000Z',
+                    updatedAt: '2026-03-12T18:02:00.000Z',
+                    _count: {
+                        monitors: 1,
+                    },
+                },
             ],
         } as any);
 
@@ -43,9 +61,9 @@ describe('AgentsPage', () => {
             expect(screen.getByText('cloudruvm1')).toBeInTheDocument();
         });
 
-        expect(screen.getByText('ONLINE')).toBeInTheDocument();
+        expect(screen.getAllByText('ONLINE')).toHaveLength(2);
         expect(screen.getByText('203.0.113.10')).toBeInTheDocument();
-        expect(screen.getByText(/Moscow/)).toBeInTheDocument();
-        expect(screen.getByText(/Россия|Russia/)).toBeInTheDocument();
+        expect(screen.getByText(/Россия, Москва|Russia, Москва|Россия, Moscow|Russia, Moscow/)).toBeInTheDocument();
+        expect(screen.getByText(/Россия, Казань|Russia, Казань/)).toBeInTheDocument();
     });
 });

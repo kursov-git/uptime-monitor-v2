@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import { Agent, agentsApi } from '../api';
 
 const CURRENT_AGENT_VERSION = '1.0.0';
+const GEO_CITY_LABELS: Record<string, string> = {
+    "Kazan'": 'Казань',
+    'Moscow': 'Москва',
+    'Saint Petersburg': 'Санкт-Петербург',
+    'Yekaterinburg': 'Екатеринбург',
+    'Novosibirsk': 'Новосибирск',
+    'Nizhniy Novgorod': 'Нижний Новгород',
+    'Yuzhno-Sakhalinsk': 'Южно-Сахалинск',
+};
 
 function getAgentVersionState(version: string | null): 'CURRENT' | 'OUTDATED' | 'UNKNOWN' {
     if (!version) return 'UNKNOWN';
@@ -15,11 +24,19 @@ function getAgentVersionLabel(version: string | null): string {
     return version || CURRENT_AGENT_VERSION;
 }
 
+function formatAgentCity(city: string | null): string | null {
+    if (!city) {
+        return null;
+    }
+
+    return GEO_CITY_LABELS[city] || city.replace(/'+/g, '').trim() || null;
+}
+
 function formatAgentLocation(agent: Agent): string {
     const countryName = agent.lastSeenCountry
         ? new Intl.DisplayNames(['ru', 'en'], { type: 'region' }).of(agent.lastSeenCountry) || agent.lastSeenCountry
         : null;
-    const parts = [countryName, agent.lastSeenCity].filter(Boolean);
+    const parts = [countryName, formatAgentCity(agent.lastSeenCity)].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : 'Unknown location';
 }
 
