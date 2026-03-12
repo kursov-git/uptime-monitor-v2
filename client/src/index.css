@@ -200,6 +200,116 @@ body {
   margin-bottom: 12px;
 }
 
+.public-status-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.16), transparent 28%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+}
+
+.public-status-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.public-status-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
+.public-status-kicker {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.public-status-hero h1 {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  margin-bottom: 8px;
+}
+
+.public-status-hero p,
+.public-status-meta {
+  color: var(--color-text-secondary);
+}
+
+.public-status-meta {
+  text-align: right;
+  font-size: 0.9rem;
+  display: grid;
+  gap: 6px;
+}
+
+.public-status-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.public-status-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.public-status-pill.up { color: #86efac; }
+.public-status-pill.down { color: #fca5a5; }
+.public-status-pill.paused { color: #cbd5e1; }
+.public-status-pill.unknown { color: #fde68a; }
+
+.public-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.public-status-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.public-status-card-header h3 {
+  margin-bottom: 8px;
+}
+
+.public-status-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.public-status-stats span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.public-status-stats strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
 .monitor-name {
   font-size: 1.1rem;
   font-weight: 600;

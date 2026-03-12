@@ -6,10 +6,11 @@ interface MonitorCardProps {
     onEdit: (monitor: Monitor) => void;
     onDelete: (id: string) => void;
     onToggle: (id: string) => void;
+    onTogglePublic: (id: string, isPublic: boolean) => void;
     onHistory: (monitor: Monitor) => void;
 }
 
-export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onToggle, onHistory }: MonitorCardProps) {
+export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onToggle, onTogglePublic, onHistory }: MonitorCardProps) {
     const lastCheck = monitor.lastCheck;
 
     const getStatus = () => {
@@ -57,6 +58,13 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                     {isAdmin && (
                         <>
                         <button
+                            className={`btn btn-icon btn-sm ${monitor.isPublic ? 'btn-success' : 'btn-secondary'}`}
+                            onClick={() => onTogglePublic(monitor.id, !monitor.isPublic)}
+                            title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
+                        >
+                            🌐
+                        </button>
+                        <button
                             className="btn btn-icon btn-sm btn-secondary"
                             onClick={() => onToggle(monitor.id)}
                             title={monitor.isActive ? 'Pause' : 'Resume'}
@@ -83,6 +91,11 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             </div>
 
             <div className="monitor-url">{monitor.url}</div>
+            {monitor.isPublic && (
+                <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-success)' }}>
+                    Public Status: visible on status page
+                </div>
+            )}
             <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
                 Executor: <strong>{monitor.agentName || 'Builtin Worker'}</strong>
             </div>

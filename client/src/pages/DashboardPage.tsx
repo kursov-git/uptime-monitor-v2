@@ -12,6 +12,7 @@ interface DashboardPageProps {
     onUpdateMonitor: (id: string, data: MonitorFormData) => Promise<void>;
     onDeleteMonitor: (id: string) => Promise<void>;
     onToggleMonitor: (id: string) => Promise<void>;
+    onTogglePublicVisibility: (id: string, isPublic: boolean) => Promise<void>;
 }
 
 export default function DashboardPage({
@@ -21,6 +22,7 @@ export default function DashboardPage({
     onUpdateMonitor,
     onDeleteMonitor,
     onToggleMonitor,
+    onTogglePublicVisibility,
 }: DashboardPageProps) {
     const { isAdmin } = useAuth();
     const navigate = useNavigate();
@@ -82,6 +84,7 @@ export default function DashboardPage({
                             onEdit={setEditingMonitor}
                             onDelete={handleDelete}
                             onToggle={onToggleMonitor}
+                            onTogglePublic={onTogglePublicVisibility}
                             onHistory={(m) => navigate(`/monitors/${m.id}/history`)}
                         />
                     ))}

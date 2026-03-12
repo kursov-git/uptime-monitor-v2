@@ -65,6 +65,10 @@ export const notificationsApi = {
     post: <T = any>(url: string, data?: any) => apiClient.post<T>(`/notifications${url}`, data),
 };
 
+export const publicApi = {
+    get: <T = any>(url: string) => apiClient.get<T>(`/public${url}`),
+};
+
 export const agentsApi = {
     get: <T = any>(url: string) => apiClient.get<T>(`/agents${url}`),
     post: <T = any>(url: string, data?: any) => apiClient.post<T>(`/agents${url}`, data),

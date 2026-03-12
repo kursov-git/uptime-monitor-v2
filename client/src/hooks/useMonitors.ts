@@ -37,6 +37,11 @@ export function useMonitors() {
         await fetchMonitors();
     };
 
+    const togglePublicVisibility = async (id: string, isPublic: boolean) => {
+        await monitorsApi.patch(`/${id}/public`, { isPublic });
+        await fetchMonitors();
+    };
+
     // SSE integration — update monitors in place when broadcast arrives
     const handleSSEUpdate = useCallback((updatedMonitor: Monitor) => {
         setMonitors(prev => {
@@ -57,6 +62,7 @@ export function useMonitors() {
         updateMonitor,
         deleteMonitor,
         toggleMonitor,
+        togglePublicVisibility,
         handleSSEUpdate,
     };
 }

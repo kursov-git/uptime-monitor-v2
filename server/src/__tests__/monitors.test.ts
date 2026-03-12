@@ -231,4 +231,45 @@ describe('Monitors API (Integration)', () => {
         const check = await prisma.monitor.findUnique({ where: { id: monitor.id } });
         expect(check).toBeNull();
     });
+
+    it('should allow ADMIN to publish and unpublish monitor on public status page', async () => {
+        const monitor = await prisma.monitor.create({
+            data: { name: 'Public Toggle', url: 'https://example.com/status', method: 'GET' }
+        });
+
+        const publishRes = await app.inject({
+            method: 'PATCH',
+            url: `/api/monitors/${monitor.id}/public`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: { isPublic: true },
+        });
+
+        expect(publishRes.statusCode).toBe(200);
+        expect(JSON.parse(publishRes.body).isPublic).toBe(true);
+
+        const unpublishRes = await app.inject({
+            method: 'PATCH',
+            url: `/api/monitors/${monitor.id}/public`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: { isPublic: false },
+        });
+
+        expect(unpublishRes.statusCode).toBe(200);
+        expect(JSON.parse(unpublishRes.body).isPublic).toBe(false);
+    });
+
+    it('should forbid VIEWER from changing public visibility', async () => {
+        const monitor = await prisma.monitor.create({
+            data: { name: 'Viewer Public Toggle', url: 'https://example.com/viewer-status', method: 'GET' }
+        });
+
+        const res = await app.inject({
+            method: 'PATCH',
+            url: `/api/monitors/${monitor.id}/public`,
+            headers: { Authorization: `Bearer ${viewerToken}` },
+            payload: { isPublic: true },
+        });
+
+        expect(res.statusCode).toBe(403);
+    });
 });

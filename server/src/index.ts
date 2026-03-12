@@ -8,6 +8,7 @@ import { CheckWorker } from './worker';
 import { RetentionService } from './services/retentionService';
 import { AgentOfflineMonitorService } from './services/agentOfflineMonitor';
 import monitorRoutes from './routes/monitors';
+import publicRoutes from './routes/public';
 import agentRoutes from './routes/agent';
 import agentsRoutes from './routes/agents';
 import authRoutes from './routes/auth';
@@ -78,6 +79,7 @@ fastify.get('/health/runtime', async () => {
 // Register routes
 async function registerRoutes() {
     await fastify.register(authRoutes, { prefix: '/api/auth' });
+    await fastify.register(publicRoutes, { prefix: '/api/public' });
     await fastify.register(monitorRoutes, { prefix: '/api/monitors' });
     if (env.enableAgentApi) {
         fastify.log.info({ AGENT_SSE_ENABLED: env.agentSseEnabled }, 'Agent API enabled');

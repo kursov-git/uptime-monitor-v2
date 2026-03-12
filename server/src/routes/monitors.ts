@@ -295,6 +295,36 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         }
     );
 
+    fastify.patch<{ Params: { id: string }; Body: { isPublic?: boolean } }>(
+        '/:id/public',
+        { preHandler: [authenticateJWT, blockApiKeyWrites, requireAdmin] },
+        async (request, reply) => {
+            const { id } = request.params;
+            if (typeof request.body?.isPublic !== 'boolean') {
+                return reply.status(400).send({ error: 'isPublic boolean is required' });
+            }
+
+            const existing = await prisma.monitor.findUnique({ where: { id } });
+            if (!existing) {
+                return reply.status(404).send({ error: 'Monitor not found' });
+            }
+
+            const monitor = await prisma.monitor.update({
+                where: { id },
+                data: { isPublic: request.body.isPublic },
+            });
+
+            await logAction(
+                request.body.isPublic ? 'PUBLISH_MONITOR' : 'UNPUBLISH_MONITOR',
+                request.user?.id,
+                { monitorId: monitor.id, name: monitor.name },
+                request.ip
+            );
+
+            return monitor;
+        }
+    );
+
     // DELETE /api/monitors/:id — delete monitor (admin only)
     fastify.delete<{ Params: { id: string } }>(
         '/:id',

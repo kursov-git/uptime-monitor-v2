@@ -230,6 +230,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 authPayload: true,
                 authTokenRegex: true,
                 isActive: true,
+                isPublic: true,
                 agentId: true,
                 createdAt: true,
                 updatedAt: true,

@@ -43,6 +43,7 @@ export interface Monitor {
     authTokenRegex: string | null;
 
     isActive: boolean;
+    isPublic: boolean;
     createdAt: string;
     updatedAt: string;
     lastCheck: CheckResult | null;
@@ -123,6 +124,29 @@ export interface StatsResponse {
     offset: number;
     overallUptimePercent: string;
     overallAvgResponseMs: number;
+}
+
+export interface PublicStatusMonitor {
+    id: string;
+    name: string;
+    url: string;
+    method: string;
+    isActive: boolean;
+    status: 'up' | 'down' | 'paused' | 'unknown';
+    lastCheck: CheckResult | null;
+    uptimePercent24h: string;
+}
+
+export interface PublicStatusResponse {
+    generatedAt: string;
+    monitorCount: number;
+    summary: {
+        up: number;
+        down: number;
+        paused: number;
+        unknown: number;
+    };
+    monitors: PublicStatusMonitor[];
 }
 
 export interface NotificationHistoryEntry {

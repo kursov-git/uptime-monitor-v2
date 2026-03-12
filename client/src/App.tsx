@@ -1,4 +1,4 @@
-import { Link, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -9,16 +9,23 @@ import NotificationHistoryPage from './pages/NotificationHistoryPage';
 import MonitorHistory from './pages/MonitorHistory';
 import DashboardPage from './pages/DashboardPage';
 import AgentsPage from './pages/AgentsPage';
+import PublicStatusPage from './pages/PublicStatusPage';
 import { useMonitors } from './hooks/useMonitors';
 
 export default function App() {
     const { isAuthenticated, isAdmin, isLoading, user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const {
         monitors, loading, fetchMonitors,
         createMonitor, updateMonitor, deleteMonitor, toggleMonitor,
+        togglePublicVisibility,
         handleSSEUpdate,
     } = useMonitors();
+
+    if (location.pathname === '/status') {
+        return <PublicStatusPage />;
+    }
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -82,6 +89,9 @@ export default function App() {
                             <Link to="/agents" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                                 🛰 Agents
                             </Link>
+                            <Link to="/status" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                                🌐 Public Status
+                            </Link>
                         </>
                     )}
                     <button className="btn btn-secondary" onClick={logout}>
@@ -100,6 +110,7 @@ export default function App() {
                         onUpdateMonitor={updateMonitor}
                         onDeleteMonitor={deleteMonitor}
                         onToggleMonitor={toggleMonitor}
+                        onTogglePublicVisibility={togglePublicVisibility}
                     />
                 } />
 

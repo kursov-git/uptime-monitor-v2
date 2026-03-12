@@ -30,6 +30,7 @@ const monitorSchema = z.object({
     authPayload: z.string().nullable(),
     authTokenRegex: z.string().nullable(),
     isActive: z.boolean(),
+    isPublic: z.boolean(),
     createdAt: isoDate,
     updatedAt: isoDate,
     lastCheck: z.object({
@@ -42,6 +43,35 @@ const monitorSchema = z.object({
         error: z.string().nullable(),
     }).nullable(),
     flappingState: z.any().nullable().optional(),
+});
+
+const publicStatusSchema = z.object({
+    generatedAt: isoDate,
+    monitorCount: z.number(),
+    summary: z.object({
+        up: z.number(),
+        down: z.number(),
+        paused: z.number(),
+        unknown: z.number(),
+    }),
+    monitors: z.array(z.object({
+        id: uuid,
+        name: z.string(),
+        url: z.string().url(),
+        method: z.string(),
+        isActive: z.boolean(),
+        status: z.enum(['up', 'down', 'paused', 'unknown']),
+        uptimePercent24h: z.string(),
+        lastCheck: z.object({
+            id: uuid,
+            monitorId: uuid,
+            timestamp: isoDate,
+            isUp: z.boolean(),
+            responseTimeMs: z.number(),
+            statusCode: z.number().nullable(),
+            error: z.string().nullable(),
+        }).nullable(),
+    })),
 });
 
 function normalizeForSnapshot<T extends Record<string, any>>(input: T): T {
@@ -234,6 +264,48 @@ describe('API Contract', () => {
             monitor: monitorsBody[0],
             stats: { ...statsBody, results: statsBody.results.map(r => ({ ...r, timestamp: r.timestamp.toISOString() })) },
         })).toMatchSnapshot();
+    });
+
+    it('validates public status contract without authentication', async () => {
+        const publicMonitor = await prisma.monitor.create({
+            data: {
+                name: 'Public Monitor',
+                url: 'https://example.com/public',
+                method: 'GET',
+                isPublic: true,
+            },
+        });
+
+        await prisma.monitor.create({
+            data: {
+                name: 'Private Monitor',
+                url: 'https://example.com/private',
+                method: 'GET',
+                isPublic: false,
+            },
+        });
+
+        await prisma.checkResult.create({
+            data: {
+                monitorId: publicMonitor.id,
+                isUp: true,
+                responseTimeMs: 84,
+                statusCode: 200,
+            },
+        });
+
+        const publicRes = await app.inject({
+            method: 'GET',
+            url: '/api/public/status',
+        });
+
+        expect(publicRes.statusCode).toBe(200);
+        const publicBody = publicStatusSchema.parse(JSON.parse(publicRes.body));
+        expect(publicBody.monitorCount).toBe(1);
+        expect(publicBody.monitors).toHaveLength(1);
+        expect(publicBody.monitors[0].name).toBe('Public Monitor');
+
+        expect(normalizeForSnapshot(publicBody)).toMatchSnapshot();
     });
 
     it('validates users and audit contracts', async () => {

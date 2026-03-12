@@ -66,6 +66,7 @@ exports[`API Contract > validates monitors list and stats contracts 1`] = `
     "id": "<uuid>",
     "intervalSeconds": 60,
     "isActive": true,
+    "isPublic": false,
     "lastCheck": {
       "error": null,
       "id": "<uuid>",
@@ -134,6 +135,39 @@ exports[`API Contract > validates notifications history and API key contracts 1`
     "id": "<uuid>",
     "revokedAt": null,
     "userId": "<uuid>",
+  },
+}
+`;
+
+exports[`API Contract > validates public status contract without authentication 1`] = `
+{
+  "generatedAt": "<iso-date>",
+  "monitorCount": 1,
+  "monitors": [
+    {
+      "id": "<uuid>",
+      "isActive": true,
+      "lastCheck": {
+        "error": null,
+        "id": "<uuid>",
+        "isUp": true,
+        "monitorId": "<uuid>",
+        "responseTimeMs": 84,
+        "statusCode": 200,
+        "timestamp": "<iso-date>",
+      },
+      "method": "GET",
+      "name": "Public Monitor",
+      "status": "up",
+      "uptimePercent24h": "100.0",
+      "url": "https://example.com/public",
+    },
+  ],
+  "summary": {
+    "down": 0,
+    "paused": 0,
+    "unknown": 0,
+    "up": 1,
   },
 }
 `;

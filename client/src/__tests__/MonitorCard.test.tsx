@@ -20,6 +20,7 @@ function createMonitor(): Monitor {
         authPayload: null,
         authTokenRegex: null,
         isActive: true,
+        isPublic: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastCheck: {
@@ -47,6 +48,7 @@ describe('MonitorCard', () => {
                 onEdit={vi.fn()}
                 onDelete={vi.fn()}
                 onToggle={vi.fn()}
+                onTogglePublic={vi.fn()}
                 onHistory={onHistory}
             />
         );
