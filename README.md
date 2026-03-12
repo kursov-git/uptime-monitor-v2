@@ -25,6 +25,7 @@ Implemented and working:
 - split backend runtime via `SERVER_ROLE`
 - agent registration, token rotation, revocation, deletion, and version tracking
 - agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
+- agent offline and recovery notifications through the shared notification stack
 - production JSON logging
 - centralized env validation
 - backup/restore scripts for SQLite compose deployments
@@ -216,16 +217,15 @@ Read `docs/PRODUCTION_TOPOLOGY.md` before touching production.
 Important current facts:
 - SSH is expected on port `2332`
 - current control plane is deployed in split-runtime compose mode
-- current production agents are native Node.js + systemd on their hosts
-- the repository still contains a docker-based deployment kit for future greenfield agent hosts
+- current production agents are dockerized and managed by `systemd + docker compose`
+- the same repository deployment kit is used for future greenfield agent hosts
 
 ## Agent Deployment
 
-For new agent hosts, read:
+For agent hosts, read:
 - `docs/AGENT_DEPLOYMENT_KIT.md`
 
-That kit is the canonical greenfield path.
-Do not assume it matches the exact runtime style already present on existing production agent hosts.
+That kit is now both the canonical greenfield path and the current production pattern.
 
 ## Operations
 

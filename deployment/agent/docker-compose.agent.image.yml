@@ -1,9 +1,6 @@
 services:
   uptime-agent:
-    image: ${UPTIME_AGENT_IMAGE:-uptime-agent:local}
-    build:
-      context: ./src
-      dockerfile: apps/agent/Dockerfile
+    image: ${UPTIME_AGENT_IMAGE}
     container_name: uptime-agent
     restart: unless-stopped
     environment:

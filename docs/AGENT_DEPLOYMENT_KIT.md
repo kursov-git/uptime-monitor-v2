@@ -5,7 +5,7 @@ It is the canonical path for new agent hosts.
 
 Important distinction:
 - this kit is the recommended greenfield deployment method
-- current existing production hosts are not using this exact method yet
+- current production hosts now use this same docker/systemd kit in `local-build` mode
 - for the current live topology, also read `docs/PRODUCTION_TOPOLOGY.md`
 
 ## Goal
@@ -37,6 +37,8 @@ Characteristics:
 - docker compose under `/opt/uptime-agent`
 - systemd unit `uptime-agent.service`
 - unique token per agent
+- local image build from a repository checkout is the preferred path
+- registry image mode is optional
 
 ## Required Inputs
 
@@ -50,22 +52,37 @@ Optional tuning:
 - `AGENT_HTTP_TIMEOUT_MS`
 - `AGENT_BUFFER_MAX`
 - `AGENT_RESULT_MAX_BATCH`
+- `AGENT_MAX_CONCURRENCY`
+- `AGENT_DEPLOYMENT_MODE` (`auto`, `local-build`, `image`)
 
 ## Install
 
-Run on the target host as root:
+Preferred: run from a full repository checkout on the target host as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kursov-git/uptime-monitor-v2/main/scripts/install-agent.sh -o /tmp/install-agent.sh
-chmod +x /tmp/install-agent.sh
+git clone https://github.com/kursov-git/uptime-monitor-v2.git
+cd uptime-monitor-v2
 MAIN_SERVER_URL="https://your-control-plane" \
 AGENT_TOKEN="<one-time-token>" \
-ENCRYPTION_KEY_1="<64-hex-chars>" \
-UPTIME_AGENT_IMAGE="ghcr.io/kursov-git/uptime-agent:v2-latest" \
-bash /tmp/install-agent.sh
+ENCRYPTION_KEY_1="<64-hex-chars-if-needed>" \
+AGENT_DEPLOYMENT_MODE="local-build" \
+sudo bash scripts/install-agent.sh
 ```
 
-If installing from a local checkout, run the same script from the repo root.
+Why this is preferred:
+- it does not depend on a remote registry image
+- the installed image matches the checked-out code exactly
+- it is the current production pattern and the most reliable path for migrating older native agent hosts
+
+Optional: registry image mode
+
+```bash
+MAIN_SERVER_URL="https://your-control-plane" \
+AGENT_TOKEN="<one-time-token>" \
+UPTIME_AGENT_IMAGE="registry.example.com/uptime-agent:tag" \
+AGENT_DEPLOYMENT_MODE="image" \
+sudo bash scripts/install-agent.sh
+```
 
 ## What The Installer Does
 
@@ -74,6 +91,7 @@ If installing from a local checkout, run the same script from the repo root.
 - installs Docker and compose plugin if missing
 - writes `/opt/uptime-agent/.env`
 - writes `/opt/uptime-agent/docker-compose.yml`
+- copies `/opt/uptime-agent/src` in `local-build` mode
 - installs `uptime-agent.service`
 - optionally hardens the host with UFW
 - starts the service
@@ -83,20 +101,28 @@ If installing from a local checkout, run the same script from the repo root.
 Expected files after install:
 - `/opt/uptime-agent/.env`
 - `/opt/uptime-agent/docker-compose.yml`
+- `/opt/uptime-agent/src` in `local-build` mode
 - `/etc/systemd/system/uptime-agent.service`
 
 ## Update
 
+Local-build mode:
+
 ```bash
-sudo UPTIME_AGENT_IMAGE="ghcr.io/kursov-git/uptime-agent:v2.0.1" bash scripts/update-agent.sh
+sudo bash scripts/update-agent.sh
+```
+
+Image mode:
+
+```bash
+sudo UPTIME_AGENT_IMAGE="registry.example.com/uptime-agent:tag" bash scripts/update-agent.sh
 ```
 
 If `UPTIME_AGENT_IMAGE` is omitted, the existing value from `.env` is used.
 
 What `scripts/update-agent.sh` does:
-- optionally rewrites `UPTIME_AGENT_IMAGE`
-- pulls the image
-- recreates the container with compose
+- in `local-build` mode refreshes `/opt/uptime-agent/src` from the local repo checkout and rebuilds
+- in `image` mode optionally rewrites `UPTIME_AGENT_IMAGE`, pulls the image, and recreates the container
 
 ## Uninstall
 
@@ -112,7 +138,7 @@ sudo KEEP_CONFIG=true bash scripts/uninstall-agent.sh
 
 ## cloud-init Bootstrap
 
-Use `deployment/agent/cloud-init-agent.yaml` as user-data.
+Use `deployment/agent/cloud-init-agent.yaml` as user-data only when you deliberately want registry image mode and the image is reachable from that host.
 Replace placeholders before provisioning:
 - `__MAIN_SERVER_URL__`
 - `__AGENT_TOKEN__`
@@ -125,6 +151,35 @@ systemctl status uptime-agent
 sudo docker logs --tail=100 uptime-agent
 sudo docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env ps
 ```
+
+## Migrating An Older Native Agent Host
+
+If you still have an older host that runs the agent directly under Node.js, migrate it in this order:
+
+1. back up:
+   - `/etc/uptime-agent.env`
+   - `/etc/systemd/system/uptime-agent.service`
+   - the existing repo checkout such as `/home/skris/uptime-agent`
+2. sync a current full repo checkout to the host
+3. source the existing env values and run:
+
+```bash
+sudo -n bash -lc '
+  set -a
+  . /etc/uptime-agent.env
+  set +a
+  cd /path/to/uptime-monitor-v2
+  AGENT_DEPLOYMENT_MODE=local-build HARDEN_HOST=false bash scripts/install-agent.sh
+'
+```
+
+4. verify:
+   - `systemctl status uptime-agent`
+   - `sudo docker ps`
+   - `sudo docker logs --tail=100 uptime-agent`
+   - control plane shows the agent `ONLINE`
+
+This replaces the old native systemd unit with the docker/systemd unit while preserving the existing token and server URL.
 
 ## Security And Hardening
 
@@ -171,7 +226,7 @@ Host-side implications:
 
 ## Important Reality Check
 
-Current existing production agent hosts may use native Node.js + systemd instead of this docker kit.
-Do not run these kit scripts on those hosts unless you explicitly intend to migrate them.
+Production currently uses `local-build` mode, not registry-image mode.
+If you touch a live host, confirm whether it should keep using `local-build` or explicitly switch to `image`.
 
-Use `docs/PRODUCTION_TOPOLOGY.md` to decide which procedure matches the host you are touching.
+Use `docs/PRODUCTION_TOPOLOGY.md` to confirm the current host role and deployment mode before changing it.

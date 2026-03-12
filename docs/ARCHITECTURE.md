@@ -262,11 +262,12 @@ Canonical repository kit:
 - docker compose + systemd under `/opt/uptime-agent`
 - files under `deployment/agent/`
 - scripts under `scripts/install-agent.sh`, `scripts/update-agent.sh`, `scripts/uninstall-agent.sh`
+- supports `local-build` and registry-image modes
 
-Current production reality on existing agent hosts:
-- native Node.js + systemd
-- repo checkout under `/home/skris/uptime-agent`
-- service executes `apps/agent/dist/index.js`
+Current production reality on agent hosts:
+- docker compose + systemd in `local-build` mode
+- runtime state under `/opt/uptime-agent`
+- source checkout on host may be kept under `/home/skris/uptime-agent` for updates
 
 ## Known Architectural Constraints
 
@@ -274,7 +275,7 @@ Current production reality on existing agent hosts:
 - no Postgres migration path implemented yet
 - no full metrics stack yet
 - no persistent on-disk queue for agent results
-- current remote hosts use mixed deployment styles
+- registry-image mode still depends on an actually reachable image registry
 
 ## Main Architectural Invariants
 

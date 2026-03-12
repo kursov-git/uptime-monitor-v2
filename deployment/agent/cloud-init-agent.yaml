@@ -24,6 +24,7 @@ write_files:
             AGENT_HTTP_TIMEOUT_MS: ${AGENT_HTTP_TIMEOUT_MS:-10000}
             AGENT_BUFFER_MAX: ${AGENT_BUFFER_MAX:-1000}
             AGENT_RESULT_MAX_BATCH: ${AGENT_RESULT_MAX_BATCH:-500}
+            AGENT_MAX_CONCURRENCY: ${AGENT_MAX_CONCURRENCY:-6}
           security_opt:
             - no-new-privileges:true
           cap_drop:
@@ -45,6 +46,7 @@ write_files:
       AGENT_HTTP_TIMEOUT_MS=10000
       AGENT_BUFFER_MAX=1000
       AGENT_RESULT_MAX_BATCH=500
+      AGENT_MAX_CONCURRENCY=6
   - path: /etc/systemd/system/uptime-agent.service
     permissions: "0644"
     content: |

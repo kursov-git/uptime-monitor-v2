@@ -35,6 +35,10 @@ Public responsibilities:
 - split background runtime
 - SQLite database storage in docker volume
 
+Current public domain:
+- `ping-agent.ru`
+- `www.ping-agent.ru`
+
 ### Agent Host: `cloudruvm1`
 
 Operator alias:
@@ -44,12 +48,16 @@ Role:
 - remote agent host
 
 Current deployment mode:
-- native Node.js + systemd
+- docker compose + systemd (`local-build`)
 
 Current runtime characteristics:
 - service: `uptime-agent.service`
-- working tree: `/home/skris/uptime-agent`
-- env file: `/etc/uptime-agent.env`
+- install dir: `/opt/uptime-agent`
+- env file: `/opt/uptime-agent/.env`
+- compose file: `/opt/uptime-agent/docker-compose.yml`
+- container: `uptime-agent`
+- local update checkout: `/home/skris/uptime-agent`
+- expected `MAIN_SERVER_URL=https://ping-agent.ru`
 - SSH port: `2332`
 
 ### Agent Host: `ruvdskzn`
@@ -61,12 +69,16 @@ Role:
 - remote agent host
 
 Current deployment mode:
-- native Node.js + systemd
+- docker compose + systemd (`local-build`)
 
 Current runtime characteristics:
 - service: `uptime-agent.service`
-- working tree: `/home/skris/uptime-agent`
-- env file: `/etc/uptime-agent.env`
+- install dir: `/opt/uptime-agent`
+- env file: `/opt/uptime-agent/.env`
+- compose file: `/opt/uptime-agent/docker-compose.yml`
+- container: `uptime-agent`
+- local update checkout: `/home/skris/uptime-agent`
+- expected `MAIN_SERVER_URL=https://ping-agent.ru`
 - SSH port: `2332`
 
 ## Current Expected Agent Inventory
@@ -84,27 +96,21 @@ If a third unknown or stale agent appears:
 - if it has no assigned monitors and is stale, deletion is allowed
 - if it still has monitors, reassign first
 
-## Deployment Reality vs Canonical Kit
+## Agent Deployment Standard
 
-There are two different truths that must be kept separate.
+Current production and the canonical repository kit are now aligned.
 
-### Canonical greenfield method
-For future new hosts, the repo ships a docker/systemd deployment kit under:
+For new and existing agent hosts, the standard deployment assets are:
 - `deployment/agent/`
 - `scripts/install-agent.sh`
 - `scripts/update-agent.sh`
 - `scripts/uninstall-agent.sh`
 
-### Current existing production hosts
-The two current production agent hosts are not using that docker kit.
-They are running a native Node.js + systemd deployment from `/home/skris/uptime-agent`.
-
-This matters because:
-- update steps are different
-- diagnostics are different
-- uninstall/reinstall expectations are different
-
-Do not assume you can run the docker deployment scripts on those two hosts without migration work.
+Current production agents use:
+- docker compose + systemd
+- `AGENT_DEPLOYMENT_MODE=local-build`
+- runtime state under `/opt/uptime-agent`
+- a local repo checkout under `/home/skris/uptime-agent` as the update source
 
 ## Control-Plane Deployment Workflow
 
@@ -121,20 +127,24 @@ Current preferred workflow:
 ## Agent Update Workflow On Current Hosts
 
 For `cloudruvm1` and `ruvdskzn` today:
-1. back up `/home/skris/uptime-agent`
+1. back up:
+   - `/opt/uptime-agent`
+   - `/home/skris/uptime-agent`
 2. sync updated repo subset:
    - `package.json`
    - `package-lock.json`
-   - `apps/agent`
-   - `packages/checker`
-   - `packages/shared`
+   - `apps/`
+   - `packages/`
+   - `deployment/agent`
+   - `scripts`
 3. run:
-   - `npm ci --workspace apps/agent --workspace packages/checker --workspace packages/shared --include-workspace-root=false`
-   - `npm --prefix packages/shared run build`
-   - `npm --prefix packages/checker run build`
-   - `npm --prefix apps/agent run build`
-4. restart `uptime-agent.service`
-5. verify logs and control-plane `agentVersion`
+   - `cd /home/skris/uptime-agent`
+   - `sudo bash scripts/update-agent.sh`
+4. verify:
+   - `systemctl status uptime-agent`
+   - `docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env ps`
+   - `docker logs --tail=100 uptime-agent`
+5. verify control-plane heartbeat, results, and `agentVersion`
 
 ## Backups
 
@@ -147,7 +157,9 @@ For split runtime:
 - `COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server`
 
 ### Agent hosts
-Before updating native agents, create a tar backup of `/home/skris/uptime-agent`.
+Before updating dockerized agents, create tar backups of:
+- `/opt/uptime-agent`
+- `/home/skris/uptime-agent` when that checkout is the local-build source tree
 
 ## Diagnostics Checklist
 
@@ -161,6 +173,8 @@ Before updating native agents, create a tar backup of `/home/skris/uptime-agent`
 ### Agent hosts
 - `systemctl status uptime-agent`
 - `journalctl -u uptime-agent -n 100 --no-pager`
+- `docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env ps`
+- `docker logs --tail=100 uptime-agent`
 - confirm no repeated SSE timeout or `502` spam after the control plane is healthy
 
 ## Operational Invariants
@@ -170,4 +184,4 @@ Before updating native agents, create a tar backup of `/home/skris/uptime-agent`
 - do not use `deploy.sh` as the default production procedure
 - do not delete agents with assigned monitors
 - keep DB backups before control-plane rollouts
-- keep working tree backups before native agent rollouts
+- keep `/opt/uptime-agent` and source-checkout backups before agent rollouts

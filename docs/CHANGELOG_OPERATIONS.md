@@ -3,6 +3,63 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-03-12
+
+### Remote agent dockerization rollout
+
+Hosts:
+- `cloudruvm1`
+- `ruvdskzn`
+
+Changes:
+- migrated both live agent hosts from native `node + systemd` to `docker compose + systemd`
+- standardized both hosts on the repository deployment kit with `AGENT_DEPLOYMENT_MODE=local-build`
+- preserved existing `MAIN_SERVER_URL=https://ping-agent.ru`
+- preserved existing agent tokens during migration
+
+Backups taken before migration:
+- `cloudruvm1`: `/home/skris/uptime-agent-backup-20260312T102320Z.tgz`
+- `cloudruvm1`: `/etc/uptime-agent.env.20260312T102320Z.bak`
+- `cloudruvm1`: `/etc/systemd/system/uptime-agent.service.20260312T102320Z.bak`
+- `ruvdskzn`: `/home/skris/uptime-agent-backup-20260312T102720Z.tgz`
+- `ruvdskzn`: `/etc/uptime-agent.env.20260312T102720Z.bak`
+- `ruvdskzn`: `/etc/systemd/system/uptime-agent.service.20260312T102720Z.bak`
+
+Post-migration runtime:
+- `uptime-agent.service` is now the docker/systemd unit on both hosts
+- `/opt/uptime-agent/.env` is the active runtime env on both hosts
+- `/home/skris/uptime-agent` remains as the local-build source checkout on both hosts
+
+Operational result:
+- both agents reconnected successfully after sequential host migration
+- control plane resumed receiving `/api/agent/heartbeat`, `/api/agent/results`, and `/api/agent/stream`
+
+### Control-plane TLS rollout
+
+Host:
+- `onedashmsk`
+
+Changes:
+- deployed split-runtime `client` TLS bootstrap and renewal automation
+- enabled public domain routing for `ping-agent.ru` and `www.ping-agent.ru`
+- opened production control plane on HTTPS with automatic HTTP to HTTPS redirect
+- added long-running `certbot` compose service with shared ACME webroot and certificate storage
+- configured client container to switch from HTTP bootstrap mode to HTTPS automatically after first certificate issuance
+
+Certificate state:
+- issuer: Let's Encrypt `E7`
+- subject: `ping-agent.ru`
+- SANs: `ping-agent.ru`, `www.ping-agent.ru`
+- initial expiration: `2026-06-10`
+
+Backup taken before rollout:
+- `/data/backups/uptime-20260312T085930Z.db`
+
+Operational notes:
+- production compose working directory remains `/root/uptime-monitor`
+- firewall already allowed `80/tcp` and `443/tcp`
+- a brief API reconnect window occurred during `server` recreate; services recovered after rollout
+
 ## 2026-03-11
 
 ### Documentation refresh

@@ -28,8 +28,6 @@ export default function AgentsPage() {
     const [copyMessage, setCopyMessage] = useState('');
 
     const defaultServerUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const defaultAgentImage = 'ghcr.io/kursov-git/uptime-agent:v2-latest';
-
     const fetchAgents = async () => {
         setLoading(true);
         setError('');
@@ -136,17 +134,17 @@ export default function AgentsPage() {
         ? `MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
 AGENT_TOKEN=${createdToken}
 ENCRYPTION_KEY_1=<same-64-hex-key-as-control-plane>
-UPTIME_AGENT_IMAGE=${defaultAgentImage}`
+AGENT_DEPLOYMENT_MODE=local-build`
         : '';
 
     const installScriptSnippet = createdToken
-        ? `curl -fsSL https://raw.githubusercontent.com/kursov-git/uptime-monitor/main/scripts/install-agent.sh -o /tmp/install-agent.sh
-chmod +x /tmp/install-agent.sh
+        ? `git clone https://github.com/kursov-git/uptime-monitor-v2.git
+cd uptime-monitor-v2
 sudo MAIN_SERVER_URL="${defaultServerUrl || 'https://your-uptime-host.example.com'}" \\
 AGENT_TOKEN="${createdToken}" \\
 ENCRYPTION_KEY_1="<same-64-hex-key-as-control-plane>" \\
-UPTIME_AGENT_IMAGE="${defaultAgentImage}" \\
-bash /tmp/install-agent.sh`
+AGENT_DEPLOYMENT_MODE="local-build" \\
+bash scripts/install-agent.sh`
         : '';
 
     const systemdSnippet = createdToken
@@ -155,13 +153,10 @@ sudo tee /opt/uptime-agent/.env >/dev/null <<'EOF'
 MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
 AGENT_TOKEN=${createdToken}
 ENCRYPTION_KEY_1=<same-64-hex-key-as-control-plane>
-UPTIME_AGENT_IMAGE=${defaultAgentImage}
+AGENT_DEPLOYMENT_MODE=local-build
 EOF
 
-sudo cp deployment/agent/docker-compose.agent.yml /opt/uptime-agent/docker-compose.yml
-sudo cp deployment/agent/uptime-agent.service /etc/systemd/system/uptime-agent.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now uptime-agent`
+sudo bash scripts/install-agent.sh`
         : '';
 
     const dockerRunSnippet = createdToken
@@ -181,7 +176,7 @@ sudo systemctl enable --now uptime-agent`
   -e AGENT_HTTP_TIMEOUT_MS=10000 \\
   -e AGENT_BUFFER_MAX=1000 \\
   -e AGENT_RESULT_MAX_BATCH=500 \\
-  ${defaultAgentImage}`
+  registry.example.com/uptime-agent:tag`
         : '';
 
     const copySnippet = async (value: string, successLabel: string) => {
