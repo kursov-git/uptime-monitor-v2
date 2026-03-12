@@ -63,7 +63,7 @@ export default function App() {
         <div className="app-container page-container">
             {/* Header */}
             <div className="app-header">
-                <h1>Uptime Admin</h1>
+                <h1>Ping Agent</h1>
                 <div className="header-actions">
                     <span className="header-user">
                         {user?.username} ({user?.role})

@@ -25,7 +25,7 @@ export default function LoginPage() {
     return (
         <div className="login-container">
             <div className="card login-card">
-                <h1>Uptime Monitor</h1>
+                <h1>Ping Agent</h1>
                 <p className="login-subtitle">Sign in to your dashboard</p>
 
                 {error && <div className="error-message">{error}</div>}
