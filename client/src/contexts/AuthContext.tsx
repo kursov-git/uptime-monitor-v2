@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi, setToken, removeToken } from '../api';
+import { authApi, removeToken } from '../api';
 
 interface AuthUser {
     id: string;
@@ -52,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (username: string, password: string) => {
         const res = await authApi.post('/login', { username, password });
-        setToken(res.data.token);
         setUser(res.data.user);
         setSessionExpired(false);
     };

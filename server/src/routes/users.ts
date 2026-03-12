@@ -99,6 +99,56 @@ export default async function userRoutes(fastify: FastifyInstance) {
         return { success: true };
     });
 
+    // PATCH /api/users/:id/role — change role (admin only)
+    fastify.patch<{ Params: { id: string }; Body: { role: string } }>(
+        '/:id/role',
+        { preHandler: [authenticateJWT, requireAdmin] },
+        async (request, reply) => {
+            const { id } = request.params;
+            const role = request.body?.role === 'ADMIN' ? 'ADMIN' : request.body?.role === 'VIEWER' ? 'VIEWER' : null;
+
+            if (!role) {
+                return reply.status(400).send({ error: 'Role must be ADMIN or VIEWER' });
+            }
+
+            const user = await prisma.user.findUnique({ where: { id } });
+            if (!user) {
+                return reply.status(404).send({ error: 'User not found' });
+            }
+
+            if (role === user.role) {
+                return {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                    createdAt: user.createdAt,
+                };
+            }
+
+            await prisma.user.update({
+                where: { id },
+                data: {
+                    role,
+                    sessionVersion: { increment: 1 },
+                },
+            });
+
+            const currentUser = request.user;
+            await logAction('ROLE_CHANGED', currentUser.id, {
+                targetUser: user.username,
+                previousRole: user.role,
+                nextRole: role,
+            }, request.ip);
+
+            return {
+                id: user.id,
+                username: user.username,
+                role,
+                createdAt: user.createdAt,
+            };
+        }
+    );
+
     // PATCH /api/users/:id/password — change password (admin only)
     fastify.patch<{ Params: { id: string }; Body: { password: string } }>(
         '/:id/password',
@@ -119,7 +169,10 @@ export default async function userRoutes(fastify: FastifyInstance) {
             const passwordHash = await bcrypt.hash(password, 10);
             await prisma.user.update({
                 where: { id },
-                data: { passwordHash },
+                data: {
+                    passwordHash,
+                    sessionVersion: { increment: 1 },
+                },
             });
 
             const currentUser = request.user;

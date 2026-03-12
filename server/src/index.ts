@@ -20,6 +20,7 @@ import { type ServerRole } from './lib/serverRoles';
 import { createFastifyLoggerOptions, logger } from './lib/logger';
 import { serverEnv } from './lib/env';
 import { backfillLegacyApiKeys } from './services/apiKeys';
+import { SESSION_JWT_EXPIRES_IN } from './lib/auth';
 
 const env = serverEnv;
 
@@ -41,7 +42,7 @@ async function registerPlugins() {
 
     await fastify.register(jwt, {
         secret: env.jwtSecret,
-        sign: { expiresIn: '24h' },
+        sign: { expiresIn: SESSION_JWT_EXPIRES_IN },
     });
 
     await fastify.register(rateLimit, {

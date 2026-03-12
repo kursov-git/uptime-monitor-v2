@@ -2,15 +2,18 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { Role } from '@uptime-monitor/shared';
 import prisma from './prisma';
 import { authenticateApiKey } from '../services/apiKeys';
-import { getAuthCookieToken } from './authCookies';
+import { AUTH_COOKIE_MAX_AGE_SEC, getAuthCookieToken } from './authCookies';
 
 // JWT payload interface
 export interface JwtPayload {
     id: string;
     username: string;
     role: Role;
+    sessionVersion?: number;
     isApiKey?: boolean;
 }
+
+export const SESSION_JWT_EXPIRES_IN = `${AUTH_COOKIE_MAX_AGE_SEC}s`;
 
 // Type request.user via @fastify/jwt's built-in declaration merging
 declare module '@fastify/jwt' {
@@ -25,22 +28,27 @@ export async function authenticateJWT(
     reply: FastifyReply
 ): Promise<void> {
     try {
-        // First, try JWT token from header
         const authHeader = request.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
-            await request.jwtVerify();
+            const token = authHeader.slice('Bearer '.length);
+            const user = await authenticateSessionToken(request, token);
+            if (!user) {
+                return reply.status(401).send({ error: 'Invalid token' });
+            }
+            request.user = user;
             return;
         }
 
-        // Second, try JWT token from HttpOnly cookie
         const cookieToken = getAuthCookieToken(request);
         if (cookieToken) {
-            const decoded = await request.server.jwt.verify(cookieToken);
-            request.user = decoded as JwtPayload;
+            const user = await authenticateSessionToken(request, cookieToken);
+            if (!user) {
+                return reply.status(401).send({ error: 'Invalid token' });
+            }
+            request.user = user;
             return;
         }
 
-        // Third, try API Key
         const apiKey = request.headers['x-api-key'] as string;
         if (apiKey) {
             const key = await authenticateApiKey(apiKey);
@@ -63,6 +71,42 @@ export async function authenticateJWT(
     } catch (err) {
         return reply.status(401).send({ error: 'Invalid token' });
     }
+}
+
+async function authenticateSessionToken(
+    request: FastifyRequest,
+    token: string
+): Promise<JwtPayload | null> {
+    const decoded = await request.server.jwt.verify<JwtPayload>(token);
+    if (!decoded?.id) {
+        return null;
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            sessionVersion: true,
+        },
+    });
+
+    if (!user) {
+        return null;
+    }
+
+    const tokenSessionVersion = decoded.sessionVersion ?? 0;
+    if (tokenSessionVersion !== user.sessionVersion) {
+        return null;
+    }
+
+    return {
+        id: user.id,
+        username: user.username,
+        role: user.role as Role,
+        sessionVersion: user.sessionVersion,
+    };
 }
 
 export async function authenticateSseJWT(

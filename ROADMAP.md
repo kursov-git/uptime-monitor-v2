@@ -58,6 +58,30 @@ Delivered scope:
 - notification settings update responses no longer leak raw secrets
 - end-to-end flow was verified against a real remote agent in production
 
+### Security Hardening Phase 1
+
+Status:
+- delivered
+
+Delivered scope:
+- web auth moved away from `localStorage` and SSE query-token usage
+- browser auth now uses `HttpOnly` cookie transport
+- API keys are now hashed at rest
+- raw API keys are no longer returned from ordinary read endpoints after creation
+- production rollout was verified against the public HTTPS deployment
+
+### Security Hardening Phase 2
+
+Status:
+- delivered
+
+Delivered scope:
+- `/api/auth/login` now has dedicated throttling and abuse controls
+- browser login no longer returns a compatibility JWT body
+- logout, password change, role change, and user deletion revoke existing browser sessions
+- browser session lifetime is now explicitly capped at 12 hours
+- the new auth/session model is covered by integration, contract, and client regression tests
+
 ## Now
 
 These are the highest-priority roadmap items for the next iteration.
@@ -148,6 +172,34 @@ Success criteria:
 - a public viewer can see current service health without auth
 - page remains usable on mobile and desktop
 
+### 4. Security Hardening Follow-Up
+
+Goal:
+- reduce remaining internet-facing risk now that the control plane is publicly reachable
+
+Why now:
+- the product is no longer a private-only dashboard behind an IP address
+- the highest-risk browser auth issues are already fixed, so the remaining work is now clear
+- this is operationally important even when product-facing roadmap items continue in parallel
+
+Scope:
+- harden login and session handling further
+- tighten edge/network exposure for admin and agent traffic
+- add SSRF guardrails for monitor execution
+- remove temporary legacy auth compatibility paths
+- add security regression tests and documentation
+
+Out of scope for this phase:
+- enterprise IAM
+- full MFA stack unless the product scope changes
+- complex secret-management platform work
+
+Success criteria:
+- login abuse becomes materially harder
+- stolen sessions and long-lived compatibility paths are reduced further
+- public exposure of control-plane endpoints is intentionally narrowed
+- monitor execution has explicit protections against internal-network abuse
+
 ## Now: Epics And User Stories
 
 This section turns the `Now` block into delivery-ready product epics.
@@ -202,6 +254,23 @@ Acceptance shape:
 - no login required
 - selected monitors only
 - mobile-usable layout
+
+### Epic S: Security Hardening Follow-Up
+
+Outcome:
+- the public control plane becomes materially harder to abuse or pivot through
+
+Primary user stories:
+- as an operator, I want login and session abuse to be harder so public exposure does not turn into an obvious weak point
+- as an operator, I want admin and agent traffic constrained at the edge so the control plane is not fully open by default
+- as an operator, I want monitor execution guarded against internal-network probing so a stolen admin account has less blast radius
+- as a future maintainer, I want security-sensitive behavior covered by tests and docs so regressions are less likely
+
+Acceptance shape:
+- dedicated login/session hardening
+- narrower public edge surface
+- SSRF guardrails or explicit allowlist model
+- regression coverage for the new auth model and secret handling
 
 ## Now: Implementation Backlog
 
@@ -312,11 +381,56 @@ Each epic is broken down into backend, frontend, data, notifications, and testin
 #### Docs
 - update README and runbook when public route is finalized
 
+### Epic S Backlog: Security Hardening Follow-Up
+
+#### Backend
+- add dedicated login throttling beyond the generic global limiter
+- define and implement server-side session invalidation semantics for logout, password change, role change, and user deletion
+- shorten or otherwise explicitly control browser session lifetime
+- remove the transitional JWT token body from `/api/auth/login` once compatibility is no longer needed
+- remove temporary legacy plaintext agent token compatibility after all agents are confirmed migrated
+
+#### Edge / network
+- separate admin/browser and agent/control-plane traffic where feasible
+- add edge restriction for admin UI and APIs:
+  - IP allowlist
+  - VPN / private access
+  - Zero Trust access proxy
+- restrict `/api/agent/*` to expected source paths or addresses where feasible
+- decide whether `/health/runtime` should remain publicly reachable
+
+#### Worker / execution safety
+- block or explicitly control checks against:
+  - loopback
+  - RFC1918 ranges
+  - link-local
+  - cloud metadata endpoints
+- decide whether allowlist or denylist is the long-term model
+- document the operational escape hatch for legitimate private-target checks
+
+#### Tests
+- add security regression tests for cookie auth behavior
+- add auth-boundary tests for SSE after query-token removal
+- add tests proving raw API keys are not returned from ordinary read endpoints
+- add tests for any SSRF guardrail rules that land
+
+#### Docs
+- update architecture and ops docs with the public-exposure threat model
+- document recommended edge controls for the production control plane
+- document any intentional residual risks that remain
+
 ## Suggested Delivery Sequence
 
 This is the recommended implementation order inside the `Now` bucket.
 
 ### Sequence 1
+- Security Hardening Follow-Up
+
+Reason:
+- public exposure changes the threat model immediately
+- reduces avoidable risk before additional feature surface is added
+
+### Sequence 2
 - Scheduled Maintenance Windows
 
 Reason:
@@ -324,14 +438,14 @@ Reason:
 - highest operational leverage
 - clean prerequisite for incident semantics
 
-### Sequence 2
+### Sequence 3
 - Incident Management Lite
 
 Reason:
 - gives outages a first-class model
 - improves operator UX and future demo value
 
-### Sequence 3
+### Sequence 4
 - Public Status Page
 
 Reason:
@@ -343,18 +457,21 @@ Reason:
 To avoid overloading one release, use this slice order.
 
 ### Slice 1
-- one-time maintenance windows
+- login/session/API-key hardening
 
 ### Slice 2
-- recurring maintenance windows
+- one-time maintenance windows
 
 ### Slice 3
-- incident open/close lifecycle
+- recurring maintenance windows
 
 ### Slice 4
-- incident timeline + acknowledge
+- incident open/close lifecycle
 
 ### Slice 5
+- incident timeline + acknowledge
+
+### Slice 6
 - public status page using incidents and selected monitors
 
 ## Numbered Execution Backlog
@@ -414,13 +531,33 @@ It is meant to be used as a lightweight delivery board.
 - [ ] T039 Add public endpoint auth-boundary and contract tests
 - [ ] T040 Update README and runbook with public page behavior
 
+### Epic S: Security Hardening Follow-Up
+
+- [x] T041 Move browser auth away from `localStorage` and SSE query-token usage
+- [x] T042 Hash API keys at rest and stop returning raw API keys from ordinary read endpoints
+- [x] T043 Add dedicated login throttling and abuse controls for `/api/auth/login`
+- [x] T044 Remove the compatibility JWT body from `/api/auth/login` after the cookie-only flow is fully accepted
+- [x] T045 Add server-side session revocation semantics for logout, password change, role change, and user deletion
+- [x] T046 Revisit browser session lifetime and rotation policy after revocation design lands
+- [ ] T047 Split or otherwise narrow admin/browser and agent/control-plane exposure at the edge
+- [ ] T048 Add production edge restriction for admin UI and admin APIs
+- [ ] T049 Restrict `/api/agent/*` to expected source networks or private paths where feasible
+- [ ] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
+- [ ] T051 Remove legacy plaintext agent-token compatibility after migration verification
+- [ ] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
+- [ ] T053 Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
+- [ ] T054 Update architecture and runbook docs with the current public threat model and recommended edge controls
+
 ## Recommended First Sprint
 
 If work starts immediately, the most pragmatic first sprint is:
+- T043-T045
+- T047-T050
 - T010-T012
 - T014-T018
 
 This gives:
+- security risk reduction for the now-public control plane
 - maintenance-window foundation
 - first real alert-suppression behavior
 - clear operator-facing value without status-page surface area
@@ -608,10 +745,11 @@ Avoid features that:
 
 ## Current Suggested Build Order
 
-1. Scheduled maintenance windows
-2. Incident management lite
-3. Public status page
-4. SSL expiry monitoring
-5. TCP checks
-6. Agent fleet basics
-7. Lightweight host/service context
+1. Security hardening follow-up
+2. Scheduled maintenance windows
+3. Incident management lite
+4. Public status page
+5. SSL expiry monitoring
+6. TCP checks
+7. Agent fleet basics
+8. Lightweight host/service context

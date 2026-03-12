@@ -76,12 +76,15 @@ model Agent {
 
 // Пользователи системы
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  passwordHash String
-  role         String   @default("VIEWER")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String    @id @default(uuid())
+  username            String    @unique
+  passwordHash        String
+  role                String    @default("VIEWER")
+  sessionVersion      Int       @default(0)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   apiKey    ApiKey?
   auditLogs AuditLog[]

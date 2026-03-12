@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 
 export const AUTH_COOKIE_NAME = 'auth_token';
-const AUTH_COOKIE_MAX_AGE_SEC = 24 * 60 * 60;
+export const AUTH_COOKIE_MAX_AGE_SEC = 12 * 60 * 60;
 
 function parseCookieHeader(header: string | undefined): Record<string, string> {
     if (!header) {

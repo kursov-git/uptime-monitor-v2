@@ -36,7 +36,6 @@ exports[`API Contract > validates /health/runtime response shape 1`] = `
 exports[`API Contract > validates auth login and /me contracts 1`] = `
 {
   "login": {
-    "token": "<jwt>",
     "user": {
       "id": "<uuid>",
       "role": "VIEWER",

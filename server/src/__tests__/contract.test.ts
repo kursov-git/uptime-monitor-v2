@@ -90,7 +90,12 @@ async function createAdminToken() {
     const admin = await prisma.user.create({
         data: { username: 'contract_admin', passwordHash, role: 'ADMIN' },
     });
-    return app.jwt.sign({ id: admin.id, username: admin.username, role: admin.role });
+    return app.jwt.sign({
+        id: admin.id,
+        username: admin.username,
+        role: admin.role,
+        sessionVersion: admin.sessionVersion,
+    });
 }
 
 describe('API Contract', () => {
@@ -153,14 +158,16 @@ describe('API Contract', () => {
 
         expect(loginRes.statusCode).toBe(200);
         const loginBody = z.object({
-            token: z.string(),
             user: userSchema.pick({ id: true, username: true, role: true }),
         }).parse(JSON.parse(loginRes.body));
+        const setCookie = loginRes.headers['set-cookie'];
+        const cookieHeader = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+        expect(cookieHeader).toBeTruthy();
 
         const meRes = await app.inject({
             method: 'GET',
             url: '/api/auth/me',
-            headers: { Authorization: `Bearer ${loginBody.token}` },
+            headers: { cookie: cookieHeader as string },
         });
 
         expect(meRes.statusCode).toBe(200);

@@ -10,10 +10,19 @@ beforeEach(async () => {
 
 describe('authenticateSseJWT', () => {
     it('accepts cookie token for SSE clients', async () => {
+        const user = await prisma.user.create({
+            data: {
+                id: 'user-1',
+                username: 'alice',
+                passwordHash: 'hash',
+                role: 'ADMIN',
+            },
+        });
         const verify = vi.fn().mockResolvedValue({
-            id: 'user-1',
-            username: 'alice',
-            role: 'ADMIN',
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            sessionVersion: user.sessionVersion,
         });
         const request = {
             headers: { cookie: 'auth_token=cookie-token' },
@@ -28,9 +37,10 @@ describe('authenticateSseJWT', () => {
 
         expect(verify).toHaveBeenCalledWith('cookie-token');
         expect((request as any).user).toMatchObject({
-            id: 'user-1',
-            username: 'alice',
+            id: user.id,
+            username: user.username,
             role: 'ADMIN',
+            sessionVersion: 0,
         });
     });
 
@@ -38,6 +48,42 @@ describe('authenticateSseJWT', () => {
         const request = {
             headers: { cookie: 'auth_token=bad-token' },
             server: { jwt: { verify: vi.fn().mockRejectedValue(new Error('bad token')) } },
+        } as unknown as FastifyRequest;
+        const send = vi.fn();
+        const status = vi.fn().mockReturnValue({ send });
+        const reply = {
+            status,
+            send,
+        } as unknown as FastifyReply;
+
+        await authenticateSseJWT(request, reply);
+
+        expect(status).toHaveBeenCalledWith(401);
+        expect(send).toHaveBeenCalledWith({ error: 'Invalid token' });
+    });
+
+    it('rejects stale cookie sessions after session version changes', async () => {
+        const user = await prisma.user.create({
+            data: {
+                id: 'user-stale',
+                username: 'stale-user',
+                passwordHash: 'hash',
+                role: 'VIEWER',
+                sessionVersion: 1,
+            },
+        });
+        const request = {
+            headers: { cookie: 'auth_token=stale-token' },
+            server: {
+                jwt: {
+                    verify: vi.fn().mockResolvedValue({
+                        id: user.id,
+                        username: user.username,
+                        role: user.role,
+                        sessionVersion: 0,
+                    }),
+                },
+            },
         } as unknown as FastifyRequest;
         const send = vi.fn();
         const status = vi.fn().mockReturnValue({ send });
