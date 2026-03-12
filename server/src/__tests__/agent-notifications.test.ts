@@ -133,4 +133,112 @@ describe('Agent notification flows', () => {
         expect(history[0].channel).toBe('TELEGRAM');
         expect(history[0].status).toBe('SUCCESS');
     });
+
+    it('sends an ONLINE notification when an offline agent reconnects', async () => {
+        const rawToken = 'recovered-agent-token';
+        const previousLastSeen = new Date('2026-03-11T06:00:00.000Z');
+        const agent = await prisma.agent.create({
+            data: {
+                name: 'cloudruvm1',
+                tokenHash: hashAgentToken(rawToken),
+                status: 'OFFLINE',
+                lastSeen: previousLastSeen,
+            },
+        });
+
+        await prisma.monitor.create({
+            data: {
+                name: 'Cloud API',
+                url: 'https://cloud.example.com/health',
+                agentId: agent.id,
+            },
+        });
+
+        const response = await app.inject({
+            method: 'POST',
+            url: '/api/agent/heartbeat',
+            headers: {
+                Authorization: `Bearer ${rawToken}`,
+            },
+            payload: {
+                agentVersion: '1.0.0',
+            },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('cloudruvm1');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('is ONLINE again');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('Assigned monitors: 1');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('/agents');
+
+        const updatedAgent = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } });
+        expect(updatedAgent.status).toBe('ONLINE');
+        expect(updatedAgent.lastSeen.getTime()).toBeGreaterThan(previousLastSeen.getTime());
+
+        const history = await prisma.notificationHistory.findMany({
+            where: { monitorId: null },
+            orderBy: { timestamp: 'asc' },
+        });
+        expect(history).toHaveLength(1);
+        expect(history[0].channel).toBe('TELEGRAM');
+        expect(history[0].status).toBe('SUCCESS');
+    });
+
+    it('sends OFFLINE and ONLINE notifications across a full recovery cycle', async () => {
+        const rawToken = 'full-cycle-agent-token';
+        const previousLastSeen = new Date('2026-03-11T06:00:00.000Z');
+        const agent = await prisma.agent.create({
+            data: {
+                name: 'ruvdskzn',
+                tokenHash: hashAgentToken(rawToken),
+                status: 'ONLINE',
+                lastSeen: previousLastSeen,
+                offlineAfterSec: 90,
+            },
+        });
+
+        await prisma.monitor.create({
+            data: {
+                name: 'Remote API',
+                url: 'https://remote.example.com/health',
+                agentId: agent.id,
+            },
+        });
+
+        const service = new AgentOfflineMonitorService();
+        const changed = await service.tick(new Date('2026-03-11T06:05:00.000Z'));
+
+        expect(changed).toBe(1);
+        expect(mockedAxios.post).toHaveBeenCalledTimes(1);
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('is OFFLINE');
+
+        const heartbeatResponse = await app.inject({
+            method: 'POST',
+            url: '/api/agent/heartbeat',
+            headers: {
+                Authorization: `Bearer ${rawToken}`,
+            },
+            payload: {
+                agentVersion: '1.0.0',
+            },
+        });
+
+        expect(heartbeatResponse.statusCode).toBe(200);
+        expect(mockedAxios.post).toHaveBeenCalledTimes(2);
+        expect(mockedAxios.post.mock.calls[1]?.[1]?.text).toContain('is ONLINE again');
+        expect(mockedAxios.post.mock.calls[1]?.[1]?.text).toContain('Assigned monitors: 1');
+
+        const updatedAgent = await prisma.agent.findUniqueOrThrow({ where: { id: agent.id } });
+        expect(updatedAgent.status).toBe('ONLINE');
+        expect(updatedAgent.lastSeen.getTime()).toBeGreaterThan(previousLastSeen.getTime());
+
+        const history = await prisma.notificationHistory.findMany({
+            where: { monitorId: null },
+            orderBy: { timestamp: 'asc' },
+        });
+        expect(history).toHaveLength(2);
+        expect(history.every((entry) => entry.channel === 'TELEGRAM')).toBe(true);
+        expect(history.every((entry) => entry.status === 'SUCCESS')).toBe(true);
+    });
 });

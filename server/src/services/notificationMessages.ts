@@ -16,6 +16,12 @@ interface AgentOfflineContext {
     monitorsCount?: number;
 }
 
+interface AgentOnlineContext {
+    appBaseUrl?: string | null;
+    monitorsCount?: number;
+    offlineDurationSec?: number;
+}
+
 function escapeHtml(value: string): string {
     return value
         .replace(/&/g, '&amp;')
@@ -113,6 +119,33 @@ export function buildAgentOfflineMessage(
         `Last seen: ${escapeHtml(lastSeen.toISOString())}`,
         `Offline threshold: ${offlineAfterSec}s`,
     ];
+
+    if (typeof context.monitorsCount === 'number') {
+        lines.push(`Assigned monitors: ${context.monitorsCount}`);
+    }
+
+    const agentsLink = buildLink(normalizeBaseUrl(context.appBaseUrl), '/agents', 'Open agents');
+    if (agentsLink) {
+        lines.push(agentsLink);
+    }
+
+    return lines.join('\n');
+}
+
+export function buildAgentOnlineMessage(
+    agentName: string,
+    previousLastSeen: Date,
+    context: AgentOnlineContext = {}
+): string {
+    const lines = [
+        `🛰 <b>${escapeHtml(agentName)}</b> is ONLINE again`,
+        `Recovered at: ${escapeHtml(new Date().toISOString())}`,
+        `Last seen before recovery: ${escapeHtml(previousLastSeen.toISOString())}`,
+    ];
+
+    if (typeof context.offlineDurationSec === 'number') {
+        lines.push(`Estimated offline time: ${Math.max(0, Math.round(context.offlineDurationSec))}s`);
+    }
 
     if (typeof context.monitorsCount === 'number') {
         lines.push(`Assigned monitors: ${context.monitorsCount}`);

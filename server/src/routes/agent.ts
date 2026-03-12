@@ -7,6 +7,10 @@ import { logAction } from '../services/auditService';
 import { persistAgentResults, type AgentResultInput } from '../services/agentResults';
 import { serverEnv } from '../lib/env';
 import { FlappingService } from '../services/flapping';
+import { TelegramNotifier } from '../services/telegram';
+import { ZulipNotifier } from '../services/zulip';
+import { decrypt } from '../lib/crypto';
+import { buildAgentOnlineMessage, htmlToNotifierText } from '../services/notificationMessages';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -28,6 +32,73 @@ const heartbeatSchema = z.object({
     queueSize: z.number().int().nonnegative().optional(),
     inFlightChecks: z.number().int().nonnegative().optional(),
 });
+
+const telegramNotifier = new TelegramNotifier();
+const zulipNotifier = new ZulipNotifier();
+
+async function sendAgentOnlineNotifications(agent: {
+    id: string;
+    name: string;
+    status: string;
+}, previousLastSeen: Date, recoveredAt: Date): Promise<void> {
+    if (agent.status === 'ONLINE') {
+        return;
+    }
+
+    const [settings, monitorsCount] = await Promise.all([
+        prisma.notificationSettings.findFirst(),
+        prisma.monitor.count({ where: { agentId: agent.id } }),
+    ]);
+
+    if (!settings) {
+        return;
+    }
+
+    const message = buildAgentOnlineMessage(
+        agent.name,
+        previousLastSeen,
+        {
+            appBaseUrl: settings.appBaseUrl,
+            monitorsCount,
+            offlineDurationSec: (recoveredAt.getTime() - previousLastSeen.getTime()) / 1000,
+        }
+    );
+
+    if (settings.telegramEnabled && settings.telegramBotToken && settings.telegramChatId) {
+        const result = await telegramNotifier.send({
+            botToken: decrypt(settings.telegramBotToken),
+            chatId: settings.telegramChatId,
+        }, message);
+
+        await prisma.notificationHistory.create({
+            data: {
+                monitorId: null,
+                channel: 'TELEGRAM',
+                status: result.success ? 'SUCCESS' : 'FAILED',
+                error: result.error || null,
+            },
+        });
+    }
+
+    if (settings.zulipEnabled && settings.zulipBotEmail && settings.zulipApiKey && settings.zulipServerUrl) {
+        const result = await zulipNotifier.send({
+            botEmail: settings.zulipBotEmail,
+            apiKey: decrypt(settings.zulipApiKey),
+            serverUrl: settings.zulipServerUrl,
+            stream: settings.zulipStream || 'alerts',
+            topic: settings.zulipTopic || 'uptime-monitor',
+        }, htmlToNotifierText(message));
+
+        await prisma.notificationHistory.create({
+            data: {
+                monitorId: null,
+                channel: 'ZULIP',
+                status: result.success ? 'SUCCESS' : 'FAILED',
+                error: result.error || null,
+            },
+        });
+    }
+}
 
 export default async function agentRoutes(fastify: FastifyInstance) {
     fastify.get('/stream', {
@@ -244,11 +315,24 @@ export default async function agentRoutes(fastify: FastifyInstance) {
 
         const agent = request.agent!;
         const reportedVersion = parse.data.agentVersion?.trim() || null;
+        const recoveredAt = new Date();
+        const currentAgent = await prisma.agent.findUnique({
+            where: { id: agent.id },
+            select: {
+                lastSeen: true,
+                status: true,
+            },
+        });
+
+        if (!currentAgent) {
+            return reply.status(401).send({ error: 'Agent not found' });
+        }
+
         const updated = await prisma.agent.update({
             where: { id: agent.id },
             data: {
                 ...(reportedVersion ? { agentVersion: reportedVersion } : {}),
-                lastSeen: new Date(),
+                lastSeen: recoveredAt,
                 status: 'ONLINE',
             },
             select: {
@@ -258,10 +342,11 @@ export default async function agentRoutes(fastify: FastifyInstance) {
 
         if (agent.status !== 'ONLINE') {
             await logAction('AGENT_ONLINE', null, { agentId: agent.id });
+            await sendAgentOnlineNotifications(agent, currentAgent.lastSeen, recoveredAt);
         }
 
         return {
-            now: new Date().toISOString(),
+            now: recoveredAt.toISOString(),
             heartbeatIntervalSec: updated.heartbeatIntervalSec,
             commands: ['NONE'],
         };
