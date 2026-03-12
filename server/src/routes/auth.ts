@@ -2,6 +2,9 @@ import { FastifyInstance } from 'fastify';
 import prisma from '../lib/prisma';
 import bcrypt from 'bcrypt';
 import { logAction } from '../services/auditService';
+import { buildAuthCookie, buildClearedAuthCookie } from '../lib/authCookies';
+import { authenticateJWT } from '../lib/auth';
+import { serverEnv } from '../lib/env';
 
 export default async function authRoutes(fastify: FastifyInstance) {
     // POST /api/auth/login
@@ -33,6 +36,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
                 username: user.username,
                 role: user.role,
             });
+            reply.header('Set-Cookie', buildAuthCookie(token, serverEnv.nodeEnv === 'production'));
 
             await logAction('LOGIN', user.id, { username }, request.ip);
 
@@ -49,13 +53,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
     // GET /api/auth/me — current user info
     fastify.get('/me', {
-        preHandler: [async (request, reply) => {
-            try {
-                await request.jwtVerify();
-            } catch {
-                return reply.status(401).send({ error: 'Invalid token' });
-            }
-        }],
+        preHandler: [authenticateJWT],
     }, async (request, reply) => {
         const payload = request.user;
         const user = await prisma.user.findUnique({
@@ -72,16 +70,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
     // POST /api/auth/logout — for audit trail
     fastify.post('/logout', {
-        preHandler: [async (request, reply) => {
-            try {
-                await request.jwtVerify();
-            } catch {
-                return reply.status(401).send({ error: 'Invalid token' });
-            }
-        }],
-    }, async (request) => {
+        preHandler: [authenticateJWT],
+    }, async (request, reply) => {
         const user = request.user;
         await logAction('LOGOUT', user.id, { username: user.username }, request.ip);
+        reply.header('Set-Cookie', buildClearedAuthCookie(serverEnv.nodeEnv === 'production'));
         return { success: true };
     });
 }

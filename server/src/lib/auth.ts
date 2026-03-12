@@ -1,6 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { Role } from '@uptime-monitor/shared';
 import prisma from './prisma';
+import { authenticateApiKey } from '../services/apiKeys';
+import { getAuthCookieToken } from './authCookies';
 
 // JWT payload interface
 export interface JwtPayload {
@@ -30,13 +32,18 @@ export async function authenticateJWT(
             return;
         }
 
-        // Second, try API Key
+        // Second, try JWT token from HttpOnly cookie
+        const cookieToken = getAuthCookieToken(request);
+        if (cookieToken) {
+            const decoded = await request.server.jwt.verify(cookieToken);
+            request.user = decoded as JwtPayload;
+            return;
+        }
+
+        // Third, try API Key
         const apiKey = request.headers['x-api-key'] as string;
         if (apiKey) {
-            const key = await prisma.apiKey.findUnique({
-                where: { key: apiKey },
-                include: { user: true },
-            });
+            const key = await authenticateApiKey(apiKey);
 
             if (!key || key.revokedAt) {
                 return reply.status(401).send({ error: 'Invalid or revoked API key' });
@@ -62,17 +69,6 @@ export async function authenticateSseJWT(
     request: FastifyRequest,
     reply: FastifyReply
 ): Promise<void> {
-    const queryToken = (request.query as { token?: unknown })?.token;
-    if (typeof queryToken === 'string' && queryToken.length > 0) {
-        try {
-            const decoded = await request.server.jwt.verify(queryToken);
-            request.user = decoded as JwtPayload;
-            return;
-        } catch {
-            return reply.status(401).send({ error: 'Invalid query token' });
-        }
-    }
-
     return authenticateJWT(request, reply);
 }
 

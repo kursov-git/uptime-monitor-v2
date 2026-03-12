@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi, getToken, setToken, removeToken } from '../api';
+import { authApi, setToken, removeToken } from '../api';
 
 interface AuthUser {
     id: string;
@@ -26,14 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [sessionExpired, setSessionExpired] = useState(false);
 
     const checkAuth = useCallback(async () => {
-        const token = getToken();
-        if (!token) {
-            setIsLoading(false);
-            return;
-        }
-
         try {
-            const res = await authApi.get('/me');
+            const res = await authApi.get('/me', { skipAuthExpired: true });
             setUser(res.data);
         } catch {
             removeToken();
@@ -64,10 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = () => {
-        const token = getToken();
-        if (token) {
-            authApi.post('/logout').catch(() => { });
-        }
+        authApi.post('/logout').catch(() => { });
         removeToken();
         setUser(null);
     };

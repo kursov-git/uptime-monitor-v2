@@ -5,34 +5,30 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export const apiClient = axios.create({
     baseURL: API_BASE_URL,
     headers: { 'Content-Type': 'application/json' },
+    withCredentials: true,
 });
 
 // Token management
 export function getToken(): string | null {
-    return localStorage.getItem('token');
+    return null;
 }
 
 export function setToken(token: string): void {
-    localStorage.setItem('token', token);
+    void token;
 }
 
 export function removeToken(): void {
-    localStorage.removeItem('token');
+    return;
 }
-
-// Auth interceptor
-apiClient.interceptors.request.use((config) => {
-    const token = getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
 
 apiClient.interceptors.response.use(
     (res) => res,
     (err) => {
-        if (err.response?.status === 401) {
+        const requestUrl = String(err.config?.url || '');
+        const skipAuthExpired = Boolean(err.config?.skipAuthExpired);
+        const isLoginRequest = requestUrl.endsWith('/auth/login');
+
+        if (err.response?.status === 401 && !skipAuthExpired && !isLoginRequest) {
             removeToken();
             window.dispatchEvent(new Event('auth:expired'));
         }
@@ -43,7 +39,7 @@ apiClient.interceptors.response.use(
 // API instances implementations (backward compatibility wrappers)
 export const authApi = {
     post: <T = any>(url: string, data?: any) => apiClient.post<T>(`/auth${url}`, data),
-    get: <T = any>(url: string) => apiClient.get<T>(`/auth${url}`),
+    get: <T = any>(url: string, config?: any) => apiClient.get<T>(`/auth${url}`, config),
 };
 
 export const monitorsApi = {

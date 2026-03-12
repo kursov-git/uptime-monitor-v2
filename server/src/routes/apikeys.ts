@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import crypto from 'crypto';
 import { authenticateJWT } from '../lib/auth';
 import { logAction } from '../services/auditService';
+import { hashApiKey } from '../services/apiKeys';
 
 export default async function apikeyRoutes(fastify: FastifyInstance) {
     // GET /api/apikeys/me — get current user's API key
@@ -13,6 +14,12 @@ export default async function apikeyRoutes(fastify: FastifyInstance) {
 
         const apiKey = await prisma.apiKey.findUnique({
             where: { userId: user.id },
+            select: {
+                id: true,
+                userId: true,
+                createdAt: true,
+                revokedAt: true,
+            },
         });
 
         return apiKey || null;
@@ -41,14 +48,20 @@ export default async function apikeyRoutes(fastify: FastifyInstance) {
 
         const apiKey = await prisma.apiKey.create({
             data: {
-                key,
+                key: hashApiKey(key),
                 userId: user.id,
             },
         });
 
         await logAction('GENERATE_API_KEY', user.id, {}, request.ip);
 
-        return apiKey;
+        return {
+            id: apiKey.id,
+            key,
+            userId: apiKey.userId,
+            createdAt: apiKey.createdAt,
+            revokedAt: apiKey.revokedAt,
+        };
     });
 
     // DELETE /api/apikeys/revoke — revoke API key

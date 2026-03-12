@@ -9,15 +9,15 @@ beforeEach(async () => {
 });
 
 describe('authenticateSseJWT', () => {
-    it('accepts query token for SSE clients', async () => {
-        const jwtVerify = vi.fn().mockResolvedValue({
+    it('accepts cookie token for SSE clients', async () => {
+        const verify = vi.fn().mockResolvedValue({
             id: 'user-1',
             username: 'alice',
             role: 'ADMIN',
         });
         const request = {
-            query: { token: 'query-token' },
-            server: { jwt: { verify: jwtVerify } },
+            headers: { cookie: 'auth_token=cookie-token' },
+            server: { jwt: { verify } },
         } as unknown as FastifyRequest;
         const reply = {
             status: vi.fn().mockReturnThis(),
@@ -26,7 +26,7 @@ describe('authenticateSseJWT', () => {
 
         await authenticateSseJWT(request, reply);
 
-        expect(jwtVerify).toHaveBeenCalledWith('query-token');
+        expect(verify).toHaveBeenCalledWith('cookie-token');
         expect((request as any).user).toMatchObject({
             id: 'user-1',
             username: 'alice',
@@ -34,9 +34,9 @@ describe('authenticateSseJWT', () => {
         });
     });
 
-    it('rejects invalid SSE query token', async () => {
+    it('rejects invalid SSE cookie token', async () => {
         const request = {
-            query: { token: 'bad-token' },
+            headers: { cookie: 'auth_token=bad-token' },
             server: { jwt: { verify: vi.fn().mockRejectedValue(new Error('bad token')) } },
         } as unknown as FastifyRequest;
         const send = vi.fn();
@@ -49,7 +49,7 @@ describe('authenticateSseJWT', () => {
         await authenticateSseJWT(request, reply);
 
         expect(status).toHaveBeenCalledWith(401);
-        expect(send).toHaveBeenCalledWith({ error: 'Invalid query token' });
+        expect(send).toHaveBeenCalledWith({ error: 'Invalid token' });
     });
 
     it('authenticates with API key for non-SSE routes', async () => {

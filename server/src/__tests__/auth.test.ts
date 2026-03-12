@@ -38,7 +38,7 @@ describe('Auth API (Integration)', () => {
         expect(JSON.parse(response.body)).toHaveProperty('error', 'Invalid credentials');
     });
 
-    it('should return a JWT token for valid login', async () => {
+    it('should return a JWT token for valid login and set auth cookie', async () => {
         // Create an admin user first
         const hashedPassword = await bcrypt.hash('secret123', 10);
         await prisma.user.create({
@@ -64,6 +64,7 @@ describe('Auth API (Integration)', () => {
         expect(data.user).toHaveProperty('id');
         expect(data.user.username).toBe('admin_test');
         expect(data.user.role).toBe('ADMIN');
+        expect(response.headers['set-cookie']).toBeTruthy();
     });
 
     it('should return 401 for protected routes without token', async () => {
@@ -107,6 +108,42 @@ describe('Auth API (Integration)', () => {
         expect(response.statusCode).toBe(200);
         const data = JSON.parse(response.body);
         expect(data.username).toBe('test_user2');
+        expect(data.role).toBe('VIEWER');
+    });
+
+    it('should return user profile using auth cookie in /me', async () => {
+        const hashedPassword = await bcrypt.hash('secret123', 10);
+        await prisma.user.create({
+            data: {
+                username: 'cookie_user',
+                passwordHash: hashedPassword,
+                role: 'VIEWER',
+            }
+        });
+
+        const loginRes = await app.inject({
+            method: 'POST',
+            url: '/api/auth/login',
+            payload: {
+                username: 'cookie_user',
+                password: 'secret123'
+            }
+        });
+
+        const cookie = loginRes.headers['set-cookie'];
+        expect(cookie).toBeTruthy();
+
+        const response = await app.inject({
+            method: 'GET',
+            url: '/api/auth/me',
+            headers: {
+                cookie: Array.isArray(cookie) ? cookie[0] : cookie as string,
+            }
+        });
+
+        expect(response.statusCode).toBe(200);
+        const data = JSON.parse(response.body);
+        expect(data.username).toBe('cookie_user');
         expect(data.role).toBe('VIEWER');
     });
 });

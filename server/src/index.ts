@@ -19,6 +19,7 @@ import { validateEncryptionConfig } from './lib/crypto';
 import { type ServerRole } from './lib/serverRoles';
 import { createFastifyLoggerOptions, logger } from './lib/logger';
 import { serverEnv } from './lib/env';
+import { backfillLegacyApiKeys } from './services/apiKeys';
 
 const env = serverEnv;
 
@@ -89,8 +90,12 @@ async function registerRoutes() {
 
 // Export init logic for testing
 export async function initApp() {
+    const migratedApiKeys = await backfillLegacyApiKeys();
     await registerPlugins();
     await registerRoutes();
+    if (migratedApiKeys > 0) {
+        fastify.log.warn({ migratedApiKeys }, 'Backfilled legacy plaintext API keys');
+    }
     return fastify;
 }
 

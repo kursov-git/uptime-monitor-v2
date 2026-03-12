@@ -18,7 +18,6 @@ export default async function userRoutes(fastify: FastifyInstance) {
                 apiKey: {
                     select: {
                         id: true,
-                        key: true,
                         createdAt: true,
                         revokedAt: true,
                     },

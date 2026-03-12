@@ -19,15 +19,17 @@ const TestComponent = () => {
 describe('AuthContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // Clear local storage token
-        localStorage.removeItem('token');
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('should initialize with no user if no token exists', async () => {
+    it('should initialize with no user if the auth cookie is absent or invalid', async () => {
+        const spy = vi.spyOn(authApi, 'get').mockRejectedValueOnce({
+            response: { status: 401 }
+        });
+
         render(
             <AuthProvider>
                 <TestComponent />
@@ -40,16 +42,10 @@ describe('AuthContext', () => {
         });
 
         expect(screen.getByTestId('user')).toHaveTextContent('null');
-
-        // Since there is no token, authApi should not be called
-        const spy = vi.spyOn(authApi, 'get');
-        expect(spy).not.toHaveBeenCalled();
+        expect(spy).toHaveBeenCalledWith('/me', { skipAuthExpired: true });
     });
 
-    it('should fetch user data if a token exists in localStorage', async () => {
-        localStorage.setItem('token', 'fake-jwt-token');
-
-        // Mock a successful /api/auth/me response
+    it('should fetch user data if the server session cookie is valid', async () => {
         const spy = vi.spyOn(authApi, 'get').mockResolvedValueOnce({
             data: { id: '1', username: 'admin_test', role: 'ADMIN' }
         } as any);
@@ -68,13 +64,10 @@ describe('AuthContext', () => {
 
         expect(screen.getByTestId('role')).toHaveTextContent('ADMIN');
 
-        expect(spy).toHaveBeenCalledWith('/me');
+        expect(spy).toHaveBeenCalledWith('/me', { skipAuthExpired: true });
     });
 
-    it('should handle token expiration or invalidity correctly', async () => {
-        localStorage.setItem('token', 'expired-token');
-
-        // Mock a 401 Unauthorized response
+    it('should handle session expiration or invalidity correctly', async () => {
         vi.spyOn(authApi, 'get').mockRejectedValueOnce({
             response: { status: 401 }
         });
@@ -89,7 +82,6 @@ describe('AuthContext', () => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
         });
 
-        // The user should be null, and token removed (or in progress of removal)
         expect(screen.getByTestId('user')).toHaveTextContent('null');
     });
 });

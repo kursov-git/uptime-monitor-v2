@@ -133,7 +133,6 @@ exports[`API Contract > validates notifications history and API key contracts 1`
   "me": {
     "createdAt": "<iso-date>",
     "id": "<uuid>",
-    "key": "<api-key>",
     "revokedAt": null,
     "userId": "<uuid>",
   },

@@ -26,9 +26,8 @@ export default function App() {
         fetchMonitors();
 
         // Connect to SSE for real-time updates
-        const token = localStorage.getItem('token');
         const url = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/monitors/stream` : '/api/monitors/stream';
-        const sse = new EventSource(`${url}?token=${token}`);
+        const sse = new EventSource(url, { withCredentials: true });
 
         sse.addEventListener('monitor_update', (event) => {
             try {
