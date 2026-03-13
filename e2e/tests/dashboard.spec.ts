@@ -5,34 +5,34 @@ test.describe('Dashboard Navigation', () => {
         await page.goto('/');
         await page.fill('input[type="text"]', 'admin');
         await page.fill('input[type="password"]', 'admin123');
-        await page.getByRole('button', { name: 'Sign In' }).click();
+        await page.getByTestId('login-submit').click();
 
-        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByTestId('app-title')).toBeVisible({ timeout: 10000 });
     });
 
     test('navigates to settings and back without page reload', async ({ page }) => {
-        await page.getByRole('link', { name: '⚙️ Settings' }).click();
+        await page.getByTestId('nav-settings').click();
 
-        await expect(page.getByRole('heading', { name: 'Global Notification Settings' })).toBeVisible();
+        await expect(page.getByTestId('settings-page-title')).toBeVisible();
         await expect(page).toHaveURL('/settings');
 
-        await page.getByRole('button', { name: '← Back to Dashboard' }).click();
+        await page.getByTestId('settings-back-button').click();
 
-        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible();
+        await expect(page.getByTestId('app-title')).toBeVisible();
         await expect(page).toHaveURL('/');
     });
 
     test('navigates to users management', async ({ page }) => {
-        await page.getByRole('link', { name: '👥 Users' }).click();
+        await page.getByTestId('nav-users').click();
 
-        await expect(page.getByRole('heading', { name: '👥 User Management' })).toBeVisible();
+        await expect(page.getByTestId('users-page-title')).toBeVisible();
         await expect(page).toHaveURL('/users');
     });
 
     test('navigates to audit log', async ({ page }) => {
-        await page.getByRole('link', { name: '📋 Audit Log' }).click();
+        await page.getByTestId('nav-audit').click();
 
-        await expect(page.getByRole('heading', { name: '📋 Audit Log' })).toBeVisible();
+        await expect(page.getByTestId('audit-page-title')).toBeVisible();
         await expect(page).toHaveURL('/audit');
     });
 });

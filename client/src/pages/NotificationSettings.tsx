@@ -103,8 +103,8 @@ export default function NotificationSettings() {
         <div>
             <div className="section-header" style={{ marginBottom: 24 }}>
                 <div>
-                    <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Global Notification Settings</h2>
-                    <button className="btn btn-secondary btn-sm" style={{ marginTop: 8 }} onClick={() => navigate('/')}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }} data-testid="settings-page-title">Global Notification Settings</h2>
+                    <button className="btn btn-secondary btn-sm" style={{ marginTop: 8 }} onClick={() => navigate('/')} data-testid="settings-back-button">
                         ← Back to Dashboard
                     </button>
                 </div>

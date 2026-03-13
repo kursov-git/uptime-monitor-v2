@@ -49,7 +49,7 @@ export default function DashboardPage({
         <>
             {isAdmin && (
                 <div style={{ marginBottom: 16 }}>
-                    <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                    <button className="btn btn-primary" onClick={() => setShowForm(true)} data-testid="new-monitor-button">
                         ＋ New Monitor
                     </button>
                 </div>
@@ -69,6 +69,7 @@ export default function DashboardPage({
                             className="btn btn-primary"
                             style={{ marginTop: 16 }}
                             onClick={() => setShowForm(true)}
+                            data-testid="create-monitor-empty-button"
                         >
                             ＋ Create Monitor
                         </button>

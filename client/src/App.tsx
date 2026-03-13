@@ -71,31 +71,31 @@ export default function App() {
         <div className="app-container page-container">
             {/* Header */}
             <div className="app-header">
-                <h1>Ping Agent</h1>
+                <h1 data-testid="app-title">Ping Agent</h1>
                 <div className="header-actions">
                     <span className="header-user">
                         {user?.username} ({user?.role})
                     </span>
                     {isAdmin && (
                         <>
-                            <Link to="/settings" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            <Link to="/settings" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-settings">
                                 ⚙️ Settings
                             </Link>
-                            <Link to="/users" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            <Link to="/users" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-users">
                                 👥 Users
                             </Link>
-                            <Link to="/audit" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            <Link to="/audit" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-audit">
                                 📋 Audit Log
                             </Link>
-                            <Link to="/agents" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            <Link to="/agents" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-agents">
                                 🛰 Agents
                             </Link>
-                            <Link to="/status" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
+                            <Link to="/status" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-public-status">
                                 🌐 Public Status
                             </Link>
                         </>
                     )}
-                    <button className="btn btn-secondary" onClick={logout}>
+                    <button className="btn btn-secondary" onClick={logout} data-testid="logout-button">
                         Logout
                     </button>
                 </div>
@@ -119,7 +119,7 @@ export default function App() {
                     isAdmin ? (
                         <div>
                             <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1>👥 User Management</h1>
+                                <h1 data-testid="users-page-title">👥 User Management</h1>
                                 <button className="btn btn-secondary" onClick={() => navigate('/')}>
                                     ← Back
                                 </button>
@@ -135,7 +135,7 @@ export default function App() {
                     isAdmin ? (
                         <div>
                             <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1>📋 Audit Log</h1>
+                                <h1 data-testid="audit-page-title">📋 Audit Log</h1>
                                 <button className="btn btn-secondary" onClick={() => navigate('/')}>
                                     ← Back
                                 </button>
@@ -171,7 +171,7 @@ export default function App() {
                     isAdmin ? (
                         <div>
                             <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1>🛰 Agents</h1>
+                                <h1 data-testid="agents-page-title">🛰 Agents</h1>
                                 <button className="btn btn-secondary" onClick={() => navigate('/')}>
                                     ← Back
                                 </button>

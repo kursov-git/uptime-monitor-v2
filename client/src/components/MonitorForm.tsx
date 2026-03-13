@@ -133,7 +133,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
 
     return (
         <div className="modal-overlay" onClick={onCancel}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal" onClick={e => e.stopPropagation()} data-testid="monitor-form-modal">
                 <h2>{monitor ? 'Edit Monitor' : 'New Monitor'}</h2>
 
                 {monitor && !monitor.isActive && (
@@ -437,10 +437,10 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             </button>
                         )}
                         <div style={{ flex: 1 }} />
-                        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+                        <button type="button" className="btn btn-secondary" onClick={onCancel} data-testid="monitor-form-cancel">
                             Cancel
                         </button>
-                        <button type="submit" className="btn btn-primary" disabled={submitting}>
+                        <button type="submit" className="btn btn-primary" disabled={submitting} data-testid="monitor-form-submit">
                             {submitting ? 'Saving...' : (monitor ? 'Update' : 'Create')}
                         </button>
                     </div>

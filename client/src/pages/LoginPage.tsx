@@ -25,7 +25,7 @@ export default function LoginPage() {
     return (
         <div className="login-container">
             <div className="card login-card">
-                <h1>Ping Agent</h1>
+                <h1 data-testid="login-title">Ping Agent</h1>
                 <p className="login-subtitle">Sign in to your dashboard</p>
 
                 {error && <div className="error-message">{error}</div>}
@@ -61,6 +61,7 @@ export default function LoginPage() {
                         className="btn btn-primary"
                         style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
                         disabled={loading}
+                        data-testid="login-submit"
                     >
                         {loading ? 'Signing in...' : 'Sign In'}
                     </button>
