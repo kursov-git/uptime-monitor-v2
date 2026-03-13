@@ -1,18 +1,30 @@
 # Roadmap
 
-This is the active product roadmap for `uptime-monitor-v2`.
+This is the strategic roadmap for `uptime-monitor-v2`.
 
-It reflects the current product direction:
+It preserves the higher-complexity and growth-oriented product direction:
+- multi-user or broader internal usage
+- richer public-facing product surface
+- first-class incident and maintenance concepts
+- capabilities that become more valuable as the monitored estate and operator set grow
+
+This document is intentionally allowed to contain ideas that are not appropriate for the current lean operating mode.
+For the current single-operator and narrow-circle prioritization, read `ROADMAP_LEAN.md`.
+
+It reflects the strategic product direction:
 - primary focus: uptime monitoring
 - secondary focus: light operational context around hosts and agents
-- target usage: personal operations and internal demo to management
-- complexity bias: keep the product sharp and useful, avoid early enterprise sprawl
+- target usage: growth from personal operations into internal multi-user/public-facing scenarios
+- complexity bias: allow meaningful growth-path ideas, but still avoid enterprise theater
 
 For implementation and operational truth, also read:
 - `AGENTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/PRODUCTION_TOPOLOGY.md`
 - `docs/OPERATIONS_RUNBOOK.md`
+
+For current-day single-operator prioritization, also read:
+- `ROADMAP_LEAN.md`
 
 ## Product Direction
 

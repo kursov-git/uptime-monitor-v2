@@ -20,6 +20,11 @@ This document is optimized for agents that need to understand:
 - how to make safe changes without damaging production
 - how the codebase is laid out
 
+Roadmap policy:
+- `ROADMAP_LEAN.md` is the current single-operator and narrow-circle prioritization document
+- `ROADMAP.md` preserves the broader strategic and growth-oriented product direction
+- do not delete or rewrite strategic ideas just because they are not in the current lean mode
+
 ## Current State Summary
 
 As of 2026-03-13:
@@ -41,8 +46,9 @@ Read documents in this order.
 4. `docs/PRODUCTION_TOPOLOGY.md`
 5. `docs/OPERATIONS_RUNBOOK.md`
 6. `docs/AGENT_DEPLOYMENT_KIT.md`
-7. `ROADMAP.md`
-8. `CODE_REVIEW.md`
+7. `ROADMAP_LEAN.md`
+8. `ROADMAP.md`
+9. `CODE_REVIEW.md`
 
 Historical or template documents are not the primary source of truth:
 - `ROADMAP_NEW.md`
@@ -60,6 +66,7 @@ Use them only for historical context, not for current operational decisions.
 .
 ├── AGENTS.md
 ├── README.md
+├── ROADMAP_LEAN.md
 ├── ROADMAP.md
 ├── ROADMAP_NEW.md
 ├── CODE_REVIEW.md

@@ -8,6 +8,8 @@ For implementation and operator truth, read:
 - `docs/ARCHITECTURE.md`
 - `docs/PRODUCTION_TOPOLOGY.md`
 - `docs/OPERATIONS_RUNBOOK.md`
+- `ROADMAP_LEAN.md` for current single-operator priorities
+- `ROADMAP.md` for broader strategic product direction
 
 ## What It Does
 
@@ -41,6 +43,8 @@ Not yet implemented:
 ## Repository Layout
 
 ```text
+ROADMAP_LEAN.md         Current single-operator roadmap
+ROADMAP.md              Strategic / growth roadmap
 client/                 React + Vite UI
 server/                 Fastify + Prisma backend
 apps/agent/             Remote agent runtime
