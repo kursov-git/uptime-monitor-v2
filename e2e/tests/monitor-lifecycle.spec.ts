@@ -6,7 +6,7 @@ test.describe('Monitor Lifecycle', () => {
         await page.fill('input[type="text"]', 'admin');
         await page.fill('input[type="password"]', 'admin123');
         await page.getByRole('button', { name: 'Sign In' }).click();
-        await expect(page.getByRole('heading', { name: 'Uptime Admin' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible({ timeout: 10000 });
     });
 
     test('creates, pauses, resumes and deletes a monitor', async ({ page }) => {

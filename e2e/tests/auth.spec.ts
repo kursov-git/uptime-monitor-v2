@@ -10,7 +10,7 @@ test.describe('Authentication', () => {
         await page.fill('input[type="password"]', 'admin123');
         await page.getByRole('button', { name: 'Sign In' }).click();
 
-        await expect(page.getByRole('heading', { name: 'Uptime Admin' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible({ timeout: 10000 });
         await expect(page).toHaveURL('/');
     });
 
@@ -27,7 +27,7 @@ test.describe('Authentication', () => {
         await page.fill('input[type="password"]', 'admin123');
         await page.getByRole('button', { name: 'Sign In' }).click();
 
-        await expect(page.getByRole('heading', { name: 'Uptime Admin' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible({ timeout: 10000 });
 
         await page.getByRole('button', { name: 'Logout' }).click();
 

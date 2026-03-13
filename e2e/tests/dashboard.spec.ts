@@ -7,7 +7,7 @@ test.describe('Dashboard Navigation', () => {
         await page.fill('input[type="password"]', 'admin123');
         await page.getByRole('button', { name: 'Sign In' }).click();
 
-        await expect(page.getByRole('heading', { name: 'Uptime Admin' })).toBeVisible({ timeout: 10000 });
+        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible({ timeout: 10000 });
     });
 
     test('navigates to settings and back without page reload', async ({ page }) => {
@@ -18,7 +18,7 @@ test.describe('Dashboard Navigation', () => {
 
         await page.getByRole('button', { name: '← Back to Dashboard' }).click();
 
-        await expect(page.getByRole('heading', { name: 'Uptime Admin' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Ping Agent' })).toBeVisible();
         await expect(page).toHaveURL('/');
     });
 
