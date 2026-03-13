@@ -27,6 +27,12 @@ This is the local `harness` idea used here:
 - temporary plans are separated from durable truth
 - historical material is preserved without pretending it is current
 
+This repository also treats product thinking as part of the harness.
+That means:
+- product assumptions should be documented, not kept implicit
+- strategic backlog expansion should be informed by competitor research
+- the repository should preserve not only code decisions, but also good decision-making rules
+
 ## Core Rules
 
 ### 1. `AGENTS.md` is a router, not an encyclopedia
@@ -157,6 +163,7 @@ The minimum standard is:
 - if behavior changed, the durable doc must change
 - if operating procedure changed, the runbook/topology doc must change
 - if product priority changed, the roadmap doc must change
+- if a strategic feature is proposed, the relevant product doc should record why existing tools do not already solve the problem well enough
 
 ## What Belongs Where
 
@@ -197,6 +204,7 @@ Do not do these:
 - duplicate the same rules in `AGENTS.md`, `README.md`, and `docs/operations/runbook.md`
 - store an execution plan forever in the same place as durable architecture docs
 - keep stale file names after a structural move
+- expand the strategic roadmap only from internal enthusiasm without checking competitors or adjacent open-source tools first
 
 ## Conflict Resolution
 
@@ -232,3 +240,20 @@ The current structure is:
   quarantined older rollout material
 
 This is the documentation contract that future contributors should preserve unless there is a strong reason to evolve it.
+
+## Product Discovery Rule
+
+Strategic product work in this repository should start with market context, not just invention.
+
+Minimum rule before adding or promoting a strategic epic:
+1. inspect direct or adjacent competitors
+2. identify what is already commodity
+3. identify what this repository can differentiate on
+4. record whether the right move is:
+   - build
+   - postpone
+   - narrow the scope
+   - or avoid building because the market already solved it well enough
+
+This rule exists because the project is partly educational.
+It is meant to preserve good product-owner behavior for future contributors, not just good code hygiene.

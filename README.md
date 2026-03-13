@@ -12,6 +12,21 @@ For implementation and operator truth, read:
 - `docs/product/lean-roadmap.md` for current single-operator priorities
 - `docs/product/strategic-roadmap.md` for broader strategic product direction
 
+## Project Intent
+
+This project is intentionally also a learning vehicle.
+
+It exists to:
+- test what this AI-assisted engineering workflow can do end-to-end
+- capture good development and documentation practices inside the repository
+- capture good product-thinking practices, not only implementation details
+
+That means the repository is expected to preserve:
+- working code
+- working operational procedures
+- explicit documentation structure
+- explicit product-discovery rules
+
 ## What It Does
 
 - monitors HTTP/HTTPS endpoints

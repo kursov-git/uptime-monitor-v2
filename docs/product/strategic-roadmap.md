@@ -26,6 +26,25 @@ For implementation and operational truth, also read:
 For current-day single-operator prioritization, also read:
 - `docs/product/lean-roadmap.md`
 
+## Strategic Product Rule
+
+This roadmap is not a free-form wish list.
+
+Before a new strategic epic is added or promoted, do a lightweight competitor scan first.
+
+Minimum bar:
+- inspect direct or adjacent tools
+- identify whether the capability is already commodity
+- identify whether the repository has a plausible differentiator
+- record whether the right move is:
+  - build
+  - postpone
+  - narrow the scope
+  - or deliberately not build
+
+For this project, that rule is part of the educational value.
+The repository is meant to preserve good product-owner habits, not just implementation output.
+
 ## Product Direction
 
 The product is evolving from a basic internal uptime dashboard into a compact monitoring platform with:
@@ -967,11 +986,13 @@ When choosing what to build next, prefer features that:
 - make monitoring more trustworthy
 - avoid large architectural rewrites
 - keep the product compact
+- have a clear reason to exist after competitor review
 
 Avoid features that:
 - create large operational burden
 - require enterprise process before there is demand
 - turn the product into a second unrelated product
+- duplicate strong existing open-source tools without a clear differentiator
 
 ## Current Suggested Build Order
 

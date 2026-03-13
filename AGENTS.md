@@ -7,6 +7,12 @@ Read this first, then follow the linked documents.
 
 `uptime-monitor-v2` is a self-hosted uptime monitoring system with a split control plane and optional remote agents.
 
+This repository is also intentionally a learning project.
+It is used to:
+- test the practical limits of AI-assisted engineering work
+- preserve correct development and documentation patterns in-repo
+- preserve correct product-discovery and backlog-shaping patterns in-repo
+
 The repository contains:
 - control-plane API and UI
 - builtin monitor worker
@@ -24,6 +30,7 @@ Roadmap policy:
 - `docs/product/lean-roadmap.md` is the current single-operator and narrow-circle prioritization document
 - `docs/product/strategic-roadmap.md` preserves the broader strategic and growth-oriented product direction
 - do not delete or rewrite strategic ideas just because they are not in the current lean mode
+- do not promote a strategic epic without at least a basic competitor scan and an explicit reason the feature should exist in this product
 
 ## Current State Summary
 
