@@ -412,31 +412,33 @@ export default function PublicStatusPage() {
                                     Click any hour on the strip or the chart to inspect the exact failure window in 5-minute detail.
                                 </div>
                                 <div className="public-status-sparkline clickable">
-                                    <ResponsiveContainer width="100%" height={72}>
-                                        <AreaChart
-                                            data={monitor.history24h.map((bucket) => ({
-                                                timestamp: bucket.timestamp,
-                                                time: formatHourLabel(bucket.timestamp),
-                                                availability: bucket.uptimePercent,
-                                            }))}
-                                            margin={{ top: 6, right: 0, left: 0, bottom: 0 }}
-                                        >
-                                            <defs>
-                                                <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.4} />
-                                                    <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.04} />
-                                                </linearGradient>
-                                            </defs>
-                                            <Area
-                                                type="monotone"
-                                                dataKey="availability"
-                                                stroke={monitor.status === 'down' ? '#ef4444' : '#3b82f6'}
-                                                strokeWidth={2}
-                                                fill={`url(#monitorAvailability-${monitor.id})`}
-                                                connectNulls={false}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    <div className="public-status-sparkline-chart">
+                                        <ResponsiveContainer width="100%" height={72}>
+                                            <AreaChart
+                                                data={monitor.history24h.map((bucket) => ({
+                                                    timestamp: bucket.timestamp,
+                                                    time: formatHourLabel(bucket.timestamp),
+                                                    availability: bucket.uptimePercent,
+                                                }))}
+                                                margin={{ top: 6, right: 0, left: 0, bottom: 0 }}
+                                            >
+                                                <defs>
+                                                    <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.4} />
+                                                        <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.04} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="availability"
+                                                    stroke={monitor.status === 'down' ? '#ef4444' : '#3b82f6'}
+                                                    strokeWidth={2}
+                                                    fill={`url(#monitorAvailability-${monitor.id})`}
+                                                    connectNulls={false}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                     <div className="public-status-sparkline-overlay">
                                         {monitor.history24h.map((bucket) => {
                                             const isSelected = selectedDrilldown?.monitorId === monitor.id

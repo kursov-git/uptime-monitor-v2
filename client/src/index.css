@@ -494,11 +494,18 @@ body {
   cursor: pointer;
 }
 
+.public-status-sparkline-chart {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
 .public-status-sparkline-overlay {
   position: absolute;
   inset: 10px 12px 2px;
   display: grid;
   grid-template-columns: repeat(24, minmax(0, 1fr));
+  z-index: 2;
 }
 
 .public-status-sparkline-hitbox {
