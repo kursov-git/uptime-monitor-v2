@@ -21,8 +21,8 @@ This document is optimized for agents that need to understand:
 - how the codebase is laid out
 
 Roadmap policy:
-- `ROADMAP_LEAN.md` is the current single-operator and narrow-circle prioritization document
-- `ROADMAP.md` preserves the broader strategic and growth-oriented product direction
+- `docs/product/lean-roadmap.md` is the current single-operator and narrow-circle prioritization document
+- `docs/product/strategic-roadmap.md` preserves the broader strategic and growth-oriented product direction
 - do not delete or rewrite strategic ideas just because they are not in the current lean mode
 
 ## Current State Summary
@@ -31,6 +31,7 @@ As of 2026-03-13:
 - control plane is production-ready and deployed in split-runtime mode
 - remote agents are deployed and reporting version `1.0.0`
 - public status page is live at `/status` with selected monitors, 24h uptime summary, and a derived incident timeline
+- HTTPS monitors can optionally track certificate expiry and emit warning/recovery notifications without marking the monitor `DOWN`
 - agent UI supports register, rotate token, revoke, delete, and version visibility
 - split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database
@@ -42,21 +43,22 @@ Read documents in this order.
 
 1. `AGENTS.md`
 2. `README.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/PRODUCTION_TOPOLOGY.md`
-5. `docs/OPERATIONS_RUNBOOK.md`
-6. `docs/AGENT_DEPLOYMENT_KIT.md`
-7. `ROADMAP_LEAN.md`
-8. `ROADMAP.md`
-9. `CODE_REVIEW.md`
+3. `docs/index.md`
+4. `docs/architecture/harness-documentation-model.md`
+5. `docs/architecture/system-overview.md`
+6. `docs/operations/production-topology.md`
+7. `docs/operations/runbook.md`
+8. `docs/operations/agent-deployment-kit.md`
+9. `docs/product/lean-roadmap.md`
+10. `docs/product/strategic-roadmap.md`
+11. `CODE_REVIEW.md`
 
 Historical or template documents are not the primary source of truth:
-- `ROADMAP_NEW.md`
-- `docs/V2_TASK_TRACKER.md`
-- `docs/V2_ROLLOUT_PLAN.md`
-- `docs/V2_ROLLBACK_RUNBOOK.md`
-- `docs/V2_CANARY_SIGNOFF.md`
-- `docs/V2_ISSUES_SEED.md`
+- `docs/historical/v2-task-tracker.md`
+- `docs/historical/v2-rollout-plan.md`
+- `docs/historical/v2-rollback-runbook.md`
+- `docs/historical/v2-canary-signoff.md`
+- `docs/historical/v2-issues-seed.md`
 
 Use them only for historical context, not for current operational decisions.
 
@@ -66,19 +68,28 @@ Use them only for historical context, not for current operational decisions.
 .
 ├── AGENTS.md
 ├── README.md
-├── ROADMAP_LEAN.md
-├── ROADMAP.md
-├── ROADMAP_NEW.md
 ├── CODE_REVIEW.md
 ├── docker-compose.yml                  # legacy single-process compose
 ├── docker-compose.split.yml            # current recommended control-plane compose
 ├── deploy.sh                           # legacy deploy script, not the current preferred prod path
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── PRODUCTION_TOPOLOGY.md
-│   ├── OPERATIONS_RUNBOOK.md
-│   ├── AGENT_DEPLOYMENT_KIT.md
-│   └── V2_*.md                         # historical rollout/planning templates
+│   ├── index.md
+│   ├── architecture/
+│   │   ├── harness-documentation-model.md
+│   │   └── system-overview.md
+│   ├── operations/
+│   │   ├── production-topology.md
+│   │   ├── runbook.md
+│   │   ├── agent-deployment-kit.md
+│   │   └── changelog-operations.md
+│   ├── product/
+│   │   ├── lean-roadmap.md
+│   │   └── strategic-roadmap.md
+│   ├── historical/
+│   │   └── v2-*.md                     # historical rollout/planning templates
+│   └── plans/
+│       ├── active/
+│       └── completed/
 ├── apps/
 │   └── agent/                          # remote agent runtime
 ├── client/                             # React + Vite UI
@@ -129,10 +140,11 @@ Agent responsibilities:
 - buffer and batch result delivery to `/api/agent/results`
 - send heartbeat to `/api/agent/heartbeat`
 - report `agentVersion`
+- collect HTTPS certificate expiry metadata for monitors with SSL expiry monitoring enabled
 
 ## Production Topology
 
-For current production details, read `docs/PRODUCTION_TOPOLOGY.md`.
+For current production details, read `docs/operations/production-topology.md`.
 
 Important operational facts:
 - SSH is expected on port `2332`, not `22`
@@ -189,8 +201,10 @@ Review these carefully before touching them.
 - `server/src/routes/agents.ts`
 - `server/src/services/agentResults.ts`
 - `server/src/services/agentSse.ts`
+- `server/src/services/flapping.ts`
 - `server/src/lib/crypto.ts`
 - `docker-compose.split.yml`
+- `packages/checker/src/index.ts`
 - `deployment/agent/*`
 
 ## Current API Surface That Matters Most
@@ -278,7 +292,7 @@ These are real remaining gaps, not hypothetical ones.
 - production still runs on SQLite
 - no full metrics/observability stack yet
 - no Postgres deployment path yet
-- remote agent deployment is not standardized on one single method across all hosts
+- remote agent deployment now uses one canonical docker/systemd repository kit, though individual hosts can still differ in infrastructure provider and network shape
 - `deploy.sh` is still present and useful for history, but should be treated as legacy
 
 ## Documentation Maintenance Rules
@@ -296,9 +310,9 @@ When you change any of these, update docs in the same work unit.
 - roadmap status
 
 Minimum docs update set by change type:
-- API/runtime change: `AGENTS.md`, `README.md`, `docs/ARCHITECTURE.md`
-- ops/deploy change: `AGENTS.md`, `docs/PRODUCTION_TOPOLOGY.md`, `docs/OPERATIONS_RUNBOOK.md`
-- roadmap/status change: `ROADMAP.md`, possibly `CODE_REVIEW.md`
+- API/runtime change: `AGENTS.md`, `README.md`, `docs/architecture/system-overview.md`
+- ops/deploy change: `AGENTS.md`, `docs/operations/production-topology.md`, `docs/operations/runbook.md`
+- roadmap/status change: `docs/product/strategic-roadmap.md`, possibly `CODE_REVIEW.md`
 
 ## If You Are Unsure
 

@@ -5,11 +5,12 @@ Self-hosted uptime monitoring with a split control plane, optional remote agents
 This README is the human-facing entry point.
 For implementation and operator truth, read:
 - `AGENTS.md`
-- `docs/ARCHITECTURE.md`
-- `docs/PRODUCTION_TOPOLOGY.md`
-- `docs/OPERATIONS_RUNBOOK.md`
-- `ROADMAP_LEAN.md` for current single-operator priorities
-- `ROADMAP.md` for broader strategic product direction
+- `docs/index.md`
+- `docs/architecture/system-overview.md`
+- `docs/operations/production-topology.md`
+- `docs/operations/runbook.md`
+- `docs/product/lean-roadmap.md` for current single-operator priorities
+- `docs/product/strategic-roadmap.md` for broader strategic product direction
 
 ## What It Does
 
@@ -45,15 +46,17 @@ Not yet implemented:
 ## Repository Layout
 
 ```text
-ROADMAP_LEAN.md         Current single-operator roadmap
-ROADMAP.md              Strategic / growth roadmap
 client/                 React + Vite UI
 server/                 Fastify + Prisma backend
 apps/agent/             Remote agent runtime
 packages/checker/       Shared check engine
 packages/shared/        Shared types/constants
 deployment/agent/       Docker/systemd deployment kit for new agent hosts
-docs/                   Architecture, topology, runbook, rollout references
+docs/index.md           Documentation entry point
+docs/architecture/      Long-lived implementation and system design docs
+docs/operations/        Production topology, runbooks, rollout history
+docs/product/           Lean and strategic roadmaps
+docs/historical/        Historical rollout templates and trackers
 scripts/                Backup/restore, runtime diagnostics, agent install/update helpers
 ```
 
@@ -219,6 +222,27 @@ Current scope:
 - no multi-page status configuration yet
 - no dedicated incident object model in the public payload yet
 
+## SSL Expiry Monitoring
+
+Current behavior:
+- available as an option on existing HTTPS monitors
+- does not introduce a separate monitor type
+- records certificate expiry snapshots alongside ordinary check results
+- emits warning notifications when the remaining lifetime falls below the configured threshold
+- emits a recovery notification after renewal when the certificate leaves the warning threshold
+- does not mark an otherwise healthy monitor `DOWN` purely because the certificate is nearing expiration
+
+Current UI surfacing:
+- monitor form toggle and threshold field
+- monitor card summary
+- monitor history summary with expiry, issuer, and subject
+
+Current scope:
+- HTTPS targets only
+- threshold is configured in days
+- warning/recovery notifications share the existing notification stack
+- no deep TLS diagnostics such as chain grading, OCSP, cipher scanning, or protocol analysis
+
 ## Tests And Verification
 
 ### Local CI parity
@@ -250,7 +274,7 @@ COMPOSE_FILE=docker-compose.split.yml DB_SERVICE=server ./scripts/backup-db.sh
 
 ## Production Notes
 
-Read `docs/PRODUCTION_TOPOLOGY.md` before touching production.
+Read `docs/operations/production-topology.md` before touching production.
 
 Important current facts:
 - SSH is expected on port `2332`
@@ -262,14 +286,14 @@ Important current facts:
 ## Agent Deployment
 
 For agent hosts, read:
-- `docs/AGENT_DEPLOYMENT_KIT.md`
+- `docs/operations/agent-deployment-kit.md`
 
 That kit is now both the canonical greenfield path and the current production pattern.
 
 ## Operations
 
 For runbook-style instructions, use:
-- `docs/OPERATIONS_RUNBOOK.md`
+- `docs/operations/runbook.md`
 
 It covers:
 - health checks
