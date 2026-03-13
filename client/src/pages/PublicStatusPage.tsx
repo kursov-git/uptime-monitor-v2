@@ -409,12 +409,13 @@ export default function PublicStatusPage() {
                                     }}
                                 />
                                 <div className="help-text" style={{ marginTop: 8 }}>
-                                    Click any hour to inspect the exact failure window in 5-minute detail.
+                                    Click any hour on the strip or the chart to inspect the exact failure window in 5-minute detail.
                                 </div>
-                                <div className="public-status-sparkline">
+                                <div className="public-status-sparkline clickable">
                                     <ResponsiveContainer width="100%" height={72}>
                                         <AreaChart
                                             data={monitor.history24h.map((bucket) => ({
+                                                timestamp: bucket.timestamp,
                                                 time: formatHourLabel(bucket.timestamp),
                                                 availability: bucket.uptimePercent,
                                             }))}
@@ -436,6 +437,33 @@ export default function PublicStatusPage() {
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
+                                    <div className="public-status-sparkline-overlay">
+                                        {monitor.history24h.map((bucket) => {
+                                            const isSelected = selectedDrilldown?.monitorId === monitor.id
+                                                && selectedDrilldown.timestamp === bucket.timestamp;
+
+                                            return (
+                                                <button
+                                                    key={bucket.timestamp}
+                                                    type="button"
+                                                    className={`public-status-sparkline-hitbox ${isSelected ? 'selected' : ''}`}
+                                                    aria-label={`Chart drill down ${monitor.name} ${formatHourRange(bucket.timestamp)}`}
+                                                    title={`Chart drill-down · ${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)}`}
+                                                    onClick={() => {
+                                                        const isSameSelection = selectedDrilldown?.monitorId === monitor.id
+                                                            && selectedDrilldown.timestamp === bucket.timestamp;
+                                                        if (isSameSelection) {
+                                                            setSelectedDrilldown(null);
+                                                            setDrilldownError('');
+                                                            return;
+                                                        }
+
+                                                        fetchDrilldown(monitor.id, bucket.timestamp);
+                                                    }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                                 {selectedDrilldown?.monitorId === monitor.id && (
                                     <div className="public-drilldown-card">

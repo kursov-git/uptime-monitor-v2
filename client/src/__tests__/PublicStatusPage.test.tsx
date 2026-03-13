@@ -114,7 +114,7 @@ describe('PublicStatusPage', () => {
         expect(screen.getByText('95.8%')).toBeInTheDocument();
         expect(screen.getAllByText('Operational').length).toBeGreaterThan(0);
 
-        fireEvent.click(screen.getAllByRole('button', { name: /Drill down Homepage hour/i })[18]);
+        fireEvent.click(screen.getAllByRole('button', { name: /Chart drill down Homepage/i })[18]);
 
         await waitFor(() => {
             expect(screen.getByText('Selected hour')).toBeInTheDocument();
