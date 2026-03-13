@@ -151,8 +151,8 @@ Supported env vars:
 - `AGENT_ALLOWLIST`
   Comma-separated IPs/CIDRs allowed to reach `/api/agent/*`.
 - `RUNTIME_HEALTH_ALLOWLIST`
-  Comma-separated IPs/CIDRs allowed to reach `/health/runtime`.
-  If unset, external `/health/runtime` is denied by default.
+  Comma-separated IPs/CIDRs allowed to reach `/health` and `/health/runtime`.
+  If unset, external `/health` and `/health/runtime` are denied by default.
 
 Recommended operator flow:
 1. Identify stable operator source IPs or put the admin UI behind a Zero Trust/VPN layer.
@@ -160,6 +160,7 @@ Recommended operator flow:
 2. Set `ADMIN_ALLOWLIST` to those trusted ranges.
 3. Inventory current agent egress IPs, then set `AGENT_ALLOWLIST`.
 4. If remote runtime health must be queried externally, set `RUNTIME_HEALTH_ALLOWLIST` to a narrow ops range.
+   This now gates both `/health` and `/health/runtime` together.
 5. Recreate `client` after env changes:
 
 ```bash
@@ -182,9 +183,26 @@ RUNTIME_HEALTH_ALLOWLIST=203.0.113.10
 Notes:
 - leave the values empty only when the edge is protected elsewhere
 - `ADMIN_ALLOWLIST` affects the SPA and non-agent APIs together
+- `/health` and `/health/runtime` should both return `403` from the public internet unless the runtime-health allowlist is intentionally populated
 - these controls are intentionally opt-in so rollout does not accidentally lock out the current operator
 - if admin access moves behind Tailscale, `ADMIN_ALLOWLIST` can stay empty while the public edge blocks that hostname or path entirely
 - `AGENT_ALLOWLIST` is still the practical control for the current public-agent topology; private-network agent access is a later option, not a current requirement
+
+Verification:
+
+```bash
+curl -I https://ping-agent.ru/health
+curl -I https://ping-agent.ru/health/runtime
+docker compose -f docker-compose.split.yml exec -T server \
+  node -e "fetch('http://127.0.0.1:3000/health').then(r=>r.text()).then(console.log)"
+docker compose -f docker-compose.split.yml exec -T server \
+  node -e "fetch('http://127.0.0.1:3000/health/runtime').then(r=>r.text()).then(console.log)"
+```
+
+Expected result:
+- external `/health` => `403`
+- external `/health/runtime` => `403`
+- internal container-to-container checks => `200`
 
 ## Public Status Page
 

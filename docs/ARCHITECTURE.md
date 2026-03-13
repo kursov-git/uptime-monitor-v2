@@ -219,6 +219,7 @@ Behavior:
 
 ### User auth
 - JWT auth for browser/admin sessions
+- browser sessions are carried by `HttpOnly` auth cookies; bearer session tokens remain valid for non-browser tooling
 - API keys for read-only access
 - admin-only writes for sensitive endpoints
 - public status route is intentionally anonymous but must remain read-only and non-sensitive
@@ -234,8 +235,8 @@ Behavior:
 - monitor auth payloads are transmitted to agents in encrypted form when applicable
 
 ### JWT boundary
-- query-string JWT is reserved for SSE helper auth only
-- regular REST APIs must use headers
+- browser SSE uses the same session boundary as the rest of the web UI: auth cookie or bearer session token
+- API keys are valid for ordinary read-only REST APIs but are intentionally rejected for browser SSE endpoints
 - `/api/public/status` is intentionally sessionless and must not depend on browser auth
 
 ## Logging
@@ -253,6 +254,7 @@ Agent logging is still stdout/stderr oriented and systemd/docker captures it.
 
 ### `/health`
 Basic liveness endpoint.
+It exists for internal process checks and should be edge-restricted in internet-facing deployments.
 
 ### `/health/runtime`
 Returns:
@@ -262,6 +264,7 @@ Returns:
 
 In split runtime mode, the API process reports background roles as not running in that process. That is expected.
 External role health should be checked with compose or systemd status.
+Like `/health`, this endpoint is operationally useful but not intended to stay publicly reachable from the open internet.
 
 ## Deployment Modes
 

@@ -54,12 +54,12 @@ Goal:
 Keep in `Now`:
 - `T048` Add production edge restriction for admin UI and admin APIs
 - `T049` Restrict `/api/agent/*` to expected source networks or private paths where feasible
-- `T052` Re-evaluate public exposure of `/health` and `/health/runtime`
-- `T053` Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
-- `T054` Update architecture and runbook docs with the current public threat model and recommended edge controls
 
 Recently completed:
 - `T051` Remove legacy plaintext agent-token compatibility after migration verification
+- `T052` Restrict `/health` and `/health/runtime` behind the runtime-health allowlist at the edge
+- `T053` Add regression coverage for SSE auth boundaries, cookie-auth flow, and raw-key non-disclosure
+- `T054` Refresh architecture, topology, and runbook docs with the current public threat model and edge controls
 
 Why this stays:
 - the control plane is already public
@@ -127,6 +127,58 @@ Recently completed:
 
 Rule:
 - take these one at a time, only when there is a concrete monitoring need
+
+#### SSL Expiry Monitoring Backlog
+
+Goal:
+- warn about expiring TLS certificates without turning the product into a generic SSL scanner
+
+Why this fits lean mode:
+- common real-world operational need
+- easy to explain and immediately useful
+- complements existing HTTPS monitors without introducing a new heavy domain model
+
+What v1 should do:
+- allow an HTTPS monitor to opt into certificate expiry checks
+- record certificate expiry date and days remaining during checks
+- surface an `SSL warning` state in monitor UI while leaving the monitor logically `UP` if the HTTP check still passes
+- alert when remaining lifetime drops below a configured threshold
+- avoid notification spam with simple dedupe / re-notify behavior
+
+What v1 should not do:
+- full certificate-chain diagnostics
+- OCSP / CRL checks
+- cipher / protocol scanning
+- SAN / wildcard analysis UI
+- a brand-new monitor type if an HTTPS monitor can carry this cleanly
+
+Proposed operator UX:
+- monitor form:
+  - `Check SSL expiry` toggle
+  - `Warn when <= N days` threshold
+- monitor card / history:
+  - `SSL valid for 23 days`
+  - or `SSL expires in 5 days`
+  - clear warning badge when below threshold
+- notifications:
+  - dedicated `SSL_EXPIRING` message
+  - recovery when the certificate is renewed and exits the warning threshold
+
+Backlog:
+- `L001` Add monitor-level config for SSL expiry checks and warning threshold
+- `L002` Extend checker to read peer certificate metadata for HTTPS targets
+- `L003` Persist TLS snapshot fields needed for UI and alerting
+- `L004` Show SSL expiry state on monitor cards and monitor history
+- `L005` Add alerting for threshold entry with basic dedupe / re-notify behavior
+- `L006` Add recovery behavior when the certificate is renewed and exits threshold
+- `L007` Add tests for checker, persistence, UI rendering, and notification flow
+
+Acceptance criteria:
+- HTTPS monitors can display `days remaining`
+- expiring certificates do not incorrectly flip the monitor to `DOWN`
+- alerts fire when the threshold is crossed
+- recovery is visible after renewal
+- HTTP monitors without TLS continue to behave exactly as before
 
 ## Later
 

@@ -131,6 +131,38 @@ describe('authenticateSseJWT', () => {
         });
     });
 
+    it('rejects API keys for SSE routes', async () => {
+        const user = await prisma.user.create({
+            data: {
+                username: 'sse-api-user',
+                passwordHash: 'hash',
+                role: 'VIEWER',
+            },
+        });
+        await prisma.apiKey.create({
+            data: {
+                key: 'um_sse_test_key',
+                userId: user.id,
+            },
+        });
+
+        const send = vi.fn();
+        const status = vi.fn().mockReturnValue({ send });
+        const request = {
+            headers: { 'x-api-key': 'um_sse_test_key' },
+        } as unknown as FastifyRequest;
+        const reply = {
+            status,
+            send,
+        } as unknown as FastifyReply;
+
+        await authenticateSseJWT(request, reply);
+
+        expect(status).toHaveBeenCalledWith(401);
+        expect(send).toHaveBeenCalledWith({ error: 'Authentication required' });
+        expect((request as any).user).toBeUndefined();
+    });
+
     it('blocks admin-only routes for viewers and API keys', async () => {
         const reply = {
             status: vi.fn().mockReturnThis(),

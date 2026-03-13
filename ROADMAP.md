@@ -580,9 +580,12 @@ It is meant to be used as a lightweight delivery board.
   Preferred practical path for this deployment: use `AGENT_ALLOWLIST` for the current public-agent topology; consider Tailscale/WireGuard only if agents are later moved onto a private path.
 - [x] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
 - [x] T051 Remove legacy plaintext agent-token compatibility after migration verification
-- [ ] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
-- [ ] T053 Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
-- [ ] T054 Update architecture and runbook docs with the current public threat model and recommended edge controls
+- [x] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
+  `client` nginx now treats both paths as operationally restricted surfaces behind `RUNTIME_HEALTH_ALLOWLIST`, avoiding the previous misleading public SPA `200` on `/health`.
+- [x] T053 Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
+  Coverage now includes SSE rejection of API keys, raw-key disclosure only at generation time, and edge-config tests for health-route restriction.
+- [x] T054 Update architecture and runbook docs with the current public threat model and recommended edge controls
+  Architecture, topology, and runbook docs now treat `/health` and `/health/runtime` as restricted operational endpoints and document the current public-vs-restricted surface split.
 
 ## Recommended First Sprint
 
@@ -635,6 +638,23 @@ Scope:
 - warning thresholds
 - UI visibility
 - alert integration
+
+Lean v1 direction:
+- keep this inside existing HTTPS monitors instead of creating a separate certificate monitor type
+- treat expiry as a warning / alerting concern, not automatically as a `DOWN` state when HTTP still succeeds
+
+Suggested first slice:
+- monitor-level toggle for SSL expiry checks
+- threshold in days
+- snapshot of certificate expiry date and remaining days
+- UI badge / visibility
+- dedicated `SSL_EXPIRING` notification with dedupe and recovery
+
+Explicitly out of scope for the first slice:
+- deep chain analysis
+- OCSP / CRL
+- protocol and cipher scanning
+- SAN / wildcard reporting UI
 
 ### 2. TCP Checks
 

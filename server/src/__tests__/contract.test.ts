@@ -414,7 +414,6 @@ describe('API Contract', () => {
         const usersBody = z.array(userSchema.extend({
             apiKey: z.object({
                 id: uuid,
-                key: z.string(),
                 createdAt: isoDate,
                 revokedAt: isoDate.nullable(),
             }).nullable(),

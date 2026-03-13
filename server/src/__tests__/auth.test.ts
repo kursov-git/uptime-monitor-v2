@@ -190,6 +190,72 @@ describe('Auth API (Integration)', () => {
         expect(data.role).toBe('VIEWER');
     });
 
+    it('returns the raw API key only at generation time', async () => {
+        const passwordHash = await bcrypt.hash('secret123', 10);
+        const admin = await prisma.user.create({
+            data: {
+                username: 'api_key_admin',
+                passwordHash,
+                role: 'ADMIN',
+            },
+        });
+
+        const loginRes = await app.inject({
+            method: 'POST',
+            url: '/api/auth/login',
+            payload: {
+                username: 'api_key_admin',
+                password: 'secret123',
+            },
+        });
+        const cookie = getCookieHeader(loginRes.headers['set-cookie']);
+
+        const generateRes = await app.inject({
+            method: 'POST',
+            url: '/api/apikeys/generate',
+            headers: {
+                cookie,
+            },
+        });
+        expect(generateRes.statusCode).toBe(200);
+        const generatedKey = JSON.parse(generateRes.body);
+        expect(generatedKey.key).toMatch(/^um_/);
+
+        const meRes = await app.inject({
+            method: 'GET',
+            url: '/api/apikeys/me',
+            headers: {
+                cookie,
+            },
+        });
+        expect(meRes.statusCode).toBe(200);
+        expect(JSON.parse(meRes.body)).not.toHaveProperty('key');
+
+        const adminToken = app.jwt.sign({
+            id: admin.id,
+            username: admin.username,
+            role: admin.role,
+            sessionVersion: admin.sessionVersion,
+        });
+        const usersRes = await app.inject({
+            method: 'GET',
+            url: '/api/users',
+            headers: {
+                Authorization: `Bearer ${adminToken}`,
+            },
+        });
+        expect(usersRes.statusCode).toBe(200);
+
+        const users = JSON.parse(usersRes.body);
+        const currentAdmin = users.find((user: { username: string }) => user.username === 'api_key_admin');
+        expect(currentAdmin?.apiKey).toMatchObject({
+            id: expect.any(String),
+            createdAt: expect.any(String),
+            revokedAt: null,
+        });
+        expect(currentAdmin?.apiKey).not.toHaveProperty('key');
+    });
+
     it('rate-limits repeated login attempts for the same ip and username', async () => {
         for (let attempt = 0; attempt < 10; attempt += 1) {
             const response = await app.inject({

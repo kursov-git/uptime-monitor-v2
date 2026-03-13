@@ -27,6 +27,14 @@ export async function authenticateJWT(
     request: FastifyRequest,
     reply: FastifyReply
 ): Promise<void> {
+    return authenticateRequest(request, reply, true);
+}
+
+async function authenticateRequest(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    allowApiKey: boolean
+): Promise<void> {
     try {
         const authHeader = request.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -49,8 +57,8 @@ export async function authenticateJWT(
             return;
         }
 
-        const apiKey = request.headers['x-api-key'] as string;
-        if (apiKey) {
+        const apiKey = request.headers['x-api-key'] as string | undefined;
+        if (apiKey && allowApiKey) {
             const key = await authenticateApiKey(apiKey);
 
             if (!key || key.revokedAt) {
@@ -113,7 +121,7 @@ export async function authenticateSseJWT(
     request: FastifyRequest,
     reply: FastifyReply
 ): Promise<void> {
-    return authenticateJWT(request, reply);
+    return authenticateRequest(request, reply, false);
 }
 
 // Require specific role

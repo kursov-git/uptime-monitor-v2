@@ -37,15 +37,20 @@ Public responsibilities:
 - split background runtime
 - SQLite database storage in docker volume
 
+Operationally restricted surfaces:
+- `/health`
+- `/health/runtime`
+
 Edge hardening capabilities now available in the `client` nginx container:
 - `ADMIN_ALLOWLIST` for browser UI and non-agent `/api/*`
 - `AGENT_ALLOWLIST` for `/api/agent/*`
-- `RUNTIME_HEALTH_ALLOWLIST` for `/health/runtime`
+- `RUNTIME_HEALTH_ALLOWLIST` for `/health` and `/health/runtime`
 
 Current production setting:
 - allowlists are implemented in code but not enabled by default until operator source IP policy is finalized
 - preferred future admin hardening path is Tailscale for operator-only access, with `ADMIN_ALLOWLIST` kept as the low-friction fallback
 - `/api/agent/*` currently remains public-by-necessity for the two public VPS agents; `AGENT_ALLOWLIST` is the next practical tightening step
+- `/health` and `/health/runtime` are denied externally by default unless `RUNTIME_HEALTH_ALLOWLIST` is explicitly populated
 
 Current public domain:
 - `ping-agent.ru`
@@ -184,8 +189,8 @@ Before updating dockerized agents, create tar backups of:
 ### Control plane
 - `docker compose -f docker-compose.split.yml ps`
 - `./scripts/runtime-status.sh`
-- `/health`
-- `/health/runtime`
+- internal `/health`
+- internal `/health/runtime`
 - recent `server` logs for `/api/agent/*`
 - recent `server` logs for `SECURITY_LOGIN_*` markers when investigating login abuse
 
