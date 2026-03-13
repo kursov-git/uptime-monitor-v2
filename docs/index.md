@@ -39,12 +39,15 @@ Current source-of-truth documents:
 - `docs/operations/runbook.md`
 - `docs/operations/agent-deployment-kit.md`
 - `docs/operations/changelog-operations.md`
+- `docs/operations/project-pause-snapshot.md`
+- `docs/operations/returning-to-project.md`
 
 Use this section for:
 - current host roles
 - rollout and rollback procedures
 - backup and restore
 - TLS, edge, and runtime operations
+- returning after a pause
 - operational history with real production impact
 
 ### `product/`
