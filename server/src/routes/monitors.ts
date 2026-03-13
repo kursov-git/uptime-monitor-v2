@@ -183,6 +183,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             authUrl,
             authPayload,
             authTokenRegex,
+            sslExpiryEnabled,
+            sslExpiryThresholdDays,
         } = request.body;
 
         const monitor = await prisma.monitor.create({
@@ -202,6 +204,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 authUrl: authUrl || null,
                 authPayload: authPayload ? encrypt(authPayload) : null,
                 authTokenRegex: authTokenRegex || null,
+                sslExpiryEnabled: sslExpiryEnabled || false,
+                sslExpiryThresholdDays: sslExpiryThresholdDays || 14,
             },
         });
 
@@ -243,6 +247,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 authUrl: body.authUrl ?? existing.authUrl ?? undefined,
                 authPayload: body.authPayload ?? (existing.authPayload ? decrypt(existing.authPayload) : undefined),
                 authTokenRegex: body.authTokenRegex ?? existing.authTokenRegex ?? undefined,
+                sslExpiryEnabled: body.sslExpiryEnabled ?? existing.sslExpiryEnabled,
+                sslExpiryThresholdDays: body.sslExpiryThresholdDays ?? existing.sslExpiryThresholdDays,
                 agentId: body.agentId ?? existing.agentId,
             }, {
                 allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
@@ -269,6 +275,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                     ...(body.authUrl !== undefined && { authUrl: body.authUrl }),
                     ...(body.authPayload !== undefined && { authPayload: body.authPayload ? encrypt(body.authPayload) : body.authPayload }),
                     ...(body.authTokenRegex !== undefined && { authTokenRegex: body.authTokenRegex }),
+                    ...(body.sslExpiryEnabled !== undefined && { sslExpiryEnabled: body.sslExpiryEnabled }),
+                    ...(body.sslExpiryThresholdDays !== undefined && { sslExpiryThresholdDays: body.sslExpiryThresholdDays }),
                 },
             });
 

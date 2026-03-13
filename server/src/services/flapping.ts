@@ -5,6 +5,8 @@ import { decrypt } from '../lib/crypto';
 import {
     buildMonitorDownMessage,
     buildMonitorRecoveryMessage,
+    buildMonitorSslExpiringMessage,
+    buildMonitorSslRecoveryMessage,
     htmlToNotifierText,
 } from './notificationMessages';
 
@@ -14,6 +16,8 @@ interface MonitorState {
     notified: boolean;
     lastNotifiedAt: number | null;
     lastError: string | null;
+    sslWarningActive: boolean;
+    sslLastNotifiedAt: number | null;
 }
 
 interface CachedSettings {
@@ -22,6 +26,7 @@ interface CachedSettings {
 }
 
 const SETTINGS_CACHE_TTL_MS = 60_000; // 1 minute
+const SSL_RENOTIFY_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export class FlappingService {
     private prisma: PrismaClient;
@@ -44,6 +49,8 @@ export class FlappingService {
                 notified: false,
                 lastNotifiedAt: null,
                 lastError: null,
+                sslWarningActive: false,
+                sslLastNotifiedAt: null,
             });
         }
         return FlappingService.states.get(monitorId)!;
@@ -61,11 +68,18 @@ export class FlappingService {
             executorLabel?: string;
             statusCode?: number | null;
             responseTimeMs?: number | null;
+            ssl?: {
+                expiresAt: string | null;
+                daysRemaining: number | null;
+                issuer: string | null;
+                subject: string | null;
+            } | null;
         } = {}
     ): Promise<void> {
         const state = this.getState(monitor.id);
 
         if (isUp) {
+            await this.handleSslState(monitor, state, context.ssl);
             // Recovery — send recovery notification if previously notified
             if (state.notified) {
                 const recoverySettings = await this.getSettings(monitor.id);
@@ -126,6 +140,74 @@ export class FlappingService {
                 );
             }
         }
+    }
+
+    private async handleSslState(
+        monitor: Monitor,
+        state: MonitorState,
+        ssl: {
+            expiresAt: string | null;
+            daysRemaining: number | null;
+            issuer: string | null;
+            subject: string | null;
+        } | null | undefined
+    ): Promise<void> {
+        if (!monitor.sslExpiryEnabled) {
+            state.sslWarningActive = false;
+            state.sslLastNotifiedAt = null;
+            return;
+        }
+
+        if (!ssl || ssl.daysRemaining === null || ssl.daysRemaining === undefined) {
+            return;
+        }
+
+        const warningActive = ssl.daysRemaining <= monitor.sslExpiryThresholdDays;
+        const settings = warningActive || state.sslWarningActive
+            ? await this.getSettings(monitor.id)
+            : null;
+
+        if (warningActive) {
+            const shouldNotify = !state.sslWarningActive
+                || !state.sslLastNotifiedAt
+                || (Date.now() - state.sslLastNotifiedAt) >= SSL_RENOTIFY_INTERVAL_MS;
+
+            state.sslWarningActive = true;
+            if (shouldNotify && settings) {
+                state.sslLastNotifiedAt = Date.now();
+                await this.sendNotification(
+                    monitor,
+                    buildMonitorSslExpiringMessage(monitor, {
+                        appBaseUrl: settings.appBaseUrl,
+                        thresholdDays: monitor.sslExpiryThresholdDays,
+                        expiresAt: ssl.expiresAt,
+                        daysRemaining: ssl.daysRemaining,
+                        issuer: ssl.issuer,
+                        subject: ssl.subject,
+                    }),
+                    settings
+                );
+            }
+            return;
+        }
+
+        if (state.sslWarningActive && settings) {
+            await this.sendNotification(
+                monitor,
+                buildMonitorSslRecoveryMessage(monitor, {
+                    appBaseUrl: settings.appBaseUrl,
+                    thresholdDays: monitor.sslExpiryThresholdDays,
+                    expiresAt: ssl.expiresAt,
+                    daysRemaining: ssl.daysRemaining,
+                    issuer: ssl.issuer,
+                    subject: ssl.subject,
+                }),
+                settings
+            );
+        }
+
+        state.sslWarningActive = false;
+        state.sslLastNotifiedAt = null;
     }
 
     private async getSettings(monitorId: string) {

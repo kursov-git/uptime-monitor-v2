@@ -36,7 +36,7 @@ describe('FlappingService', () => {
         dummyMonitor = await prisma.monitor.create({
             data: {
                 name: 'Flapping Test Monitor',
-                url: 'http://flap.com',
+                url: 'https://flap.com',
                 method: 'GET',
             }
         });
@@ -117,5 +117,51 @@ describe('FlappingService', () => {
 
         const history = await prisma.notificationHistory.findMany({ where: { monitorId: dummyMonitor.id } });
         expect(history.length).toBe(0); // 0 because it never reached fail Count of 3
+    });
+
+    it('should send SSL expiry warning and recovery notifications without marking the monitor down', async () => {
+        await prisma.monitor.update({
+            where: { id: dummyMonitor.id },
+            data: {
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: 14,
+            },
+        });
+        dummyMonitor = await prisma.monitor.findUniqueOrThrow({ where: { id: dummyMonitor.id } });
+
+        await service.handleCheckResult(dummyMonitor, true, null, {
+            ssl: {
+                expiresAt: '2026-03-20T00:00:00.000Z',
+                daysRemaining: 7,
+                issuer: 'Let\'s Encrypt E7',
+                subject: 'flap.com',
+            },
+        });
+
+        await service.handleCheckResult(dummyMonitor, true, null, {
+            ssl: {
+                expiresAt: '2026-03-20T00:00:00.000Z',
+                daysRemaining: 6,
+                issuer: 'Let\'s Encrypt E7',
+                subject: 'flap.com',
+            },
+        });
+
+        let history = await prisma.notificationHistory.findMany({ where: { monitorId: dummyMonitor.id } });
+        expect(history).toHaveLength(1);
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('SSL certificate is expiring soon');
+
+        await service.handleCheckResult(dummyMonitor, true, null, {
+            ssl: {
+                expiresAt: '2026-06-20T00:00:00.000Z',
+                daysRemaining: 90,
+                issuer: 'Let\'s Encrypt E7',
+                subject: 'flap.com',
+            },
+        });
+
+        history = await prisma.notificationHistory.findMany({ where: { monitorId: dummyMonitor.id } });
+        expect(history).toHaveLength(2);
+        expect(mockedAxios.post.mock.calls[1]?.[1]?.text).toContain('SSL certificate warning cleared');
     });
 });

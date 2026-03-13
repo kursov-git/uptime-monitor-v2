@@ -26,6 +26,8 @@ model Monitor {
   authUrl        String?
   authPayload    String? // JSON string or basic auth encoded
   authTokenRegex String?
+  sslExpiryEnabled       Boolean @default(false)
+  sslExpiryThresholdDays Int     @default(14)
 
   isActive  Boolean  @default(true)
   isPublic  Boolean  @default(false)
@@ -52,6 +54,10 @@ model CheckResult {
   responseTimeMs       Int
   statusCode           Int?
   error                String?
+  sslExpiresAt         DateTime?
+  sslDaysRemaining     Int?
+  sslIssuer            String?
+  sslSubject           String?
 
   @@index([monitorId, timestamp(sort: Desc)])
   @@index([agentId, timestamp(sort: Desc)])

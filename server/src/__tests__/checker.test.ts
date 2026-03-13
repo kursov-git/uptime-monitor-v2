@@ -64,6 +64,48 @@ describe('checker', () => {
         expect(result.error).toBeNull();
     });
 
+    it('extracts SSL expiry metadata for HTTPS targets when enabled', async () => {
+        mockAxiosInstance.mockResolvedValue({
+            status: 200,
+            data: { ok: true },
+            headers: {},
+            request: {
+                res: {
+                    socket: {
+                        getPeerCertificate: () => ({
+                            valid_to: 'Jun 10 12:00:00 2026 GMT',
+                            issuer: { CN: 'Let\'s Encrypt E7' },
+                            subject: { CN: 'ping-agent.ru' },
+                        }),
+                    },
+                },
+            },
+        });
+
+        const result = await performCheck({
+            url: 'https://example.com/api',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+            sslExpiryEnabled: true,
+            sslExpiryThresholdDays: 14,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(result.ssl).toMatchObject({
+            expiresAt: '2026-06-10T12:00:00.000Z',
+            issuer: 'Let\'s Encrypt E7',
+            subject: 'ping-agent.ru',
+        });
+        expect(typeof result.ssl?.daysRemaining).toBe('number');
+    });
+
     it('records status mismatch as failure', async () => {
         mockAxiosInstance.mockResolvedValue({
             status: 500,

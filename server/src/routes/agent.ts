@@ -21,7 +21,14 @@ const resultItemSchema = z.object({
     responseTimeMs: z.number().int().nonnegative(),
     statusCode: z.number().int().min(100).max(599).nullable().optional(),
     error: z.string().max(4000).nullable().optional(),
-    meta: z.unknown().optional(),
+    meta: z.object({
+        ssl: z.object({
+            expiresAt: z.string().datetime().nullable().optional(),
+            daysRemaining: z.number().int().nullable().optional(),
+            issuer: z.string().max(512).nullable().optional(),
+            subject: z.string().max(512).nullable().optional(),
+        }).optional(),
+    }).passthrough().optional(),
 });
 
 const resultsSchema = z.object({
@@ -164,6 +171,8 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 authUrl: true,
                 authPayload: true,
                 authTokenRegex: true,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: true,
                 updatedAt: true,
             },
             orderBy: { createdAt: 'asc' },
@@ -187,6 +196,8 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 authUrl: job.authUrl,
                 authPayloadEncrypted: job.authPayload,
                 authTokenRegex: job.authTokenRegex,
+                sslExpiryEnabled: job.sslExpiryEnabled,
+                sslExpiryThresholdDays: job.sslExpiryThresholdDays,
                 authPayloadIv: null,
                 authPayloadTag: null,
                 keyVersion: agent.keyVersion,
@@ -235,6 +246,8 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 authUrl: true,
                 authPayload: true,
                 authTokenRegex: true,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: true,
                 isActive: true,
                 isPublic: true,
                 agentId: true,
@@ -266,6 +279,10 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 responseTimeMs: item.responseTimeMs,
                 statusCode: item.statusCode ?? null,
                 error: item.error ?? null,
+                sslExpiresAt: item.meta?.ssl?.expiresAt ? new Date(item.meta.ssl.expiresAt) : null,
+                sslDaysRemaining: item.meta?.ssl?.daysRemaining ?? null,
+                sslIssuer: item.meta?.ssl?.issuer ?? null,
+                sslSubject: item.meta?.ssl?.subject ?? null,
             }));
 
         const persisted = await persistAgentResults(prisma, agent.id, acceptedResults);
@@ -295,6 +312,14 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                         executorLabel: agent.name,
                         statusCode: result.statusCode,
                         responseTimeMs: result.responseTimeMs,
+                        ssl: result.sslDaysRemaining !== undefined || result.sslExpiresAt || result.sslIssuer || result.sslSubject
+                            ? {
+                                expiresAt: result.sslExpiresAt ? result.sslExpiresAt.toISOString() : null,
+                                daysRemaining: result.sslDaysRemaining ?? null,
+                                issuer: result.sslIssuer ?? null,
+                                subject: result.sslSubject ?? null,
+                            }
+                            : null,
                     }
                 );
             }

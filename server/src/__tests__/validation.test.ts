@@ -58,8 +58,37 @@ describe('validateMonitorInput', () => {
             url: 'https://example.com',
             intervalSeconds: 5,
             expectedStatus: 200,
+            sslExpiryEnabled: true,
+            sslExpiryThresholdDays: 14,
         });
         expect(errors).toHaveLength(0);
+    });
+
+    it('should require HTTPS when SSL expiry monitoring is enabled', () => {
+        const errors = validateMonitorInput({
+            name: 'Plain HTTP Monitor',
+            url: 'http://example.com',
+            sslExpiryEnabled: true,
+        });
+
+        expect(errors).toContainEqual({
+            field: 'sslExpiryEnabled',
+            message: 'SSL expiry monitoring requires an HTTPS URL',
+        });
+    });
+
+    it('should reject out-of-range SSL expiry thresholds', () => {
+        const errors = validateMonitorInput({
+            name: 'SSL Monitor',
+            url: 'https://example.com',
+            sslExpiryEnabled: true,
+            sslExpiryThresholdDays: 0,
+        });
+
+        expect(errors).toContainEqual({
+            field: 'sslExpiryThresholdDays',
+            message: 'SSL expiry threshold must be an integer between 1 and 365 days',
+        });
     });
 
     it('should reject loopback monitor targets by default', () => {

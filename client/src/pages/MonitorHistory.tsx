@@ -108,6 +108,26 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
+    const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
+    const sslSummary = monitor.sslExpiryEnabled
+        ? monitor.lastCheck?.sslDaysRemaining !== null && monitor.lastCheck?.sslDaysRemaining !== undefined
+            ? {
+                label: monitor.lastCheck.sslDaysRemaining <= 0
+                    ? 'Expired'
+                    : `${monitor.lastCheck.sslDaysRemaining} day${monitor.lastCheck.sslDaysRemaining === 1 ? '' : 's'} left`,
+                expiresAt: monitor.lastCheck.sslExpiresAt,
+                issuer: monitor.lastCheck.sslIssuer,
+                subject: monitor.lastCheck.sslSubject,
+                warning: monitor.lastCheck.sslDaysRemaining <= sslThresholdDays,
+            }
+            : {
+                label: 'Pending first HTTPS check',
+                expiresAt: null,
+                issuer: null,
+                subject: null,
+                warning: false,
+            }
+        : null;
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
     const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -160,11 +180,29 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     <div className="history-summary-label">Interval</div>
                     <div className="history-summary-value">{monitor.intervalSeconds}s</div>
                 </div>
+                {sslSummary && (
+                    <div className="history-summary-card">
+                        <div className="history-summary-label">SSL Expiry</div>
+                        <div className={`history-summary-value ${sslSummary.warning ? 'history-summary-warning' : ''}`}>
+                            {sslSummary.label}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Response Time Chart */}
             <div className="card history-chart-card">
                 <h3>Response Time</h3>
+                {sslSummary && (
+                    <div className={`monitor-ssl-summary ${sslSummary.warning ? 'warning' : 'ok'}`} style={{ marginBottom: 16 }}>
+                        {sslSummary.expiresAt && (
+                            <span>Expires: <strong>{new Date(sslSummary.expiresAt).toLocaleString()}</strong></span>
+                        )}
+                        {sslSummary.expiresAt && sslSummary.issuer && <span> · </span>}
+                        {sslSummary.issuer && <span>Issuer: <strong>{sslSummary.issuer}</strong></span>}
+                        {sslSummary.subject && <span> · Subject: <strong>{sslSummary.subject}</strong></span>}
+                    </div>
+                )}
                 {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={280}>
                         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

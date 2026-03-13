@@ -45,6 +45,7 @@ describe('CheckWorker', () => {
             responseTimeMs: 42,
             statusCode: 200,
             error: null,
+            ssl: null,
         });
 
         await (worker as any).performCheck(monitor);
@@ -71,6 +72,7 @@ describe('CheckWorker', () => {
             responseTimeMs: 100,
             statusCode: 500,
             error: 'Expected status 200, got 500',
+            ssl: null,
         });
 
         await (worker as any).performCheck(monitor);
@@ -105,6 +107,7 @@ describe('CheckWorker', () => {
             responseTimeMs: 33,
             statusCode: 200,
             error: null,
+            ssl: null,
         });
 
         await (worker as any).performCheck(monitor);
@@ -117,5 +120,39 @@ describe('CheckWorker', () => {
                 password: 'worker_pass',
             }),
         });
+    });
+
+    it('should persist SSL snapshot data from successful checks', async () => {
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'Worker SSL Test',
+                url: 'https://example.com/ssl',
+                method: 'GET',
+                expectedStatus: 200,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: 14,
+            }
+        });
+
+        vi.mocked(performCheck).mockResolvedValue({
+            isUp: true,
+            responseTimeMs: 55,
+            statusCode: 200,
+            error: null,
+            ssl: {
+                expiresAt: '2026-06-10T12:00:00.000Z',
+                daysRemaining: 89,
+                issuer: 'Let\'s Encrypt E7',
+                subject: 'example.com',
+            },
+        });
+
+        await (worker as any).performCheck(monitor);
+
+        const result = await prisma.checkResult.findFirstOrThrow({ where: { monitorId: monitor.id } });
+        expect(result.sslExpiresAt?.toISOString()).toBe('2026-06-10T12:00:00.000Z');
+        expect(result.sslDaysRemaining).toBe(89);
+        expect(result.sslIssuer).toBe('Let\'s Encrypt E7');
+        expect(result.sslSubject).toBe('example.com');
     });
 });

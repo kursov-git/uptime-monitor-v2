@@ -21,6 +21,8 @@ export interface CreateMonitorBody {
     authUrl?: string;
     authPayload?: string;
     authTokenRegex?: string;
+    sslExpiryEnabled?: boolean;
+    sslExpiryThresholdDays?: number;
 }
 
 export function isValidUrl(url: string): boolean {
@@ -89,6 +91,23 @@ export function validateMonitorInputWithOptions(
     if (body.expectedStatus !== undefined) {
         if (body.expectedStatus < 100 || body.expectedStatus > 599) {
             errors.push({ field: 'expectedStatus', message: 'Expected status must be between 100 and 599' });
+        }
+    }
+
+    if (body.sslExpiryThresholdDays !== undefined) {
+        if (!Number.isInteger(body.sslExpiryThresholdDays) || body.sslExpiryThresholdDays < 1 || body.sslExpiryThresholdDays > 365) {
+            errors.push({ field: 'sslExpiryThresholdDays', message: 'SSL expiry threshold must be an integer between 1 and 365 days' });
+        }
+    }
+
+    if (body.sslExpiryEnabled) {
+        try {
+            const parsed = new URL(body.url);
+            if (parsed.protocol !== 'https:') {
+                errors.push({ field: 'sslExpiryEnabled', message: 'SSL expiry monitoring requires an HTTPS URL' });
+            }
+        } catch {
+            // URL validity is handled above.
         }
     }
 

@@ -31,6 +31,8 @@ const monitorSchema = z.object({
     authUrl: z.string().nullable(),
     authPayload: z.string().nullable(),
     authTokenRegex: z.string().nullable(),
+    sslExpiryEnabled: z.boolean(),
+    sslExpiryThresholdDays: z.number().int(),
     isActive: z.boolean(),
     isPublic: z.boolean(),
     createdAt: isoDate,
@@ -43,6 +45,10 @@ const monitorSchema = z.object({
         responseTimeMs: z.number(),
         statusCode: z.number().nullable(),
         error: z.string().nullable(),
+        sslExpiresAt: isoDate.nullable().optional(),
+        sslDaysRemaining: z.number().nullable().optional(),
+        sslIssuer: z.string().nullable().optional(),
+        sslSubject: z.string().nullable().optional(),
     }).nullable(),
     flappingState: z.any().nullable().optional(),
 });
@@ -246,6 +252,8 @@ describe('API Contract', () => {
                 intervalSeconds: 60,
                 timeoutSeconds: 30,
                 expectedStatus: 200,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: 14,
             },
         });
 
@@ -256,6 +264,10 @@ describe('API Contract', () => {
                 responseTimeMs: 37,
                 statusCode: 200,
                 error: null,
+                sslExpiresAt: new Date('2026-06-10T12:00:00.000Z'),
+                sslDaysRemaining: 89,
+                sslIssuer: 'Let\'s Encrypt E7',
+                sslSubject: 'example.com',
             },
         });
 
@@ -282,6 +294,10 @@ describe('API Contract', () => {
                 responseTimeMs: z.number(),
                 statusCode: z.number().nullable(),
                 error: z.string().nullable(),
+                sslExpiresAt: isoDate.nullable().optional(),
+                sslDaysRemaining: z.number().nullable().optional(),
+                sslIssuer: z.string().nullable().optional(),
+                sslSubject: z.string().nullable().optional(),
             })),
             total: z.number(),
             limit: z.number(),

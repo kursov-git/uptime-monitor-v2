@@ -136,6 +136,8 @@ export class CheckWorker {
             authUrl: monitor.authUrl,
             authPayload,
             authTokenRegex: monitor.authTokenRegex,
+            sslExpiryEnabled: monitor.sslExpiryEnabled,
+            sslExpiryThresholdDays: monitor.sslExpiryThresholdDays,
             allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
         });
 
@@ -148,6 +150,10 @@ export class CheckWorker {
                     responseTimeMs: result.responseTimeMs,
                     statusCode: result.statusCode,
                     error: result.error,
+                    sslExpiresAt: result.ssl?.expiresAt ? new Date(result.ssl.expiresAt) : null,
+                    sslDaysRemaining: result.ssl?.daysRemaining ?? null,
+                    sslIssuer: result.ssl?.issuer ?? null,
+                    sslSubject: result.ssl?.subject ?? null,
                 },
             });
 
@@ -165,6 +171,7 @@ export class CheckWorker {
                 executorLabel: 'builtin worker',
                 statusCode: result.statusCode,
                 responseTimeMs: result.responseTimeMs,
+                ssl: result.ssl,
             });
 
             // Broadcast the latest state to any connected clients

@@ -18,8 +18,17 @@ type AgentJob = {
     authUrl?: string | null;
     authPayloadEncrypted?: string | null;
     authTokenRegex?: string | null;
+    sslExpiryEnabled?: boolean;
+    sslExpiryThresholdDays?: number;
     keyVersion?: number;
     version?: number;
+};
+
+type BufferedSslMeta = {
+    expiresAt?: string | null;
+    daysRemaining?: number | null;
+    issuer?: string | null;
+    subject?: string | null;
 };
 
 type BufferedResult = {
@@ -30,6 +39,9 @@ type BufferedResult = {
     responseTimeMs: number;
     statusCode?: number | null;
     error?: string | null;
+    meta?: {
+        ssl?: BufferedSslMeta;
+    };
 };
 
 const MAIN_SERVER_URL = agentEnv.mainServerUrl;
@@ -154,6 +166,8 @@ class AgentRuntime {
                 authUrl: job.authUrl || null,
                 authPayload,
                 authTokenRegex: job.authTokenRegex || null,
+                sslExpiryEnabled: job.sslExpiryEnabled || false,
+                sslExpiryThresholdDays: job.sslExpiryThresholdDays || 14,
                 allowPrivateTargets: ALLOW_PRIVATE_MONITOR_TARGETS,
             });
 
@@ -165,6 +179,14 @@ class AgentRuntime {
                 responseTimeMs: result.responseTimeMs,
                 statusCode: result.statusCode,
                 error: result.error,
+                meta: result.ssl ? {
+                    ssl: {
+                        expiresAt: result.ssl.expiresAt,
+                        daysRemaining: result.ssl.daysRemaining,
+                        issuer: result.ssl.issuer,
+                        subject: result.ssl.subject,
+                    },
+                } : undefined,
             });
 
             await this.flushResults();

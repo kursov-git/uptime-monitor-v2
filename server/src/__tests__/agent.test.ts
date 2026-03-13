@@ -102,6 +102,8 @@ describe('Agent API (Integration)', () => {
                 agentId: agentA.id,
                 intervalSeconds: 10,
                 timeoutSeconds: 5,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: 21,
             },
         });
 
@@ -131,6 +133,8 @@ describe('Agent API (Integration)', () => {
         expect(body.heartbeatIntervalSec).toBe(15);
         expect(body.jobs).toHaveLength(1);
         expect(body.jobs[0].monitorId).toBe(monitorA.id);
+        expect(body.jobs[0].sslExpiryEnabled).toBe(true);
+        expect(body.jobs[0].sslExpiryThresholdDays).toBe(21);
     });
 
     it('stores results with idempotency and monitor ownership checks', async () => {
@@ -170,6 +174,14 @@ describe('Agent API (Integration)', () => {
                         isUp: true,
                         responseTimeMs: 42,
                         statusCode: 200,
+                        meta: {
+                            ssl: {
+                                expiresAt: '2026-06-10T12:00:00.000Z',
+                                daysRemaining: 89,
+                                issuer: 'Let\'s Encrypt E7',
+                                subject: 'example.com',
+                            },
+                        },
                     },
                     {
                         idempotencyKey: 'idem-2-abcdef',
@@ -255,6 +267,11 @@ describe('Agent API (Integration)', () => {
         expect(rows).toHaveLength(3);
         expect(rows.every((row) => row.agentId === agent.id)).toBe(true);
         expect(rows.every((row) => row.monitorId === ownMonitor.id)).toBe(true);
+        const sslRow = rows.find((row) => row.resultIdempotencyKey === 'idem-1-abcdef');
+        expect(sslRow?.sslExpiresAt?.toISOString()).toBe('2026-06-10T12:00:00.000Z');
+        expect(sslRow?.sslDaysRemaining).toBe(89);
+        expect(sslRow?.sslIssuer).toBe('Let\'s Encrypt E7');
+        expect(sslRow?.sslSubject).toBe('example.com');
     });
 
     it('heartbeat updates status, lastSeen, and connection geo metadata', async () => {

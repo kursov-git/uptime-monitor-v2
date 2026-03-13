@@ -8,6 +8,10 @@ export interface AgentResultInput {
     responseTimeMs: number;
     statusCode: number | null;
     error: string | null;
+    sslExpiresAt?: Date | null;
+    sslDaysRemaining?: number | null;
+    sslIssuer?: string | null;
+    sslSubject?: string | null;
 }
 
 export interface AgentResultFailure {
@@ -130,6 +134,10 @@ export async function persistAgentResults(
             responseTimeMs: item.responseTimeMs,
             statusCode: item.statusCode,
             error: item.error,
+            sslExpiresAt: item.sslExpiresAt ?? null,
+            sslDaysRemaining: item.sslDaysRemaining ?? null,
+            sslIssuer: item.sslIssuer ?? null,
+            sslSubject: item.sslSubject ?? null,
         }));
 
     const insertOutcome = await insertEntries(prisma, pendingEntries);

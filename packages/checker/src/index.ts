@@ -30,7 +30,16 @@ export interface PerformCheckInput {
     authUrl: string | null;
     authPayload: string | null;
     authTokenRegex: string | null;
+    sslExpiryEnabled?: boolean;
+    sslExpiryThresholdDays?: number;
     allowPrivateTargets?: boolean;
+}
+
+export interface SslCheckSnapshot {
+    expiresAt: string | null;
+    daysRemaining: number | null;
+    issuer: string | null;
+    subject: string | null;
 }
 
 export interface PerformCheckResult {
@@ -38,6 +47,63 @@ export interface PerformCheckResult {
     responseTimeMs: number;
     statusCode: number | null;
     error: string | null;
+    ssl: SslCheckSnapshot | null;
+}
+
+type PeerCertificateLike = {
+    valid_to?: string;
+    issuer?: Record<string, string>;
+    subject?: Record<string, string>;
+};
+
+function formatCertificateParty(input: Record<string, string> | undefined): string | null {
+    if (!input) {
+        return null;
+    }
+
+    if (input.CN) {
+        return input.CN;
+    }
+
+    const pairs = Object.entries(input).filter(([, value]) => Boolean(value));
+    if (pairs.length === 0) {
+        return null;
+    }
+
+    return pairs.map(([key, value]) => `${key}=${value}`).join(', ');
+}
+
+function extractPeerCertificate(response: any): PeerCertificateLike | null {
+    const socket = response?.request?.res?.socket
+        || response?.request?.socket
+        || response?.socket;
+    const getPeerCertificate = socket?.getPeerCertificate;
+
+    if (typeof getPeerCertificate !== 'function') {
+        return null;
+    }
+
+    const certificate = getPeerCertificate.call(socket);
+    if (!certificate || Object.keys(certificate).length === 0) {
+        return null;
+    }
+
+    return certificate as PeerCertificateLike;
+}
+
+function extractSslSnapshot(response: any): SslCheckSnapshot | null {
+    const certificate = extractPeerCertificate(response);
+    const validTo = certificate?.valid_to ? new Date(certificate.valid_to) : null;
+    const expiresAt = validTo && !Number.isNaN(validTo.getTime()) ? validTo : null;
+
+    return {
+        expiresAt: expiresAt ? expiresAt.toISOString() : null,
+        daysRemaining: expiresAt
+            ? Math.ceil((expiresAt.getTime() - Date.now()) / 86_400_000)
+            : null,
+        issuer: formatCertificateParty(certificate?.issuer),
+        subject: formatCertificateParty(certificate?.subject),
+    };
 }
 
 function getJsonPathValue(input: unknown, path: string): unknown {
@@ -118,6 +184,7 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
     let isUp = false;
     let statusCode: number | null = null;
     let error: string | null = null;
+    let ssl: SslCheckSnapshot | null = null;
 
     try {
         await assertSafeCheckTargets([
@@ -240,6 +307,12 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
         });
 
         statusCode = response.status;
+        if (input.sslExpiryEnabled) {
+            const protocol = new URL(input.url).protocol;
+            if (protocol === 'https:') {
+                ssl = extractSslSnapshot(response);
+            }
+        }
 
         if (response.status !== input.expectedStatus) {
             error = `Expected status ${input.expectedStatus}, got ${response.status}`;
@@ -270,5 +343,6 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
         responseTimeMs: Date.now() - startTime,
         statusCode,
         error,
+        ssl,
     };
 }

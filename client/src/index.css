@@ -675,6 +675,26 @@ body {
   font-weight: 600;
 }
 
+.monitor-ssl-summary {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+}
+
+.monitor-ssl-summary.ok {
+  background: rgba(59, 130, 246, 0.08);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+.monitor-ssl-summary.warning {
+  background: var(--color-warning-bg);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
 .monitor-actions {
   display: flex;
   gap: 4px;
@@ -1131,6 +1151,10 @@ tr:hover td {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.history-summary-warning {
+  color: var(--color-warning);
 }
 
 .history-summary-value.uptime {

@@ -8,6 +8,13 @@ export type BodyAssertionType =
     | 'JSON_PATH_EQUALS'
     | 'JSON_PATH_CONTAINS';
 
+export interface SslCheckSnapshot {
+    expiresAt: string | null;
+    daysRemaining: number | null;
+    issuer: string | null;
+    subject: string | null;
+}
+
 export interface User {
     id: string;
     username: string;
@@ -29,6 +36,10 @@ export interface CheckResult {
     responseTimeMs: number;
     statusCode: number | null;
     error: string | null;
+    sslExpiresAt?: string | null;
+    sslDaysRemaining?: number | null;
+    sslIssuer?: string | null;
+    sslSubject?: string | null;
 }
 
 export interface Monitor {
@@ -50,6 +61,8 @@ export interface Monitor {
     authUrl: string | null;
     authPayload: string | null;
     authTokenRegex: string | null;
+    sslExpiryEnabled?: boolean;
+    sslExpiryThresholdDays?: number;
 
     isActive: boolean;
     isPublic: boolean;
@@ -81,6 +94,8 @@ export interface MonitorFormData {
     authUrl: string;
     authPayload: string;
     authTokenRegex: string;
+    sslExpiryEnabled?: boolean;
+    sslExpiryThresholdDays?: number;
 }
 
 export interface Agent {

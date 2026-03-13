@@ -21,6 +21,8 @@ function createMonitor(): Monitor {
         authUrl: null,
         authPayload: null,
         authTokenRegex: null,
+        sslExpiryEnabled: true,
+        sslExpiryThresholdDays: 14,
         isActive: true,
         isPublic: false,
         createdAt: new Date().toISOString(),
@@ -33,6 +35,10 @@ function createMonitor(): Monitor {
             responseTimeMs: 120,
             statusCode: 200,
             error: null,
+            sslExpiresAt: '2026-06-10T12:00:00.000Z',
+            sslDaysRemaining: 7,
+            sslIssuer: 'Let\'s Encrypt E7',
+            sslSubject: 'example.com',
         },
         flappingState: null,
     };
@@ -63,5 +69,6 @@ describe('MonitorCard', () => {
 
         fireEvent.click(historyButton);
         expect(onHistory).toHaveBeenCalledWith(monitor);
+        expect(screen.getByText('SSL expires in 7 days')).toBeInTheDocument();
     });
 });

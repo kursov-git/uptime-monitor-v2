@@ -12,6 +12,9 @@ interface MonitorCardProps {
 
 export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onToggle, onTogglePublic, onHistory }: MonitorCardProps) {
     const lastCheck = monitor.lastCheck;
+    const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
+    const hasSslSnapshot = monitor.sslExpiryEnabled && lastCheck?.sslDaysRemaining !== null && lastCheck?.sslDaysRemaining !== undefined;
+    const sslWarning = hasSslSnapshot && (lastCheck!.sslDaysRemaining as number) <= sslThresholdDays;
 
     const getStatus = () => {
         if (!monitor.isActive) return 'paused';
@@ -42,6 +45,14 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
         if (sec < 3600) return `${Math.round(sec / 60)}m`;
         return `${Math.round(sec / 3600)}h`;
     };
+
+    const sslSummary = hasSslSnapshot
+        ? (lastCheck!.sslDaysRemaining as number) <= 0
+            ? 'SSL expired'
+            : `SSL expires in ${lastCheck!.sslDaysRemaining} day${lastCheck!.sslDaysRemaining === 1 ? '' : 's'}`
+        : monitor.sslExpiryEnabled
+            ? 'SSL expiry pending first HTTPS check'
+            : null;
 
     return (
         <div className="card monitor-card">
@@ -99,6 +110,14 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
                 Executor: <strong>{monitor.agentName || 'Builtin Worker'}</strong>
             </div>
+            {sslSummary && (
+                <div
+                    className={`monitor-ssl-summary ${sslWarning ? 'warning' : 'ok'}`}
+                    title={lastCheck?.sslExpiresAt ? `Certificate expires at ${new Date(lastCheck.sslExpiresAt).toLocaleString()}` : undefined}
+                >
+                    {sslSummary}
+                </div>
+            )}
 
             <div className="monitor-stats">
                 <div className="stat">

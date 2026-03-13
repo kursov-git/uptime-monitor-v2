@@ -26,6 +26,8 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         authUrl: monitor?.authUrl || '',
         authPayload: monitor?.authPayload || '',
         authTokenRegex: monitor?.authTokenRegex || '',
+        sslExpiryEnabled: monitor?.sslExpiryEnabled || false,
+        sslExpiryThresholdDays: monitor?.sslExpiryThresholdDays || 14,
     });
     const [loginUser, setLoginUser] = useState(() => {
         if (!monitor?.authPayload) return '';
@@ -125,7 +127,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         }
     };
 
-    const update = (field: keyof MonitorFormData, value: string | number) => {
+    const update = (field: keyof MonitorFormData, value: string | number | boolean | null) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -309,6 +311,34 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             placeholder='{"Authorization": "Bearer ..."}'
                             rows={3}
                         />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                                type="checkbox"
+                                checked={formData.sslExpiryEnabled}
+                                onChange={e => update('sslExpiryEnabled', e.target.checked)}
+                            />
+                            Monitor SSL certificate expiry
+                        </label>
+                        <div className="help-text" style={{ marginTop: 8, marginBottom: 12 }}>
+                            Sends a warning when the HTTPS certificate is close to expiry without marking the monitor DOWN while the endpoint still responds.
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Warn When ≤ Days</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="365"
+                                    step="1"
+                                    value={formData.sslExpiryThresholdDays}
+                                    disabled={!formData.sslExpiryEnabled}
+                                    onChange={e => update('sslExpiryThresholdDays', parseInt(e.target.value, 10))}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>

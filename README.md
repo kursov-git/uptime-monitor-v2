@@ -15,6 +15,7 @@ For implementation and operator truth, read:
 
 - monitors HTTP/HTTPS endpoints
 - validates response status and optional body expectations
+- warns about expiring HTTPS certificates with configurable thresholds
 - supports authenticated checks including multi-step flows
 - sends notifications through Telegram and Zulip
 - tracks audit history and notification history
@@ -30,6 +31,7 @@ Implemented and working:
 - agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
 - agent offline and recovery notifications through the shared notification stack
 - public status page with per-monitor exposure, 24h availability buckets, and a derived incident timeline
+- SSL expiry monitoring with UI surfacing and warning/recovery notifications
 - production JSON logging
 - centralized env validation
 - backup/restore scripts for SQLite compose deployments

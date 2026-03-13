@@ -44,6 +44,10 @@ describe('persistAgentResults', () => {
                 responseTimeMs: 25,
                 statusCode: 200,
                 error: null,
+                sslExpiresAt: new Date('2026-06-10T12:00:00.000Z'),
+                sslDaysRemaining: 89,
+                sslIssuer: 'Let\'s Encrypt E7',
+                sslSubject: 'example.com',
             },
             {
                 idempotencyKey: 'new-a',
@@ -77,5 +81,10 @@ describe('persistAgentResults', () => {
 
         expect(rows).toHaveLength(2);
         expect(rows.map((row) => row.resultIdempotencyKey)).toEqual(['dup-in-db', 'new-a']);
+        const persisted = rows.find((row) => row.resultIdempotencyKey === 'new-a');
+        expect(persisted?.sslExpiresAt?.toISOString()).toBe('2026-06-10T12:00:00.000Z');
+        expect(persisted?.sslDaysRemaining).toBe(89);
+        expect(persisted?.sslIssuer).toBe('Let\'s Encrypt E7');
+        expect(persisted?.sslSubject).toBe('example.com');
     });
 });

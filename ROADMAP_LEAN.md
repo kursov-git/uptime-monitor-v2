@@ -60,6 +60,7 @@ Recently completed:
 - `T052` Restrict `/health` and `/health/runtime` behind the runtime-health allowlist at the edge
 - `T053` Add regression coverage for SSE auth boundaries, cookie-auth flow, and raw-key non-disclosure
 - `T054` Refresh architecture, topology, and runbook docs with the current public threat model and edge controls
+- `SSL expiry monitoring` for HTTPS monitors, including warning thresholds, UI surfacing, builtin-worker/agent parity, and warning/recovery notifications
 
 Why this stays:
 - the control plane is already public
@@ -121,6 +122,7 @@ These remain valid if they solve an immediate personal or narrow-circle need:
 - better assertions
 
 Recently completed:
+- SSL expiry monitoring
 - better body assertion UX
 - explicit assertion modes: `contains`, `regex`, `JSON path equals`, `JSON path contains`
 - assertion validation and checker coverage across builtin worker and remote agents
@@ -164,7 +166,7 @@ Proposed operator UX:
   - dedicated `SSL_EXPIRING` message
   - recovery when the certificate is renewed and exits the warning threshold
 
-Backlog:
+Completed:
 - `L001` Add monitor-level config for SSL expiry checks and warning threshold
 - `L002` Extend checker to read peer certificate metadata for HTTPS targets
 - `L003` Persist TLS snapshot fields needed for UI and alerting

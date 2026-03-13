@@ -11,6 +11,15 @@ interface MonitorAlertContext {
     appBaseUrl?: string | null;
 }
 
+interface MonitorSslAlertContext {
+    appBaseUrl?: string | null;
+    thresholdDays: number;
+    expiresAt: string | null;
+    daysRemaining: number | null;
+    issuer?: string | null;
+    subject?: string | null;
+}
+
 interface AgentOfflineContext {
     appBaseUrl?: string | null;
     monitorsCount?: number;
@@ -99,6 +108,58 @@ export function buildMonitorRecoveryMessage(
     if (context.responseTimeMs !== null && context.responseTimeMs !== undefined) {
         lines.push(`Response time: ${context.responseTimeMs}ms`);
     }
+
+    const monitorLink = buildLink(normalizeBaseUrl(context.appBaseUrl), `/monitors/${monitor.id}/history`, 'Open monitor history');
+    if (monitorLink) {
+        lines.push(monitorLink);
+    }
+
+    return lines.join('\n');
+}
+
+export function buildMonitorSslExpiringMessage(
+    monitor: MonitorAlertTarget,
+    context: MonitorSslAlertContext
+): string {
+    const lines = [
+        `🟠 <b>${escapeHtml(monitor.name)}</b> SSL certificate is expiring soon`,
+        `URL: ${escapeHtml(monitor.url)}`,
+        `Threshold: ${context.thresholdDays} days`,
+    ];
+
+    if (context.daysRemaining !== null && context.daysRemaining !== undefined) {
+        lines.push(`Days remaining: ${context.daysRemaining}`);
+    }
+
+    appendOptionalLine(lines, 'Expires at', context.expiresAt);
+    appendOptionalLine(lines, 'Subject', context.subject ?? null);
+    appendOptionalLine(lines, 'Issuer', context.issuer ?? null);
+
+    const monitorLink = buildLink(normalizeBaseUrl(context.appBaseUrl), `/monitors/${monitor.id}/history`, 'Open monitor history');
+    if (monitorLink) {
+        lines.push(monitorLink);
+    }
+
+    return lines.join('\n');
+}
+
+export function buildMonitorSslRecoveryMessage(
+    monitor: MonitorAlertTarget,
+    context: MonitorSslAlertContext
+): string {
+    const lines = [
+        `🟢 <b>${escapeHtml(monitor.name)}</b> SSL certificate warning cleared`,
+        `URL: ${escapeHtml(monitor.url)}`,
+        `Threshold: ${context.thresholdDays} days`,
+    ];
+
+    if (context.daysRemaining !== null && context.daysRemaining !== undefined) {
+        lines.push(`Days remaining: ${context.daysRemaining}`);
+    }
+
+    appendOptionalLine(lines, 'Expires at', context.expiresAt);
+    appendOptionalLine(lines, 'Subject', context.subject ?? null);
+    appendOptionalLine(lines, 'Issuer', context.issuer ?? null);
 
     const monitorLink = buildLink(normalizeBaseUrl(context.appBaseUrl), `/monitors/${monitor.id}/history`, 'Open monitor history');
     if (monitorLink) {
