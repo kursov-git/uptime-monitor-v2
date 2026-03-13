@@ -166,6 +166,11 @@ Recommended operator flow:
 docker compose -f docker-compose.split.yml up -d --build client
 ```
 
+This is now a true client-only rollout path:
+- `client` no longer declares a compose dependency on `server`
+- rebuilding `client` should not recreate `uptime-server-api`
+- use full-stack `up -d --build` only when the API or worker images really changed
+
 Example:
 
 ```bash
