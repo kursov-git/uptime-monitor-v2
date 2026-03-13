@@ -17,6 +17,8 @@ model Monitor {
   timeoutSeconds  Int     @default(30)
   expectedStatus  Int     @default(200)
   expectedBody    String?
+  bodyAssertionType String @default("AUTO")
+  bodyAssertionPath String?
   headers         String? // JSON string
 
   // Auth configuration for multi-step checks

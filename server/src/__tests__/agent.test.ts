@@ -57,6 +57,25 @@ describe('Agent API (Integration)', () => {
         expect(revoked.statusCode).toBe(403);
     });
 
+    it('rejects legacy plaintext agent tokens stored in the database', async () => {
+        const token = 'legacy-plain-token';
+
+        await prisma.agent.create({
+            data: {
+                name: 'legacy-agent',
+                tokenHash: token,
+            },
+        });
+
+        const res = await app.inject({
+            method: 'GET',
+            url: '/api/agent/jobs',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        expect(res.statusCode).toBe(401);
+    });
+
     it('returns only assigned jobs for the authenticated agent', async () => {
         const tokenA = 'agent-token-a';
         const tokenB = 'agent-token-b';

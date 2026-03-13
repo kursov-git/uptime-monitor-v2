@@ -1,5 +1,12 @@
 export type Role = 'ADMIN' | 'VIEWER';
 export const CURRENT_AGENT_VERSION = '1.0.0';
+export type BodyAssertionType =
+    | 'NONE'
+    | 'AUTO'
+    | 'CONTAINS'
+    | 'REGEX'
+    | 'JSON_PATH_EQUALS'
+    | 'JSON_PATH_CONTAINS';
 
 export interface User {
     id: string;
@@ -35,6 +42,8 @@ export interface Monitor {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string | null;
+    bodyAssertionType: BodyAssertionType;
+    bodyAssertionPath: string | null;
     headers: string | null;
 
     authMethod: string;
@@ -64,6 +73,8 @@ export interface MonitorFormData {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string;
+    bodyAssertionType: BodyAssertionType;
+    bodyAssertionPath: string;
     headers: string;
 
     authMethod: string;

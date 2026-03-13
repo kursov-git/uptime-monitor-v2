@@ -37,14 +37,9 @@ export async function authenticateAgent(
 
     const hashed = hashAgentToken(token);
 
-    // Compatibility: if legacy plain token accidentally remained in DB,
-    // allow it temporarily while migration/backfill is completed.
-    const agent = await prisma.agent.findFirst({
+    const agent = await prisma.agent.findUnique({
         where: {
-            OR: [
-                { tokenHash: hashed },
-                { tokenHash: token },
-            ],
+            tokenHash: hashed,
         },
         select: {
             id: true,

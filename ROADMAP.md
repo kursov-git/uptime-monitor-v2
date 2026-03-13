@@ -579,7 +579,7 @@ It is meant to be used as a lightweight delivery board.
 - [ ] T049 Restrict `/api/agent/*` to expected source networks or private paths where feasible
   Preferred practical path for this deployment: use `AGENT_ALLOWLIST` for the current public-agent topology; consider Tailscale/WireGuard only if agents are later moved onto a private path.
 - [x] T050 Add SSRF guardrails for monitor execution against loopback, RFC1918, link-local, and metadata targets
-- [ ] T051 Remove legacy plaintext agent-token compatibility after migration verification
+- [x] T051 Remove legacy plaintext agent-token compatibility after migration verification
 - [ ] T052 Re-evaluate public exposure of `/health` and `/health/runtime`
 - [ ] T053 Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
 - [ ] T054 Update architecture and runbook docs with the current public threat model and recommended edge controls
@@ -659,6 +659,9 @@ Scope:
 - JSON-focused assertions
 - basic field/path assertions
 
+Status:
+- baseline delivered: explicit body assertion modes now support `contains`, `regex`, `JSON path equals`, and `JSON path contains`
+
 ### 4. Agent Fleet Basics
 
 Goal:
@@ -670,6 +673,9 @@ Scope:
 - improved offline diagnostics
 - list monitors assigned to an agent
 - safe reassignment UX
+
+Status:
+- baseline delivered: version drift indicator, attention-first sorting, agent summary cards, and clearer assigned-monitor visibility
 
 ### 5. DNS / Domain Monitoring
 

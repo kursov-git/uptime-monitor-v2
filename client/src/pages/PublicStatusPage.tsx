@@ -82,6 +82,46 @@ function getIncidentSummary(buckets: PublicBucket[]): string {
     return parts.join(' · ');
 }
 
+function getPublicHeadline(summary: PublicStatusResponse['summary'], monitorCount: number) {
+    if (monitorCount === 0) {
+        return {
+            tone: 'empty',
+            title: 'No public monitors yet',
+            description: 'Publish one or more monitors to expose a simple public-facing status view.',
+        };
+    }
+
+    if (summary.down > 0) {
+        return {
+            tone: 'down',
+            title: 'Some public services are down',
+            description: `${summary.down} ${summary.down === 1 ? 'monitor is' : 'monitors are'} currently failing public checks.`,
+        };
+    }
+
+    if (summary.unknown > 0) {
+        return {
+            tone: 'unknown',
+            title: 'Public status is incomplete',
+            description: `${summary.unknown} ${summary.unknown === 1 ? 'monitor has' : 'monitors have'} no recent public data yet.`,
+        };
+    }
+
+    if (summary.paused > 0) {
+        return {
+            tone: 'paused',
+            title: 'Public services are partly paused',
+            description: `${summary.paused} ${summary.paused === 1 ? 'monitor is' : 'monitors are'} intentionally paused.`,
+        };
+    }
+
+    return {
+        tone: 'up',
+        title: 'All public systems operational',
+        description: 'Every published monitor is currently passing its expected checks.',
+    };
+}
+
 function IncidentStrip({
     buckets,
     compact = false,
@@ -138,6 +178,7 @@ export default function PublicStatusPage() {
         checks: bucket.totalChecks,
     })) ?? [];
     const latestAvailability = availabilitySeries[availabilitySeries.length - 1]?.availability ?? null;
+    const headline = getPublicHeadline(summary, data?.monitorCount ?? 0);
 
     const OverviewTooltip = ({ active, payload }: any) => {
         if (!active || !payload?.[0]) return null;
@@ -177,6 +218,19 @@ export default function PublicStatusPage() {
                     <div className="public-status-pill down">Down {summary.down}</div>
                     <div className="public-status-pill paused">Paused {summary.paused}</div>
                     <div className="public-status-pill unknown">Unknown {summary.unknown}</div>
+                </div>
+
+                <div className={`public-status-banner ${headline.tone}`}>
+                    <div>
+                        <strong>{headline.title}</strong>
+                        <span>{headline.description}</span>
+                    </div>
+                    {!loading && !error && data && data.monitors.length > 0 && (
+                        <div className="public-status-banner-metric">
+                            <span>24h availability</span>
+                            <strong>{formatAvailabilityValue(latestAvailability)}</strong>
+                        </div>
+                    )}
                 </div>
 
                 {!loading && !error && data && data.monitors.length > 0 && (
@@ -254,7 +308,12 @@ export default function PublicStatusPage() {
                 ) : error ? (
                     <div className="card"><div className="error-message">{error}</div></div>
                 ) : !data || data.monitors.length === 0 ? (
-                    <div className="card"><div className="empty-state"><h3>No public monitors yet</h3></div></div>
+                    <div className="card">
+                        <div className="empty-state">
+                            <h3>No public monitors yet</h3>
+                            <p>Use the monitor visibility toggle in the dashboard to publish a small curated status set.</p>
+                        </div>
+                    </div>
                 ) : (
                     <div className="public-status-grid">
                         {data.monitors.map((monitor) => (

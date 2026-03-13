@@ -40,6 +40,27 @@ function formatAgentLocation(agent: Agent): string {
     return parts.length > 0 ? parts.join(', ') : 'Unknown location';
 }
 
+function getAgentAttentionFlags(agent: Agent) {
+    const versionState = getAgentVersionState(agent.agentVersion);
+    const isOnline = agent.status === 'ONLINE';
+
+    return {
+        isOnline,
+        isRevoked: Boolean(agent.revokedAt),
+        isOutdated: versionState === 'OUTDATED',
+        versionState,
+        needsAttention: !isOnline || Boolean(agent.revokedAt) || versionState === 'OUTDATED',
+    };
+}
+
+function getAgentPriority(agent: Agent): number {
+    const flags = getAgentAttentionFlags(agent);
+    if (flags.isRevoked) return 0;
+    if (!flags.isOnline) return 1;
+    if (flags.isOutdated) return 2;
+    return 3;
+}
+
 export default function AgentsPage() {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [loading, setLoading] = useState(true);
@@ -154,6 +175,22 @@ export default function AgentsPage() {
     const issuedAgent = registrationAgentId
         ? agents.find((entry) => entry.id === registrationAgentId) || null
         : null;
+    const sortedAgents = [...agents].sort((left, right) => {
+        const priorityDiff = getAgentPriority(left) - getAgentPriority(right);
+        if (priorityDiff !== 0) {
+            return priorityDiff;
+        }
+
+        return new Date(right.lastSeen).getTime() - new Date(left.lastSeen).getTime();
+    });
+    const agentSummary = sortedAgents.reduce((acc, agent) => {
+        const flags = getAgentAttentionFlags(agent);
+        acc.total += 1;
+        if (flags.isOnline) acc.online += 1;
+        if (flags.isOutdated) acc.outdated += 1;
+        if (flags.needsAttention) acc.attention += 1;
+        return acc;
+    }, { total: 0, online: 0, outdated: 0, attention: 0 });
 
     const envSnippet = createdToken
         ? `MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
@@ -384,22 +421,46 @@ sudo bash scripts/install-agent.sh`
                 <div className="empty-state"><h3>No registered agents yet</h3></div>
             ) : (
                 <div style={{ display: 'grid', gap: 12 }}>
-                    {agents.map((agent) => {
-                        const versionState = getAgentVersionState(agent.agentVersion);
+                    <div className="history-summary" style={{ marginBottom: 4 }}>
+                        <div className="history-summary-card">
+                            <div className="history-summary-label">Registered</div>
+                            <div className="history-summary-value" data-testid="agent-summary-total">{agentSummary.total}</div>
+                        </div>
+                        <div className="history-summary-card">
+                            <div className="history-summary-label">Online</div>
+                            <div className="history-summary-value uptime" data-testid="agent-summary-online">{agentSummary.online}</div>
+                        </div>
+                        <div className="history-summary-card">
+                            <div className="history-summary-label">Needs Attention</div>
+                            <div className="history-summary-value" data-testid="agent-summary-attention" style={{ color: 'var(--color-warning)' }}>{agentSummary.attention}</div>
+                        </div>
+                        <div className="history-summary-card">
+                            <div className="history-summary-label">Outdated</div>
+                            <div className="history-summary-value" data-testid="agent-summary-outdated" style={{ color: '#f59e0b' }}>{agentSummary.outdated}</div>
+                        </div>
+                    </div>
+                    {sortedAgents.map((agent) => {
+                        const flags = getAgentAttentionFlags(agent);
                         const monitorsAssigned = agent._count?.monitors ?? 0;
-                        const isOnline = agent.status === 'ONLINE';
                         return (
                         <div className="card" key={agent.id}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                 <div>
                                     <div style={{ fontWeight: 700 }}>{agent.name}</div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>ID: {agent.id}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, marginBottom: 8 }}>
+                                        <span className={`status-badge ${flags.isOnline ? 'up' : 'down'}`}>
+                                            {flags.isOnline ? 'ONLINE' : agent.status}
+                                        </span>
+                                        {flags.isOutdated && (
+                                            <span className="status-badge flapping">Update needed</span>
+                                        )}
+                                        {flags.isRevoked && (
+                                            <span className="status-badge down">Access revoked</span>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Status:{' '}
-                                        <strong style={{ color: isOnline ? '#22c55e' : '#ef4444' }}>
-                                            {isOnline ? 'ONLINE' : agent.status}
-                                        </strong>
-                                        {' '}| lastSeen: {new Date(agent.lastSeen).toLocaleString()}
+                                        Last heartbeat: {new Date(agent.lastSeen).toLocaleString()}
                                     </div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
                                         IP: <strong>{agent.lastSeenIp || 'Unknown IP'}</strong>
@@ -407,11 +468,11 @@ sudo bash scripts/install-agent.sh`
                                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
                                         Geo: <strong>{formatAgentLocation(agent)}</strong>
                                     </div>
-                                    <div style={{ fontSize: 12, color: versionState === 'OUTDATED' ? '#f59e0b' : 'var(--color-text-secondary)' }}>
+                                    <div style={{ fontSize: 12, color: flags.isOutdated ? '#f59e0b' : 'var(--color-text-secondary)' }}>
                                         Agent version: <strong>{getAgentVersionLabel(agent.agentVersion)}</strong>
                                     </div>
                                     <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Monitors: {monitorsAssigned}
+                                        Assigned monitors: {monitorsAssigned}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8 }}>

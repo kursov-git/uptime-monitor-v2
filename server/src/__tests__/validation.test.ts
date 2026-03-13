@@ -99,4 +99,33 @@ describe('validateMonitorInput', () => {
 
         expect(errors).toHaveLength(0);
     });
+
+    it('should require JSON path for JSON path assertion types', () => {
+        const errors = validateMonitorInput({
+            name: 'JSON Monitor',
+            url: 'https://example.com',
+            bodyAssertionType: 'JSON_PATH_EQUALS',
+            expectedBody: 'ok',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'bodyAssertionPath',
+            message: 'JSON path is required for the selected body assertion type',
+        });
+    });
+
+    it('should reject assertion path for plain text assertion types', () => {
+        const errors = validateMonitorInput({
+            name: 'Body Monitor',
+            url: 'https://example.com',
+            bodyAssertionType: 'CONTAINS',
+            expectedBody: 'ok',
+            bodyAssertionPath: 'data.status',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'bodyAssertionPath',
+            message: 'Assertion path is only used for JSON path assertions',
+        });
+    });
 });

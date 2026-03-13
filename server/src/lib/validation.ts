@@ -14,6 +14,8 @@ export interface CreateMonitorBody {
     timeoutSeconds?: number;
     expectedStatus?: number;
     expectedBody?: string;
+    bodyAssertionType?: string;
+    bodyAssertionPath?: string;
     headers?: string;
     authMethod?: string;
     authUrl?: string;
@@ -88,6 +90,35 @@ export function validateMonitorInputWithOptions(
         if (body.expectedStatus < 100 || body.expectedStatus > 599) {
             errors.push({ field: 'expectedStatus', message: 'Expected status must be between 100 and 599' });
         }
+    }
+
+    if (body.bodyAssertionType !== undefined) {
+        const allowedAssertionTypes = ['NONE', 'AUTO', 'CONTAINS', 'REGEX', 'JSON_PATH_EQUALS', 'JSON_PATH_CONTAINS'];
+        if (!allowedAssertionTypes.includes(body.bodyAssertionType)) {
+            errors.push({ field: 'bodyAssertionType', message: 'Invalid body assertion type' });
+        }
+    }
+
+    const assertionType = body.bodyAssertionType || 'AUTO';
+    const hasExpectedBody = typeof body.expectedBody === 'string' && body.expectedBody.trim().length > 0;
+    const hasAssertionPath = typeof body.bodyAssertionPath === 'string' && body.bodyAssertionPath.trim().length > 0;
+
+    if (assertionType === 'NONE') {
+        if (hasAssertionPath) {
+            errors.push({ field: 'bodyAssertionPath', message: 'Assertion path is only used for JSON path assertions' });
+        }
+    }
+
+    if ((assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasExpectedBody) {
+        errors.push({ field: 'expectedBody', message: 'Assertion value is required for the selected body assertion type' });
+    }
+
+    if ((assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasAssertionPath) {
+        errors.push({ field: 'bodyAssertionPath', message: 'JSON path is required for the selected body assertion type' });
+    }
+
+    if ((assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'AUTO') && hasAssertionPath) {
+        errors.push({ field: 'bodyAssertionPath', message: 'Assertion path is only used for JSON path assertions' });
     }
 
     if (body.headers && !isValidJson(body.headers)) {

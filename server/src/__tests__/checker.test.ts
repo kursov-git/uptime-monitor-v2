@@ -236,4 +236,60 @@ describe('checker', () => {
         expect(result.error).toContain('primary target resolves to a disallowed address: 10.0.0.5');
         expect(mockAxiosInstance).not.toHaveBeenCalled();
     });
+
+    it('supports explicit contains assertions', async () => {
+        mockAxiosInstance.mockResolvedValue({
+            status: 200,
+            data: 'service is healthy',
+            headers: {},
+        });
+
+        const result = await performCheck({
+            url: 'https://example.com/body',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: 'healthy',
+            bodyAssertionType: 'CONTAINS',
+            bodyAssertionPath: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(result.error).toBeNull();
+    });
+
+    it('supports JSON path equals assertions', async () => {
+        mockAxiosInstance.mockResolvedValue({
+            status: 200,
+            data: {
+                data: {
+                    status: 'ok',
+                },
+            },
+            headers: {},
+        });
+
+        const result = await performCheck({
+            url: 'https://example.com/json',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: 'ok',
+            bodyAssertionType: 'JSON_PATH_EQUALS',
+            bodyAssertionPath: 'data.status',
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(result.error).toBeNull();
+    });
 });

@@ -167,7 +167,23 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             return reply.status(400).send({ errors });
         }
 
-        const { name, url, agentId, method, intervalSeconds, timeoutSeconds, expectedStatus, expectedBody, headers, authMethod, authUrl, authPayload, authTokenRegex } = request.body;
+        const {
+            name,
+            url,
+            agentId,
+            method,
+            intervalSeconds,
+            timeoutSeconds,
+            expectedStatus,
+            expectedBody,
+            bodyAssertionType,
+            bodyAssertionPath,
+            headers,
+            authMethod,
+            authUrl,
+            authPayload,
+            authTokenRegex,
+        } = request.body;
 
         const monitor = await prisma.monitor.create({
             data: {
@@ -179,6 +195,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 timeoutSeconds: timeoutSeconds || 30,
                 expectedStatus: expectedStatus || 200,
                 expectedBody: expectedBody || null,
+                bodyAssertionType: bodyAssertionType || (expectedBody ? 'AUTO' : 'NONE'),
+                bodyAssertionPath: bodyAssertionPath || null,
                 headers: headers || null,
                 authMethod: authMethod || 'NONE',
                 authUrl: authUrl || null,
@@ -218,6 +236,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
                 expectedStatus: body.expectedStatus ?? existing.expectedStatus,
                 expectedBody: body.expectedBody ?? existing.expectedBody ?? undefined,
+                bodyAssertionType: body.bodyAssertionType ?? existing.bodyAssertionType,
+                bodyAssertionPath: body.bodyAssertionPath ?? existing.bodyAssertionPath ?? undefined,
                 headers: body.headers ?? existing.headers ?? undefined,
                 authMethod: body.authMethod ?? existing.authMethod,
                 authUrl: body.authUrl ?? existing.authUrl ?? undefined,
@@ -242,6 +262,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                     ...(body.timeoutSeconds !== undefined && { timeoutSeconds: body.timeoutSeconds }),
                     ...(body.expectedStatus !== undefined && { expectedStatus: body.expectedStatus }),
                     ...(body.expectedBody !== undefined && { expectedBody: body.expectedBody }),
+                    ...(body.bodyAssertionType !== undefined && { bodyAssertionType: body.bodyAssertionType }),
+                    ...(body.bodyAssertionPath !== undefined && { bodyAssertionPath: body.bodyAssertionPath || null }),
                     ...(body.headers !== undefined && { headers: body.headers }),
                     ...(body.authMethod !== undefined && { authMethod: body.authMethod }),
                     ...(body.authUrl !== undefined && { authUrl: body.authUrl }),

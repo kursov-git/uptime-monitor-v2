@@ -13,7 +13,7 @@ describe('AgentsPage', () => {
         vi.restoreAllMocks();
     });
 
-    it('renders online status and normalized last seen IP/location metadata', async () => {
+    it('renders sorted agent attention summary and normalized location metadata', async () => {
         vi.spyOn(agentsApi, 'get').mockResolvedValueOnce({
             data: [
                 {
@@ -52,6 +52,24 @@ describe('AgentsPage', () => {
                         monitors: 1,
                     },
                 },
+                {
+                    id: 'agent-3',
+                    name: 'euwest-old',
+                    status: 'OFFLINE',
+                    agentVersion: '0.9.0',
+                    heartbeatIntervalSec: 30,
+                    offlineAfterSec: 90,
+                    lastSeen: '2026-03-12T17:30:00.000Z',
+                    lastSeenIp: '203.0.113.12',
+                    lastSeenCountry: 'DE',
+                    lastSeenCity: null,
+                    revokedAt: null,
+                    createdAt: '2026-03-12T17:03:00.000Z',
+                    updatedAt: '2026-03-12T18:03:00.000Z',
+                    _count: {
+                        monitors: 4,
+                    },
+                },
             ],
         } as any);
 
@@ -61,9 +79,18 @@ describe('AgentsPage', () => {
             expect(screen.getByText('cloudruvm1')).toBeInTheDocument();
         });
 
+        expect(screen.getByText('Needs Attention')).toBeInTheDocument();
+        expect(screen.getByTestId('agent-summary-total')).toHaveTextContent('3');
+        expect(screen.getByTestId('agent-summary-online')).toHaveTextContent('2');
+        expect(screen.getByTestId('agent-summary-attention')).toHaveTextContent('1');
+        expect(screen.getByTestId('agent-summary-outdated')).toHaveTextContent('1');
         expect(screen.getAllByText('ONLINE')).toHaveLength(2);
+        expect(screen.getByText('OFFLINE')).toBeInTheDocument();
+        expect(screen.getByText('Update needed')).toBeInTheDocument();
         expect(screen.getByText('203.0.113.10')).toBeInTheDocument();
         expect(screen.getByText(/Россия, Москва|Russia, Москва|Россия, Moscow|Russia, Moscow/)).toBeInTheDocument();
         expect(screen.getByText(/Россия, Казань|Russia, Казань/)).toBeInTheDocument();
+        const headings = screen.getAllByText(/cloudruvm1|ruvdskzn|euwest-old/).map((entry) => entry.textContent);
+        expect(headings[0]).toBe('euwest-old');
     });
 });

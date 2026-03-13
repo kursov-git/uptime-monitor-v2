@@ -23,6 +23,8 @@ export interface PerformCheckInput {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string | null;
+    bodyAssertionType?: string | null;
+    bodyAssertionPath?: string | null;
     headers: string | null;
     authMethod: string;
     authUrl: string | null;
@@ -36,6 +38,79 @@ export interface PerformCheckResult {
     responseTimeMs: number;
     statusCode: number | null;
     error: string | null;
+}
+
+function getJsonPathValue(input: unknown, path: string): unknown {
+    const normalizedPath = path.replace(/\[(\d+)\]/g, '.$1');
+    const parts = normalizedPath.split('.').map((part) => part.trim()).filter(Boolean);
+
+    let current: any = input;
+    for (const part of parts) {
+        if (current === null || current === undefined) {
+            return undefined;
+        }
+
+        current = current[part];
+    }
+
+    return current;
+}
+
+function evaluateBodyAssertion(
+    body: unknown,
+    expectedBody: string | null,
+    bodyAssertionType: string | null | undefined,
+    bodyAssertionPath: string | null | undefined
+): string | null {
+    const assertionType = bodyAssertionType || (expectedBody ? 'AUTO' : 'NONE');
+    if (assertionType === 'NONE' || !expectedBody) {
+        return null;
+    }
+
+    const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+
+    if (assertionType === 'CONTAINS') {
+        return bodyStr.includes(expectedBody) ? null : `Body does not contain: ${expectedBody}`;
+    }
+
+    if (assertionType === 'REGEX') {
+        try {
+            const regex = new RegExp(expectedBody);
+            return regex.test(bodyStr) ? null : `Body does not match regex: ${expectedBody}`;
+        } catch {
+            return `Invalid regex: ${expectedBody}`;
+        }
+    }
+
+    if (assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') {
+        const path = bodyAssertionPath?.trim();
+        if (!path) {
+            return 'JSON path assertion requires a path';
+        }
+
+        if (typeof body !== 'object' || body === null) {
+            return 'Response body is not valid JSON for JSON path assertion';
+        }
+
+        const value = getJsonPathValue(body, path);
+        if (value === undefined) {
+            return `JSON path not found: ${path}`;
+        }
+
+        const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
+        if (assertionType === 'JSON_PATH_EQUALS') {
+            return valueStr === expectedBody ? null : `JSON path ${path} expected ${expectedBody}, got ${valueStr}`;
+        }
+
+        return valueStr.includes(expectedBody) ? null : `JSON path ${path} does not contain: ${expectedBody}`;
+    }
+
+    try {
+        const regex = new RegExp(expectedBody);
+        return regex.test(bodyStr) ? null : `Body does not match pattern: ${expectedBody}`;
+    } catch {
+        return bodyStr.includes(expectedBody) ? null : `Body does not contain: ${expectedBody}`;
+    }
 }
 
 export async function performCheck(input: PerformCheckInput): Promise<PerformCheckResult> {
@@ -173,22 +248,16 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
             isUp = true;
         }
 
-        if (isUp && input.expectedBody) {
-            const bodyStr = typeof response.data === 'string'
-                ? response.data
-                : JSON.stringify(response.data);
-
-            try {
-                const regex = new RegExp(input.expectedBody);
-                if (!regex.test(bodyStr)) {
-                    isUp = false;
-                    error = `Body does not match pattern: ${input.expectedBody}`;
-                }
-            } catch {
-                if (!bodyStr.includes(input.expectedBody)) {
-                    isUp = false;
-                    error = `Body does not contain: ${input.expectedBody}`;
-                }
+        if (isUp) {
+            const bodyAssertionError = evaluateBodyAssertion(
+                response.data,
+                input.expectedBody,
+                input.bodyAssertionType,
+                input.bodyAssertionPath
+            );
+            if (bodyAssertionError) {
+                isUp = false;
+                error = bodyAssertionError;
             }
         }
     } catch (err: any) {

@@ -54,10 +54,12 @@ Goal:
 Keep in `Now`:
 - `T048` Add production edge restriction for admin UI and admin APIs
 - `T049` Restrict `/api/agent/*` to expected source networks or private paths where feasible
-- `T051` Remove legacy plaintext agent-token compatibility after migration verification
 - `T052` Re-evaluate public exposure of `/health` and `/health/runtime`
 - `T053` Add regression tests for cookie auth, SSE auth boundaries, and non-disclosure of raw keys
 - `T054` Update architecture and runbook docs with the current public threat model and recommended edge controls
+
+Recently completed:
+- `T051` Remove legacy plaintext agent-token compatibility after migration verification
 
 Why this stays:
 - the control plane is already public
@@ -80,6 +82,11 @@ What belongs here:
 - making the current derived incident timeline clearer
 - keeping navigation and first-load behavior stable
 
+Recently completed:
+- clearer public status headline and degraded/empty messaging
+- more readable public incident strip and chart presentation
+- first-load route stability fix for `/status`
+
 What does not belong here yet:
 - multiple public pages
 - custom domains
@@ -97,6 +104,11 @@ Use the existing strategic item in a lean way:
 - improved offline diagnostics
 - clearer assigned-monitor visibility
 
+Recently completed:
+- top-level agent summary cards
+- attention-first sorting for offline / revoked / outdated agents
+- clearer status badges, version drift signal, and monitor assignment visibility
+
 Why this is lean:
 - it improves operator clarity directly
 - it does not require inventing a new product layer
@@ -107,6 +119,11 @@ These remain valid if they solve an immediate personal or narrow-circle need:
 - SSL expiry monitoring
 - TCP checks
 - better assertions
+
+Recently completed:
+- better body assertion UX
+- explicit assertion modes: `contains`, `regex`, `JSON path equals`, `JSON path contains`
+- assertion validation and checker coverage across builtin worker and remote agents
 
 Rule:
 - take these one at a time, only when there is a concrete monitoring need

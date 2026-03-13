@@ -11,6 +11,8 @@ type AgentJob = {
     timeoutMs: number;
     expectedStatus: number;
     expectedBody: string | null;
+    bodyAssertionType?: string | null;
+    bodyAssertionPath?: string | null;
     headers?: string | null;
     authMethod?: string;
     authUrl?: string | null;
@@ -145,6 +147,8 @@ class AgentRuntime {
                 timeoutSeconds: Math.ceil(job.timeoutMs / 1000),
                 expectedStatus: job.expectedStatus,
                 expectedBody: job.expectedBody,
+                bodyAssertionType: job.bodyAssertionType || 'AUTO',
+                bodyAssertionPath: job.bodyAssertionPath || null,
                 headers: job.headers || null,
                 authMethod: job.authMethod || 'NONE',
                 authUrl: job.authUrl || null,

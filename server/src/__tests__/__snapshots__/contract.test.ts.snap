@@ -58,6 +58,8 @@ exports[`API Contract > validates monitors list and stats contracts 1`] = `
     "authPayload": null,
     "authTokenRegex": null,
     "authUrl": null,
+    "bodyAssertionPath": null,
+    "bodyAssertionType": "AUTO",
     "createdAt": "<iso-date>",
     "expectedBody": null,
     "expectedStatus": 200,

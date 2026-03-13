@@ -19,6 +19,8 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         timeoutSeconds: monitor?.timeoutSeconds || 30,
         expectedStatus: monitor?.expectedStatus || 200,
         expectedBody: monitor?.expectedBody || '',
+        bodyAssertionType: monitor?.bodyAssertionType || (monitor?.expectedBody ? 'AUTO' : 'NONE'),
+        bodyAssertionPath: monitor?.bodyAssertionPath || '',
         headers: monitor?.headers || '',
         authMethod: monitor?.authMethod || 'NONE',
         authUrl: monitor?.authUrl || '',
@@ -94,7 +96,24 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         setSubmitting(true);
 
         try {
-            await onSubmit({ ...formData, agentId: formData.agentId || null, authPayload: constructedPayload });
+            const normalizedAssertionType = formData.bodyAssertionType || 'NONE';
+            const normalizedExpectedBody = normalizedAssertionType === 'NONE'
+                ? ''
+                : formData.expectedBody;
+            const normalizedAssertionPath = (
+                normalizedAssertionType === 'JSON_PATH_EQUALS' || normalizedAssertionType === 'JSON_PATH_CONTAINS'
+            )
+                ? formData.bodyAssertionPath
+                : '';
+
+            await onSubmit({
+                ...formData,
+                agentId: formData.agentId || null,
+                authPayload: constructedPayload,
+                bodyAssertionType: normalizedAssertionType,
+                expectedBody: normalizedExpectedBody,
+                bodyAssertionPath: normalizedAssertionPath,
+            });
         } catch (err: any) {
             const msg = err.response?.data?.errors?.[0]?.message
                 || err.response?.data?.error
@@ -215,15 +234,72 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                         </div>
 
                         <div className="form-group">
-                            <label>Expected Body (regex/substring)</label>
-                            <input
-                                type="text"
-                                value={formData.expectedBody}
-                                onChange={e => update('expectedBody', e.target.value)}
-                                placeholder="optional"
-                            />
+                            <label>Assertion Mode</label>
+                            <select
+                                value={formData.bodyAssertionType}
+                                onChange={e => {
+                                    const nextType = e.target.value as MonitorFormData['bodyAssertionType'];
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        bodyAssertionType: nextType,
+                                        expectedBody: nextType === 'NONE' ? '' : prev.expectedBody,
+                                        bodyAssertionPath: nextType === 'JSON_PATH_EQUALS' || nextType === 'JSON_PATH_CONTAINS'
+                                            ? prev.bodyAssertionPath
+                                            : '',
+                                    }));
+                                }}
+                            >
+                                <option value="NONE">None</option>
+                                <option value="AUTO">Auto: regex or contains</option>
+                                <option value="CONTAINS">Contains text</option>
+                                <option value="REGEX">Regex match</option>
+                                <option value="JSON_PATH_EQUALS">JSON path equals</option>
+                                <option value="JSON_PATH_CONTAINS">JSON path contains</option>
+                            </select>
                         </div>
                     </div>
+
+                    {formData.bodyAssertionType !== 'NONE' && (
+                        <div className="form-row">
+                            {(formData.bodyAssertionType === 'JSON_PATH_EQUALS' || formData.bodyAssertionType === 'JSON_PATH_CONTAINS') && (
+                                <div className="form-group">
+                                    <label>JSON Path</label>
+                                    <input
+                                        type="text"
+                                        value={formData.bodyAssertionPath}
+                                        onChange={e => update('bodyAssertionPath', e.target.value)}
+                                        placeholder="data.status or items[0].name"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label>
+                                    {formData.bodyAssertionType === 'REGEX' && 'Expected Regex'}
+                                    {formData.bodyAssertionType === 'CONTAINS' && 'Expected Text'}
+                                    {formData.bodyAssertionType === 'AUTO' && 'Expected Body'}
+                                    {formData.bodyAssertionType === 'JSON_PATH_EQUALS' && 'Expected JSON Value'}
+                                    {formData.bodyAssertionType === 'JSON_PATH_CONTAINS' && 'Expected JSON Fragment'}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.expectedBody}
+                                    onChange={e => update('expectedBody', e.target.value)}
+                                    placeholder="optional"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {formData.bodyAssertionType !== 'NONE' && (
+                        <div className="help-text" style={{ marginBottom: 16 }}>
+                            {formData.bodyAssertionType === 'AUTO' && 'Backward-compatible mode: tries regex first, then falls back to substring matching.'}
+                            {formData.bodyAssertionType === 'CONTAINS' && 'Marks the check down if the response body does not contain the provided text.'}
+                            {formData.bodyAssertionType === 'REGEX' && 'Marks the check down if the response body does not match the provided regular expression.'}
+                            {formData.bodyAssertionType === 'JSON_PATH_EQUALS' && 'Parses the response as JSON and compares the selected path to the expected value.'}
+                            {formData.bodyAssertionType === 'JSON_PATH_CONTAINS' && 'Parses the response as JSON and checks whether the selected path contains the expected fragment.'}
+                        </div>
+                    )}
 
                     <div className="form-group">
                         <label>Custom Headers (JSON)</label>

@@ -24,6 +24,8 @@ const monitorSchema = z.object({
     timeoutSeconds: z.number(),
     expectedStatus: z.number(),
     expectedBody: z.string().nullable(),
+    bodyAssertionType: z.enum(['NONE', 'AUTO', 'CONTAINS', 'REGEX', 'JSON_PATH_EQUALS', 'JSON_PATH_CONTAINS']),
+    bodyAssertionPath: z.string().nullable(),
     headers: z.string().nullable(),
     authMethod: z.string(),
     authUrl: z.string().nullable(),

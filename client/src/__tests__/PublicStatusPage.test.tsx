@@ -77,6 +77,7 @@ describe('PublicStatusPage', () => {
             expect(screen.getByText('Homepage')).toBeInTheDocument();
         });
 
+        expect(screen.getByText('All public systems operational')).toBeInTheDocument();
         expect(screen.getByText('Public service health')).toBeInTheDocument();
         expect(screen.getByText('Incident timeline')).toBeInTheDocument();
         expect(screen.getAllByText('1 impacted hour')).toHaveLength(2);
