@@ -22,9 +22,10 @@ This document is optimized for agents that need to understand:
 
 ## Current State Summary
 
-As of 2026-03-11:
+As of 2026-03-13:
 - control plane is production-ready and deployed in split-runtime mode
 - remote agents are deployed and reporting version `1.0.0`
+- public status page is live at `/status` with selected monitors, 24h uptime summary, and a derived incident timeline
 - agent UI supports register, rotate token, revoke, delete, and version visibility
 - split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database
@@ -130,8 +131,8 @@ Important operational facts:
 - SSH is expected on port `2332`, not `22`
 - current operator workstation uses SSH aliases for the main hosts
 - control plane is currently deployed in split-runtime compose mode
-- current remote production agents are running as native Node.js + systemd services under a repo checkout, not via the docker-based deployment kit
-- the docker-based deployment kit remains the canonical greenfield install path for future agent hosts
+- current remote production agents are running as dockerized `systemd + docker compose` services using the repository deployment kit in `local-build` mode
+- the same docker-based deployment kit is the canonical path for future agent hosts as well
 
 ## Safe Workflow For AI Agents
 
@@ -155,8 +156,8 @@ When making changes, follow this sequence.
 - Do not delete an agent that still has assigned monitors.
   The backend now blocks this for a reason.
 - Do not replace split-runtime production with `SERVER_ROLE=all` unless explicitly requested.
-- Do not assume docker-based agent deployment matches the current production hosts.
-  Current prod agents are native Node.js + systemd.
+- Do not assume a `client` rollout needs to recreate `uptime-server-api`.
+  Current split compose is wired so `docker compose -f docker-compose.split.yml up -d --build client` should be a true UI/nginx-only rollout.
 - Do not add Prisma enums for SQLite-backed domain values.
   Use strings.
 - Do not add new `console.*` in server code.
@@ -195,6 +196,10 @@ Review these carefully before touching them.
 - `/api/audit`
 - `/api/notifications/*`
 - `/api/agents/*`
+
+### Public status
+- `GET /api/public/status`
+- `GET /status`
 
 ### Agent APIs
 - `GET /api/agent/jobs`

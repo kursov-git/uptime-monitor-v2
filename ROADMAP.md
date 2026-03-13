@@ -255,6 +255,12 @@ Acceptance shape:
 Outcome:
 - external viewers can see one clean public status page without authentication
 
+Current shipped baseline:
+- one public page exists at `/status`
+- operators can choose visible monitors
+- page includes current monitor state, 24h summary, availability chart, and a derived incident timeline
+- remaining roadmap work for this epic should focus on polish, configuration depth, and future integration with the formal incident model
+
 Primary user stories:
 - as an operator, I want to choose which monitors appear on the public page so I can control what is exposed
 - as a viewer, I want to see current service health quickly so I understand whether the platform is healthy
@@ -370,28 +376,30 @@ Each epic is broken down into backend, frontend, data, notifications, and testin
 - one stable slug or public path
 
 #### Backend
-- add public status page configuration model or settings fields
-- add API to manage which monitors are exposed publicly
-- add public read-only endpoint for status page payload
-- expose current state, simple uptime summary, and recent incidents/state changes
-- ensure public endpoint does not leak internal fields
+- current baseline exists via monitor-level public visibility and `/api/public/status`
+- remaining backend work should focus on:
+  - richer configuration beyond a simple boolean exposure flag
+  - future formal incident integration instead of derived hourly state
+  - continued review that the public payload stays non-sensitive
 
 #### Frontend
-- add admin UI for choosing public monitors
-- add public-facing page with a separate unauthenticated route
-- optimize for clean demo presentation and mobile readability
+- current baseline exists with dashboard exposure control and unauthenticated `/status`
+- remaining frontend work should focus on:
+  - further demo polish
+  - richer configuration UI if the exposure model expands
+  - future incident-model rendering once incidents exist
 
 #### Data / schema
-- add fields or table for public status page configuration
-- define whether monitor exposure is boolean flag or relation-backed selection
+- current baseline uses `Monitor.isPublic`
+- later work can decide whether public exposure remains a boolean flag or moves to a richer configuration model
 
 #### Tests
-- public endpoint contract tests
-- auth boundary tests to ensure only the public page is exposed anonymously
-- UI tests for monitor selection and public rendering
+- preserve contract tests for `/api/public/status`
+- preserve auth-boundary tests so anonymous access remains limited to the intended public route
+- extend UI coverage when public-page configuration or incident-model integration grows
 
 #### Docs
-- update README and runbook when public route is finalized
+- keep README, architecture, topology, and runbook aligned with the current public route and rollout behavior
 
 ### Epic S Backlog: Security Hardening Follow-Up
 
@@ -534,15 +542,16 @@ It is meant to be used as a lightweight delivery board.
 
 ### Epic A: Public Status Page
 
-- [ ] T032 Finalize public page data model and public route shape
-- [ ] T033 Add public visibility configuration for monitors
-- [ ] T034 Add public status payload endpoint
-- [ ] T035 Add simple uptime summary aggregation for public payload
-- [ ] T036 Include recent incidents or recent state changes in public payload
-- [ ] T037 Add admin UI for choosing public monitors
-- [ ] T038 Build unauthenticated public status page UI
-- [ ] T039 Add public endpoint auth-boundary and contract tests
-- [ ] T040 Update README and runbook with public page behavior
+- [x] T032 Finalize public page data model and public route shape
+- [x] T033 Add public visibility configuration for monitors
+- [x] T034 Add public status payload endpoint
+- [x] T035 Add simple uptime summary aggregation for public payload
+- [x] T036 Include recent incidents or recent state changes in public payload
+  Current implementation uses a derived hourly incident timeline from check-result buckets; future incident-model integration remains follow-up work.
+- [x] T037 Add admin UI for choosing public monitors
+- [x] T038 Build unauthenticated public status page UI
+- [x] T039 Add public endpoint auth-boundary and contract tests
+- [x] T040 Update README and runbook with public page behavior
 
 ### Epic S: Security Hardening Follow-Up
 

@@ -186,6 +186,41 @@ Notes:
 - if admin access moves behind Tailscale, `ADMIN_ALLOWLIST` can stay empty while the public edge blocks that hostname or path entirely
 - `AGENT_ALLOWLIST` is still the practical control for the current public-agent topology; private-network agent access is a later option, not a current requirement
 
+## Public Status Page
+
+Public routes:
+- browser page: `/status`
+- payload: `/api/public/status`
+
+Current behavior:
+- one shared public page only
+- no authentication
+- only monitors explicitly marked public are returned
+- page shows:
+  - current monitor state
+  - latest check snapshot
+  - 24h summary pills
+  - 24h availability chart
+  - derived incident timeline strip
+  - per-monitor incident strip and sparkline
+
+Current implementation notes:
+- monitor exposure is currently a boolean flag on `Monitor`
+- the public timeline is derived from hourly check-result buckets
+- it is not yet backed by the future incident model from the roadmap
+- the page must work both on direct reload and on in-app navigation from the authenticated UI
+
+Operator workflow:
+1. Open the dashboard.
+2. Toggle public visibility for the monitors that should be exposed.
+3. Open `https://ping-agent.ru/status`.
+4. Verify that only the intended monitors are visible.
+
+Operational guardrails:
+- do not expose sensitive internal-only monitors accidentally; the public page is intentionally anonymous
+- treat `/api/public/status` as a read-only contract and avoid leaking internal monitor metadata there
+- when changing public-page UI only, use the client-only rollout path below rather than a full control-plane recreate
+
 ## Login Abuse Signals
 
 The API now emits stable security log markers for login abuse handling:

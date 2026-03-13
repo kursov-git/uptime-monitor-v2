@@ -37,6 +37,7 @@ Key responsibilities:
 - monitor CRUD and stats
 - notification settings and history
 - agent registration and lifecycle management
+- public monitor exposure and public status payload generation
 - agent jobs, heartbeat, results, SSE stream
 - builtin worker execution for unassigned monitors or single-process mode
 - retention cleanup
@@ -56,6 +57,7 @@ Key responsibilities:
 - monitor CRUD and history views
 - user and notification management
 - agent registration and lifecycle management
+- unauthenticated public status page rendering at `/status`
 
 ### Shared Packages
 
@@ -130,6 +132,23 @@ Important relationships:
 
 ## Execution Flow
 
+### Public Status Flow
+
+1. Operator marks a monitor public from the authenticated dashboard.
+2. Control plane persists that flag on the `Monitor` record.
+3. Anonymous viewers request `GET /api/public/status`.
+4. Server returns a read-only payload for public monitors only.
+5. Payload includes:
+   - current monitor state
+   - latest check snapshot
+   - 24-hour uptime summary
+   - 24 hourly availability buckets
+6. Client renders `/status` without auth and uses those buckets for:
+   - summary pills
+   - the 24h availability chart
+   - the derived incident timeline strip
+   - per-monitor sparkline and incident strip
+
 ### Builtin Worker Flow
 
 1. Server starts with builtin worker enabled.
@@ -202,6 +221,7 @@ Behavior:
 - JWT auth for browser/admin sessions
 - API keys for read-only access
 - admin-only writes for sensitive endpoints
+- public status route is intentionally anonymous but must remain read-only and non-sensitive
 
 ### Agent auth
 - one-time registration token shown only at create/rotate time
@@ -216,6 +236,7 @@ Behavior:
 ### JWT boundary
 - query-string JWT is reserved for SSE helper auth only
 - regular REST APIs must use headers
+- `/api/public/status` is intentionally sessionless and must not depend on browser auth
 
 ## Logging
 
@@ -254,6 +275,7 @@ External role health should be checked with compose or systemd status.
 - file: `docker-compose.split.yml`
 - split services for API, worker, retention, agent-offline-monitor, and client
 - this is the current production pattern for the control plane
+- `client` rollouts are intentionally decoupled from the API container; `docker compose -f docker-compose.split.yml up -d --build client` should not recreate `server`
 
 ### Remote agent deployment
 Two patterns exist.

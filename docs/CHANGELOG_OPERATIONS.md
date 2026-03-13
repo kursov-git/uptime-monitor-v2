@@ -3,6 +3,30 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-03-13
+
+### Public status page rollout and follow-up fixes
+
+Host:
+- `onedashmsk`
+
+Changes:
+- deployed public status page at `/status`
+- exposed anonymous payload at `/api/public/status`
+- added selected-monitor visibility controls, 24h availability aggregation, and a derived incident timeline
+- fixed the first-navigation React hook-order crash that occurred when opening `/status` from the authenticated UI without a full page reload
+- removed the compose dependency that caused `client` rollouts to recreate `uptime-server-api`
+
+Operational result:
+- public status page now works on both direct load and in-app navigation
+- `client`-only rollouts now rebuild and recreate only `uptime-client`
+- `uptime-server-api` remains running during UI-only rollouts
+
+Verification:
+- `/status` serves the current public bundle
+- `/api/public/status` returns the expected public payload with 24 hourly buckets
+- `docker compose -f docker-compose.split.yml up -d --build client` no longer changes the `uptime-server-api` container ID or start time
+
 ## 2026-03-12
 
 ### Remote agent dockerization rollout

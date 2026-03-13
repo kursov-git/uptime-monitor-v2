@@ -30,6 +30,8 @@ Services expected there:
 
 Public responsibilities:
 - browser UI
+- `/status`
+- `/api/public/status`
 - `/api/*`
 - `/api/agent/*`
 - split background runtime
@@ -48,6 +50,12 @@ Current production setting:
 Current public domain:
 - `ping-agent.ru`
 - `www.ping-agent.ru`
+
+Current public status behavior:
+- one shared public page lives on the same `client` container and domain as the operator UI
+- only selected monitors are exposed
+- page currently shows a 24h uptime summary plus a derived incident timeline from check-result buckets
+- current public link is `https://ping-agent.ru/status`
 
 ### Agent Host: `cloudruvm1`
 

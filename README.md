@@ -18,6 +18,7 @@ For implementation and operator truth, read:
 - tracks audit history and notification history
 - supports remote execution through registered agents
 - supports builtin worker execution when `agentId` is not assigned
+- exposes one public status page at `/status` for a curated subset of monitors
 
 ## Current State
 
@@ -26,6 +27,7 @@ Implemented and working:
 - agent registration, token rotation, revocation, deletion, and version tracking
 - agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
 - agent offline and recovery notifications through the shared notification stack
+- public status page with per-monitor exposure, 24h availability buckets, and a derived incident timeline
 - production JSON logging
 - centralized env validation
 - backup/restore scripts for SQLite compose deployments
@@ -123,6 +125,9 @@ Includes:
 
 This is the current production pattern for the control plane.
 
+Operational note:
+- `docker compose -f docker-compose.split.yml up -d --build client` is the intended UI/nginx-only rollout path and should not recreate `uptime-server-api`
+
 ## Environment Variables
 
 ### Server
@@ -181,6 +186,33 @@ Delete rules:
 - deletion is allowed only if the agent has no assigned monitors
 - historical results are preserved with `agentId = null`
 
+## Public Status Page
+
+Public route:
+- `/status`
+
+Public payload:
+- `GET /api/public/status`
+
+Current behavior:
+- one shared public page for the whole monitored estate
+- no auth required
+- only monitors explicitly marked public are shown
+- page shows current monitor status, simple 24h uptime summary, and a 24-hour derived incident timeline
+- the public timeline is currently derived from hourly check-result buckets, not from the future formal incident model
+
+Operator flow:
+1. choose a monitor in the dashboard
+2. toggle public visibility
+3. open `/status`
+4. verify only the intended monitors are shown
+
+Current scope:
+- one public page only
+- same main domain as the operator UI
+- no multi-page status configuration yet
+- no dedicated incident object model in the public payload yet
+
 ## Tests And Verification
 
 ### Local CI parity
@@ -218,6 +250,7 @@ Important current facts:
 - SSH is expected on port `2332`
 - current control plane is deployed in split-runtime compose mode
 - current production agents are dockerized and managed by `systemd + docker compose`
+- public status page is served from the same `client` container as the main UI
 - the same repository deployment kit is used for future greenfield agent hosts
 
 ## Agent Deployment
