@@ -570,11 +570,46 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.82rem;
-  color: var(--color-text-secondary);
-  padding: 8px 10px;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  padding: 10px 12px;
   border-radius: 8px;
-  background: rgba(2, 6, 23, 0.38);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-left: 3px solid rgba(239, 68, 68, 0.9);
+  background: linear-gradient(90deg, rgba(127, 29, 29, 0.2), rgba(2, 6, 23, 0.45));
+}
+
+.public-drilldown-failure-main {
+  display: grid;
+  gap: 4px;
+}
+
+.public-drilldown-failure-main strong {
+  color: #fecaca;
+  font-size: 0.9rem;
+}
+
+.public-drilldown-failure-main span {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.public-drilldown-failure-metrics {
+  min-width: 84px;
+  text-align: right;
+}
+
+.public-drilldown-failure-metrics span {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.public-drilldown-failure-metrics strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
 }
 
 .public-status-stats {
@@ -945,6 +980,11 @@ tr:hover td {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .public-drilldown-failure-metrics {
+    text-align: left;
+    min-width: 0;
   }
 
   .public-status-banner,

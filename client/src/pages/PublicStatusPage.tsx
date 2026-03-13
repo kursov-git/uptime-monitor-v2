@@ -538,11 +538,17 @@ export default function PublicStatusPage() {
                                                             <div className="public-drilldown-failure-list">
                                                                 {drilldown.failures.map((failure: PublicStatusDrilldownFailure) => (
                                                                     <div key={failure.timestamp} className="public-drilldown-failure-item">
-                                                                        <span>{formatTimestamp(failure.timestamp)}</span>
-                                                                        <span>
-                                                                            {failure.statusCode ? `HTTP ${failure.statusCode}` : 'No status'}
-                                                                            {failure.error ? ` · ${failure.error}` : ''}
-                                                                        </span>
+                                                                        <div className="public-drilldown-failure-main">
+                                                                            <strong>{formatTimestamp(failure.timestamp)}</strong>
+                                                                            <span>
+                                                                                {failure.statusCode ? `HTTP ${failure.statusCode}` : 'No status'}
+                                                                                {failure.error ? ` · ${failure.error}` : ''}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="public-drilldown-failure-metrics">
+                                                                            <span>Response</span>
+                                                                            <strong>{failure.responseTimeMs}ms</strong>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>
