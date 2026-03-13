@@ -10,6 +10,8 @@ import {
     YAxis,
 } from 'recharts';
 
+type PublicBucket = PublicStatusResponse['history24h'][number];
+
 function formatTimestamp(value: string | null): string {
     if (!value) {
         return 'No checks yet';
@@ -31,6 +33,79 @@ function formatHourLabel(value: string): string {
 
 function formatAvailabilityValue(value: number | null): string {
     return value === null ? '—' : `${value.toFixed(1)}%`;
+}
+
+function getIncidentTone(bucket: PublicBucket): 'operational' | 'degraded' | 'outage' | 'unknown' {
+    if (bucket.totalChecks === 0 || bucket.uptimePercent === null) {
+        return 'unknown';
+    }
+
+    if (bucket.uptimePercent === 100) {
+        return 'operational';
+    }
+
+    if (bucket.uptimePercent === 0) {
+        return 'outage';
+    }
+
+    return 'degraded';
+}
+
+function getIncidentLabel(bucket: PublicBucket): string {
+    const tone = getIncidentTone(bucket);
+    if (tone === 'operational') return 'Operational';
+    if (tone === 'outage') return 'Outage';
+    if (tone === 'degraded') return 'Partial outage';
+    return 'No data';
+}
+
+function getIncidentSummary(buckets: PublicBucket[]): string {
+    const impacted = buckets.filter((bucket) => {
+        const tone = getIncidentTone(bucket);
+        return tone === 'degraded' || tone === 'outage';
+    }).length;
+
+    const noData = buckets.filter((bucket) => getIncidentTone(bucket) === 'unknown').length;
+
+    if (impacted === 0 && noData === 0) {
+        return 'No incidents in 24h';
+    }
+
+    const parts: string[] = [];
+    if (impacted > 0) {
+        parts.push(`${impacted} impacted ${impacted === 1 ? 'hour' : 'hours'}`);
+    }
+    if (noData > 0) {
+        parts.push(`${noData} ${noData === 1 ? 'hour has' : 'hours have'} no data`);
+    }
+
+    return parts.join(' · ');
+}
+
+function IncidentStrip({
+    buckets,
+    compact = false,
+}: {
+    buckets: PublicBucket[];
+    compact?: boolean;
+}) {
+    return (
+        <div className={`public-incident-strip ${compact ? 'compact' : ''}`} aria-label="Incident timeline for the last 24 hours">
+            {buckets.map((bucket) => {
+                const tone = getIncidentTone(bucket);
+                const availability = formatAvailabilityValue(bucket.uptimePercent);
+                const response = bucket.avgResponseTimeMs === null ? '—' : `${bucket.avgResponseTimeMs}ms`;
+
+                return (
+                    <div
+                        key={bucket.timestamp}
+                        className={`public-incident-segment ${tone}`}
+                        title={`${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)} · Availability ${availability} · Avg response ${response}`}
+                    />
+                );
+            })}
+        </div>
+    );
 }
 
 export default function PublicStatusPage() {
@@ -152,6 +227,25 @@ export default function PublicStatusPage() {
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
+                        <div className="public-incident-panel">
+                            <div className="public-incident-panel-header">
+                                <div>
+                                    <strong>Incident Timeline</strong>
+                                    <span>{getIncidentSummary(data.history24h)}</span>
+                                </div>
+                                <div className="public-incident-axis-labels">
+                                    <span>24h ago</span>
+                                    <span>Now</span>
+                                </div>
+                            </div>
+                            <IncidentStrip buckets={data.history24h} />
+                            <div className="public-incident-legend">
+                                <span><i className="operational" /> Operational</span>
+                                <span><i className="degraded" /> Partial outage</span>
+                                <span><i className="outage" /> Outage</span>
+                                <span><i className="unknown" /> No data</span>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -174,6 +268,11 @@ export default function PublicStatusPage() {
                                         {getStatusLabel(monitor.status)}
                                     </span>
                                 </div>
+                                <div className="public-status-timeline-header">
+                                    <span>Incident timeline</span>
+                                    <strong>{getIncidentSummary(monitor.history24h)}</strong>
+                                </div>
+                                <IncidentStrip buckets={monitor.history24h} compact />
                                 <div className="public-status-sparkline">
                                     <ResponsiveContainer width="100%" height={72}>
                                         <AreaChart

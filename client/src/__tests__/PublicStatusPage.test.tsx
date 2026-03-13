@@ -78,8 +78,11 @@ describe('PublicStatusPage', () => {
         });
 
         expect(screen.getByText('Public service health')).toBeInTheDocument();
+        expect(screen.getByText('Incident timeline')).toBeInTheDocument();
+        expect(screen.getAllByText('1 impacted hour')).toHaveLength(2);
+        expect(screen.getByText('Partial outage')).toBeInTheDocument();
         expect(screen.getByText('24h Uptime')).toBeInTheDocument();
         expect(screen.getByText('95.8%')).toBeInTheDocument();
-        expect(screen.getByText('Operational')).toBeInTheDocument();
+        expect(screen.getAllByText('Operational').length).toBeGreaterThan(0);
     });
 });

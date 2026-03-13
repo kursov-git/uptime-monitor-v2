@@ -312,6 +312,105 @@ body {
   color: #86efac;
 }
 
+.public-incident-panel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.public-incident-panel-header,
+.public-status-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
+
+.public-incident-panel-header strong,
+.public-status-timeline-header strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.public-incident-panel-header span,
+.public-status-timeline-header span {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.public-incident-axis-labels {
+  display: flex;
+  gap: 16px;
+  white-space: nowrap;
+}
+
+.public-incident-strip {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.public-incident-strip.compact {
+  gap: 3px;
+}
+
+.public-incident-segment {
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.public-incident-strip.compact .public-incident-segment {
+  height: 14px;
+  border-radius: 4px;
+}
+
+.public-incident-segment.operational {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.92), rgba(22, 163, 74, 0.78));
+}
+
+.public-incident-segment.degraded {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.95), rgba(217, 119, 6, 0.82));
+}
+
+.public-incident-segment.outage {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.96), rgba(220, 38, 38, 0.82));
+}
+
+.public-incident-segment.unknown {
+  background: linear-gradient(180deg, rgba(100, 116, 139, 0.72), rgba(71, 85, 105, 0.72));
+}
+
+.public-incident-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+}
+
+.public-incident-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.public-incident-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.public-incident-legend i.operational { background: #22c55e; }
+.public-incident-legend i.degraded { background: #f59e0b; }
+.public-incident-legend i.outage { background: #ef4444; }
+.public-incident-legend i.unknown { background: #64748b; }
+
 .public-status-card-header {
   display: flex;
   justify-content: space-between;
@@ -691,6 +790,17 @@ tr:hover td {
   .public-status-chart-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .public-incident-panel-header,
+  .public-status-timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .public-incident-axis-labels {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
