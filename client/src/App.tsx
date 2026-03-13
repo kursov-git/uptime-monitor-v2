@@ -16,6 +16,7 @@ export default function App() {
     const { isAuthenticated, isAdmin, isLoading, user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const isPublicStatusRoute = location.pathname === '/status';
     const {
         monitors, loading, fetchMonitors,
         createMonitor, updateMonitor, deleteMonitor, toggleMonitor,
@@ -23,12 +24,8 @@ export default function App() {
         handleSSEUpdate,
     } = useMonitors();
 
-    if (location.pathname === '/status') {
-        return <PublicStatusPage />;
-    }
-
     useEffect(() => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated || isPublicStatusRoute) return;
 
         fetchMonitors();
 
@@ -52,7 +49,11 @@ export default function App() {
         return () => {
             sse.close();
         };
-    }, [isAuthenticated, fetchMonitors, handleSSEUpdate]);
+    }, [isAuthenticated, isPublicStatusRoute, fetchMonitors, handleSSEUpdate]);
+
+    if (isPublicStatusRoute) {
+        return <PublicStatusPage />;
+    }
 
     if (isLoading) {
         return (
