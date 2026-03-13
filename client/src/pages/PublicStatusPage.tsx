@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { publicApi, type PublicStatusResponse } from '../api';
+import type { PublicStatusBucket, PublicStatusDrilldownFailure, PublicStatusDrilldownResponse } from '@uptime-monitor/shared';
 import {
     Area,
     AreaChart,
@@ -28,6 +29,16 @@ function getStatusLabel(status: PublicStatusResponse['monitors'][number]['status
 }
 
 function formatHourLabel(value: string): string {
+    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatHourRange(value: string): string {
+    const start = new Date(value);
+    const end = new Date(start.getTime() + 60 * 60 * 1000 - 1);
+    return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function formatMinuteLabel(value: string): string {
     return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -125,9 +136,17 @@ function getPublicHeadline(summary: PublicStatusResponse['summary'], monitorCoun
 function IncidentStrip({
     buckets,
     compact = false,
+    interactive = false,
+    selectedTimestamp = null,
+    onSelectBucket,
+    labelPrefix = 'timeline',
 }: {
     buckets: PublicBucket[];
     compact?: boolean;
+    interactive?: boolean;
+    selectedTimestamp?: string | null;
+    onSelectBucket?: (bucket: PublicBucket) => void;
+    labelPrefix?: string;
 }) {
     return (
         <div className={`public-incident-strip ${compact ? 'compact' : ''}`} aria-label="Incident timeline for the last 24 hours">
@@ -135,12 +154,27 @@ function IncidentStrip({
                 const tone = getIncidentTone(bucket);
                 const availability = formatAvailabilityValue(bucket.uptimePercent);
                 const response = bucket.avgResponseTimeMs === null ? '—' : `${bucket.avgResponseTimeMs}ms`;
+                const isSelected = selectedTimestamp === bucket.timestamp;
+                const title = `${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)} · Availability ${availability} · Avg response ${response}`;
+
+                if (interactive) {
+                    return (
+                        <button
+                            key={bucket.timestamp}
+                            type="button"
+                            className={`public-incident-segment interactive ${tone} ${isSelected ? 'selected' : ''}`}
+                            title={title}
+                            aria-label={`Drill down ${labelPrefix} ${formatHourRange(bucket.timestamp)}`}
+                            onClick={() => onSelectBucket?.(bucket)}
+                        />
+                    );
+                }
 
                 return (
                     <div
                         key={bucket.timestamp}
-                        className={`public-incident-segment ${tone}`}
-                        title={`${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)} · Availability ${availability} · Avg response ${response}`}
+                        className={`public-incident-segment ${tone} ${isSelected ? 'selected' : ''}`}
+                        title={title}
                     />
                 );
             })}
@@ -152,6 +186,10 @@ export default function PublicStatusPage() {
     const [data, setData] = useState<PublicStatusResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedDrilldown, setSelectedDrilldown] = useState<{ monitorId: string; timestamp: string } | null>(null);
+    const [drilldownCache, setDrilldownCache] = useState<Record<string, PublicStatusDrilldownResponse>>({});
+    const [drilldownLoading, setDrilldownLoading] = useState<string | null>(null);
+    const [drilldownError, setDrilldownError] = useState('');
 
     useEffect(() => {
         const fetchStatus = async () => {
@@ -169,6 +207,27 @@ export default function PublicStatusPage() {
 
         fetchStatus();
     }, []);
+
+    const fetchDrilldown = async (monitorId: string, timestamp: string) => {
+        const cacheKey = `${monitorId}:${timestamp}`;
+        if (drilldownCache[cacheKey]) {
+            setSelectedDrilldown({ monitorId, timestamp });
+            setDrilldownError('');
+            return;
+        }
+
+        setSelectedDrilldown({ monitorId, timestamp });
+        setDrilldownLoading(cacheKey);
+        setDrilldownError('');
+        try {
+            const res = await publicApi.get<PublicStatusDrilldownResponse>(`/status/${monitorId}/drilldown?start=${encodeURIComponent(timestamp)}`);
+            setDrilldownCache((prev) => ({ ...prev, [cacheKey]: res.data }));
+        } catch (err: any) {
+            setDrilldownError(err.response?.data?.error || err.message || 'Failed to load drill-down');
+        } finally {
+            setDrilldownLoading(null);
+        }
+    };
 
     const summary = data?.summary ?? { up: 0, down: 0, paused: 0, unknown: 0 };
     const availabilitySeries = data?.history24h.map((bucket) => ({
@@ -331,7 +390,27 @@ export default function PublicStatusPage() {
                                     <span>Incident timeline</span>
                                     <strong>{getIncidentSummary(monitor.history24h)}</strong>
                                 </div>
-                                <IncidentStrip buckets={monitor.history24h} compact />
+                                <IncidentStrip
+                                    buckets={monitor.history24h}
+                                    compact
+                                    interactive
+                                    selectedTimestamp={selectedDrilldown?.monitorId === monitor.id ? selectedDrilldown.timestamp : null}
+                                    labelPrefix={`${monitor.name} hour`}
+                                    onSelectBucket={(bucket) => {
+                                        const isSameSelection = selectedDrilldown?.monitorId === monitor.id
+                                            && selectedDrilldown.timestamp === bucket.timestamp;
+                                        if (isSameSelection) {
+                                            setSelectedDrilldown(null);
+                                            setDrilldownError('');
+                                            return;
+                                        }
+
+                                        fetchDrilldown(monitor.id, bucket.timestamp);
+                                    }}
+                                />
+                                <div className="help-text" style={{ marginTop: 8 }}>
+                                    Click any hour to inspect the exact failure window in 5-minute detail.
+                                </div>
                                 <div className="public-status-sparkline">
                                     <ResponsiveContainer width="100%" height={72}>
                                         <AreaChart
@@ -358,6 +437,96 @@ export default function PublicStatusPage() {
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </div>
+                                {selectedDrilldown?.monitorId === monitor.id && (
+                                    <div className="public-drilldown-card">
+                                        <div className="public-status-timeline-header">
+                                            <span>Selected hour</span>
+                                            <strong>{formatHourRange(selectedDrilldown.timestamp)}</strong>
+                                        </div>
+                                        {drilldownError ? (
+                                            <div className="error-message" style={{ marginBottom: 0 }}>{drilldownError}</div>
+                                        ) : drilldownLoading === `${monitor.id}:${selectedDrilldown.timestamp}` ? (
+                                            <div className="empty-state" style={{ padding: '16px 0' }}>
+                                                <h3>Loading drill-down…</h3>
+                                            </div>
+                                        ) : (() => {
+                                            const drilldown = drilldownCache[`${monitor.id}:${selectedDrilldown.timestamp}`];
+                                            if (!drilldown) {
+                                                return null;
+                                            }
+
+                                            const detailedSeries = drilldown.history.map((bucket: PublicStatusBucket) => ({
+                                                time: formatMinuteLabel(bucket.timestamp),
+                                                availability: bucket.uptimePercent,
+                                                responseTimeMs: bucket.avgResponseTimeMs,
+                                                checks: bucket.totalChecks,
+                                            }));
+
+                                            return (
+                                                <>
+                                                    <div className="public-drilldown-summary">
+                                                        <div>
+                                                            <span>Checks</span>
+                                                            <strong>{drilldown.totalChecks}</strong>
+                                                        </div>
+                                                        <div>
+                                                            <span>Availability</span>
+                                                            <strong>{formatAvailabilityValue(drilldown.uptimePercent)}</strong>
+                                                        </div>
+                                                        <div>
+                                                            <span>Failed checks</span>
+                                                            <strong>{drilldown.failures.length}</strong>
+                                                        </div>
+                                                    </div>
+                                                    <div className="public-status-sparkline" style={{ marginTop: 10 }}>
+                                                        <ResponsiveContainer width="100%" height={120}>
+                                                            <AreaChart data={detailedSeries} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
+                                                                <defs>
+                                                                    <linearGradient id={`drilldownAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.42} />
+                                                                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.04} />
+                                                                    </linearGradient>
+                                                                </defs>
+                                                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
+                                                                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={12} />
+                                                                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                                                                <Tooltip content={<OverviewTooltip />} />
+                                                                <Area
+                                                                    type="monotone"
+                                                                    dataKey="availability"
+                                                                    stroke="#f59e0b"
+                                                                    strokeWidth={2}
+                                                                    fill={`url(#drilldownAvailability-${monitor.id})`}
+                                                                    connectNulls={false}
+                                                                />
+                                                            </AreaChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    {drilldown.failures.length > 0 ? (
+                                                        <div className="public-drilldown-failures">
+                                                            <strong>Failure timestamps</strong>
+                                                            <div className="public-drilldown-failure-list">
+                                                                {drilldown.failures.map((failure: PublicStatusDrilldownFailure) => (
+                                                                    <div key={failure.timestamp} className="public-drilldown-failure-item">
+                                                                        <span>{formatTimestamp(failure.timestamp)}</span>
+                                                                        <span>
+                                                                            {failure.statusCode ? `HTTP ${failure.statusCode}` : 'No status'}
+                                                                            {failure.error ? ` · ${failure.error}` : ''}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="help-text" style={{ marginTop: 10 }}>
+                                                            No failed checks inside this hour.
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                                 <div className="public-status-stats">
                                     <div>
                                         <span>Method</span>

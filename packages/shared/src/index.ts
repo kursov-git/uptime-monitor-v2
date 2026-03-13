@@ -157,6 +157,26 @@ export interface PublicStatusBucket {
     avgResponseTimeMs: number | null;
 }
 
+export interface PublicStatusDrilldownFailure {
+    timestamp: string;
+    responseTimeMs: number;
+    statusCode: number | null;
+    error: string | null;
+}
+
+export interface PublicStatusDrilldownResponse {
+    monitorId: string;
+    monitorName: string;
+    windowStart: string;
+    windowEnd: string;
+    bucketSizeMinutes: number;
+    totalChecks: number;
+    upChecks: number;
+    uptimePercent: number | null;
+    history: PublicStatusBucket[];
+    failures: PublicStatusDrilldownFailure[];
+}
+
 export interface PublicStatusResponse {
     generatedAt: string;
     monitorCount: number;

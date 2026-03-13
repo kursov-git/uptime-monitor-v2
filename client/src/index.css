@@ -410,6 +410,18 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.public-incident-segment.interactive {
+  cursor: pointer;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.public-incident-segment.selected {
+  outline: 2px solid rgba(191, 219, 254, 0.85);
+  outline-offset: 1px;
+}
+
 .public-incident-strip.compact .public-incident-segment {
   height: 14px;
   border-radius: 4px;
@@ -475,6 +487,56 @@ body {
   border-radius: var(--radius-sm);
   background: linear-gradient(180deg, rgba(2, 6, 23, 0.52), rgba(15, 23, 42, 0.2));
   border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.public-drilldown-card {
+  margin: 10px 0 14px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(2, 6, 23, 0.4));
+}
+
+.public-drilldown-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.public-drilldown-summary span {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.public-drilldown-summary strong {
+  font-size: 1rem;
+}
+
+.public-drilldown-failures {
+  margin-top: 12px;
+}
+
+.public-drilldown-failures strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.public-drilldown-failure-list {
+  display: grid;
+  gap: 8px;
+}
+
+.public-drilldown-failure-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.38);
 }
 
 .public-status-stats {
@@ -836,6 +898,13 @@ tr:hover td {
   }
 
   .public-status-chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .public-drilldown-summary,
+  .public-drilldown-failure-item {
+    grid-template-columns: 1fr;
     flex-direction: column;
     align-items: flex-start;
   }

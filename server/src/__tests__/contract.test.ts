@@ -86,6 +86,24 @@ const publicStatusSchema = z.object({
     })),
 });
 
+const publicStatusDrilldownSchema = z.object({
+    monitorId: uuid,
+    monitorName: z.string(),
+    windowStart: isoDate,
+    windowEnd: isoDate,
+    bucketSizeMinutes: z.number(),
+    totalChecks: z.number(),
+    upChecks: z.number(),
+    uptimePercent: z.number().nullable(),
+    history: z.array(publicStatusBucketSchema).length(12),
+    failures: z.array(z.object({
+        timestamp: isoDate,
+        responseTimeMs: z.number(),
+        statusCode: z.number().nullable(),
+        error: z.string().nullable(),
+    })),
+});
+
 function normalizeForSnapshot<T extends Record<string, any>>(input: T): T {
     return JSON.parse(JSON.stringify(input, (_, value) => {
         if (typeof value === 'string') {
@@ -329,6 +347,51 @@ describe('API Contract', () => {
         expect(publicBody.monitors[0].name).toBe('Public Monitor');
 
         expect(normalizeForSnapshot(publicBody)).toMatchSnapshot();
+    });
+
+    it('validates public status drilldown contract without authentication', async () => {
+        const hourStart = new Date();
+        hourStart.setUTCMinutes(0, 0, 0);
+
+        const publicMonitor = await prisma.monitor.create({
+            data: {
+                name: 'Public Drilldown Monitor',
+                url: 'https://example.com/public-drilldown',
+                method: 'GET',
+                isPublic: true,
+            },
+        });
+
+        await prisma.checkResult.createMany({
+            data: [
+                {
+                    monitorId: publicMonitor.id,
+                    isUp: true,
+                    responseTimeMs: 110,
+                    statusCode: 200,
+                    timestamp: new Date(hourStart.getTime() + 5 * 60 * 1000),
+                },
+                {
+                    monitorId: publicMonitor.id,
+                    isUp: false,
+                    responseTimeMs: 480,
+                    statusCode: 503,
+                    error: 'Service unavailable',
+                    timestamp: new Date(hourStart.getTime() + 20 * 60 * 1000),
+                },
+            ],
+        });
+
+        const drilldownRes = await app.inject({
+            method: 'GET',
+            url: `/api/public/status/${publicMonitor.id}/drilldown?start=${encodeURIComponent(hourStart.toISOString())}`,
+        });
+
+        expect(drilldownRes.statusCode).toBe(200);
+        const drilldownBody = publicStatusDrilldownSchema.parse(JSON.parse(drilldownRes.body));
+        expect(drilldownBody.monitorName).toBe('Public Drilldown Monitor');
+        expect(drilldownBody.failures).toHaveLength(1);
+        expect(drilldownBody.history).toHaveLength(12);
     });
 
     it('validates users and audit contracts', async () => {
