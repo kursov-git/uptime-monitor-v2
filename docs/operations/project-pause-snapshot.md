@@ -6,7 +6,7 @@ Snapshot date:
 - `2026-03-13`
 
 Snapshot commit:
-- `8d8d16b6529d0e9af2b04731f79834a6fcede397`
+- `45d448c2397d8157d2a86fa95fb6e49ed4e8e4e4`
 
 Current project mode:
 - active codebase
@@ -102,6 +102,8 @@ Agent runtime model:
 - `deploy.sh` remains legacy and is not the preferred production path
 - Tailscale for admin access is still a preferred future path, but not yet enabled
 - `AGENT_ALLOWLIST` is still available but not yet enforced in production
+- latest pause-time control-plane DB backup:
+  - `/data/backups/uptime-20260313T125318Z.db`
 
 ## Current Known Deliberate Gaps
 
