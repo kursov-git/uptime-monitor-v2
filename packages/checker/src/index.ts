@@ -1,6 +1,7 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { wrapper } from 'axios-cookiejar-support';
+import tls from 'node:tls';
 import { CookieJar } from 'tough-cookie';
 import { assertSafeCheckTargets } from './targetGuards';
 
@@ -93,6 +94,14 @@ function extractPeerCertificate(response: any): PeerCertificateLike | null {
 
 function extractSslSnapshot(response: any): SslCheckSnapshot | null {
     const certificate = extractPeerCertificate(response);
+    if (!certificate) {
+        return null;
+    }
+
+    return buildSslSnapshot(certificate);
+}
+
+function buildSslSnapshot(certificate: PeerCertificateLike): SslCheckSnapshot {
     const validTo = certificate?.valid_to ? new Date(certificate.valid_to) : null;
     const expiresAt = validTo && !Number.isNaN(validTo.getTime()) ? validTo : null;
 
@@ -104,6 +113,85 @@ function extractSslSnapshot(response: any): SslCheckSnapshot | null {
         issuer: formatCertificateParty(certificate?.issuer),
         subject: formatCertificateParty(certificate?.subject),
     };
+}
+
+async function fetchSslSnapshotFromTls(targetUrl: string, timeoutMs: number): Promise<SslCheckSnapshot | null> {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol !== 'https:') {
+        return null;
+    }
+
+    const hostname = parsed.hostname;
+    const port = parsed.port ? Number.parseInt(parsed.port, 10) : 443;
+
+    return await new Promise<SslCheckSnapshot | null>((resolve, reject) => {
+        let settled = false;
+        const finalize = (fn: () => void) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            fn();
+        };
+
+        const socket = tls.connect({
+            host: hostname,
+            port,
+            servername: hostname,
+            rejectUnauthorized: false,
+        });
+
+        socket.setTimeout(timeoutMs);
+
+        socket.once('secureConnect', () => {
+            finalize(() => {
+                try {
+                    const certificate = socket.getPeerCertificate();
+                    socket.end();
+
+                    if (!certificate || Object.keys(certificate).length === 0) {
+                        resolve(null);
+                        return;
+                    }
+
+                    resolve(buildSslSnapshot(certificate as PeerCertificateLike));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        });
+
+        socket.once('timeout', () => {
+            finalize(() => {
+                socket.destroy();
+                reject(new Error(`TLS handshake timed out after ${timeoutMs}ms`));
+            });
+        });
+
+        socket.once('error', (err) => {
+            finalize(() => {
+                socket.destroy();
+                reject(err);
+            });
+        });
+    });
+}
+
+async function resolveSslSnapshot(input: PerformCheckInput, response: any): Promise<SslCheckSnapshot | null> {
+    if (!input.sslExpiryEnabled) {
+        return null;
+    }
+
+    const targetUrl = typeof response?.request?.res?.responseUrl === 'string'
+        ? response.request.res.responseUrl
+        : input.url;
+    const protocol = new URL(targetUrl).protocol;
+
+    if (protocol !== 'https:') {
+        return null;
+    }
+
+    return extractSslSnapshot(response) || await fetchSslSnapshotFromTls(targetUrl, input.timeoutSeconds * 1000);
 }
 
 function getJsonPathValue(input: unknown, path: string): unknown {
@@ -307,12 +395,7 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
         });
 
         statusCode = response.status;
-        if (input.sslExpiryEnabled) {
-            const protocol = new URL(input.url).protocol;
-            if (protocol === 'https:') {
-                ssl = extractSslSnapshot(response);
-            }
-        }
+        ssl = await resolveSslSnapshot(input, response);
 
         if (response.status !== input.expectedStatus) {
             error = `Expected status ${input.expectedStatus}, got ${response.status}`;

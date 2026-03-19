@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
 import axiosRetry from 'axios-retry';
 import { performCheck } from '../../../packages/checker/src';
 
 const mockLookup = vi.hoisted(() => vi.fn());
+const mockTlsConnect = vi.hoisted(() => vi.fn());
 
 const mockAxiosInstance = vi.hoisted(() => {
     const fn = vi.fn();
@@ -25,6 +27,12 @@ vi.mock('axios-cookiejar-support', () => ({
 vi.mock('node:dns/promises', () => ({
     default: {
         lookup: mockLookup,
+    },
+}));
+
+vi.mock('node:tls', () => ({
+    default: {
+        connect: mockTlsConnect,
     },
 }));
 
@@ -104,6 +112,62 @@ describe('checker', () => {
             subject: 'ping-agent.ru',
         });
         expect(typeof result.ssl?.daysRemaining).toBe('number');
+        expect(mockTlsConnect).not.toHaveBeenCalled();
+    });
+
+    it('falls back to a dedicated TLS handshake when axios does not expose the peer certificate', async () => {
+        mockAxiosInstance.mockResolvedValue({
+            status: 200,
+            data: { ok: true },
+            headers: {},
+            request: {},
+        });
+
+        mockTlsConnect.mockImplementation(() => {
+            const socket = new EventEmitter() as EventEmitter & {
+                setTimeout: ReturnType<typeof vi.fn>;
+                getPeerCertificate: ReturnType<typeof vi.fn>;
+                end: ReturnType<typeof vi.fn>;
+                destroy: ReturnType<typeof vi.fn>;
+            };
+            socket.setTimeout = vi.fn();
+            socket.getPeerCertificate = vi.fn(() => ({
+                valid_to: 'Jun 10 12:00:00 2026 GMT',
+                issuer: { CN: 'Fallback CA' },
+                subject: { CN: 'example.com' },
+            }));
+            socket.end = vi.fn();
+            socket.destroy = vi.fn();
+
+            queueMicrotask(() => {
+                socket.emit('secureConnect');
+            });
+
+            return socket;
+        });
+
+        const result = await performCheck({
+            url: 'https://example.com/api',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+            sslExpiryEnabled: true,
+            sslExpiryThresholdDays: 14,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(mockTlsConnect).toHaveBeenCalledTimes(1);
+        expect(result.ssl).toMatchObject({
+            expiresAt: '2026-06-10T12:00:00.000Z',
+            issuer: 'Fallback CA',
+            subject: 'example.com',
+        });
     });
 
     it('records status mismatch as failure', async () => {

@@ -132,7 +132,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     };
 
     return (
-        <div className="modal-overlay" onClick={onCancel}>
+        <div className="modal-overlay" data-testid="monitor-form-overlay">
             <div className="modal" onClick={e => e.stopPropagation()} data-testid="monitor-form-modal">
                 <h2>{monitor ? 'Edit Monitor' : 'New Monitor'}</h2>
 

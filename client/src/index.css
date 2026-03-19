@@ -197,6 +197,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
@@ -633,9 +635,12 @@ body {
 }
 
 .monitor-name {
+  flex: 1 1 220px;
+  min-width: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .monitor-url {
@@ -698,6 +703,11 @@ body {
 .monitor-actions {
   display: flex;
   gap: 4px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+  max-width: 100%;
 }
 
 .status-up { color: var(--color-success); }
