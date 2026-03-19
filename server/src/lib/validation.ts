@@ -14,6 +14,7 @@ export interface CreateMonitorBody {
     timeoutSeconds?: number;
     expectedStatus?: number;
     expectedBody?: string;
+    requestBody?: string;
     bodyAssertionType?: string;
     bodyAssertionPath?: string;
     headers?: string;
@@ -94,6 +95,10 @@ export function validateMonitorInputWithOptions(
         }
     }
 
+    if (body.requestBody !== undefined && typeof body.requestBody !== 'string') {
+        errors.push({ field: 'requestBody', message: 'Request body must be a string' });
+    }
+
     if (body.sslExpiryThresholdDays !== undefined) {
         if (!Number.isInteger(body.sslExpiryThresholdDays) || body.sslExpiryThresholdDays < 1 || body.sslExpiryThresholdDays > 365) {
             errors.push({ field: 'sslExpiryThresholdDays', message: 'SSL expiry threshold must be an integer between 1 and 365 days' });
@@ -142,6 +147,18 @@ export function validateMonitorInputWithOptions(
 
     if (body.headers && !isValidJson(body.headers)) {
         errors.push({ field: 'headers', message: 'Headers must be valid JSON' });
+    }
+
+    if (body.headers && body.requestBody && isValidJson(body.headers)) {
+        try {
+            const parsedHeaders = JSON.parse(body.headers) as Record<string, string>;
+            const contentType = Object.entries(parsedHeaders).find(([key]) => key.toLowerCase() === 'content-type')?.[1];
+            if (contentType && contentType.toLowerCase().includes('application/json') && !isValidJson(body.requestBody)) {
+                errors.push({ field: 'requestBody', message: 'Request body must be valid JSON when Content-Type is application/json' });
+            }
+        } catch {
+            // Header JSON validity is handled above.
+        }
     }
 
     if (body.authMethod && !['NONE', 'BASIC', 'FORM_LOGIN', 'CSRF_FORM_LOGIN'].includes(body.authMethod)) {

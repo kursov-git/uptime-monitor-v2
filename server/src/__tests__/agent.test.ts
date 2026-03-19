@@ -100,8 +100,10 @@ describe('Agent API (Integration)', () => {
                 name: 'm-a',
                 url: 'https://example.com/a',
                 agentId: agentA.id,
+                method: 'POST',
                 intervalSeconds: 10,
                 timeoutSeconds: 5,
+                requestBody: '{"beep":"boop"}',
                 sslExpiryEnabled: true,
                 sslExpiryThresholdDays: 21,
             },
@@ -133,6 +135,7 @@ describe('Agent API (Integration)', () => {
         expect(body.heartbeatIntervalSec).toBe(15);
         expect(body.jobs).toHaveLength(1);
         expect(body.jobs[0].monitorId).toBe(monitorA.id);
+        expect(body.jobs[0].requestBody).toBe('{"beep":"boop"}');
         expect(body.jobs[0].sslExpiryEnabled).toBe(true);
         expect(body.jobs[0].sslExpiryThresholdDays).toBe(21);
     });

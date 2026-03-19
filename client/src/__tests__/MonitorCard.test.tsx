@@ -14,6 +14,7 @@ function createMonitor(): Monitor {
         timeoutSeconds: 30,
         expectedStatus: 200,
         expectedBody: null,
+        requestBody: null,
         bodyAssertionType: 'NONE',
         bodyAssertionPath: null,
         headers: null,

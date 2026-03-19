@@ -222,6 +222,32 @@ describe('checker', () => {
         expect(typeof retryConfig?.retryCondition).toBe('function');
     });
 
+    it('sends raw request body for methods that support a payload', async () => {
+        mockAxiosInstance.mockResolvedValue({
+            status: 200,
+            data: { ok: true },
+            headers: {},
+        });
+
+        await performCheck({
+            url: 'https://example.com/api/send',
+            method: 'POST',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            requestBody: '{"beep":"boop"}',
+            headers: '{"Content-Type":"application/json"}',
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        const lastCall = mockAxiosInstance.mock.calls[mockAxiosInstance.mock.calls.length - 1][0];
+        expect(lastCall.method).toBe('POST');
+        expect(lastCall.data).toBe('{"beep":"boop"}');
+    });
+
     it('builds BASIC auth header from JSON payload', async () => {
         mockAxiosInstance.mockResolvedValue({
             status: 200,

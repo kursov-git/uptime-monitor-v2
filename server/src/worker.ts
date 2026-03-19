@@ -129,6 +129,7 @@ export class CheckWorker {
             timeoutSeconds: monitor.timeoutSeconds,
             expectedStatus: monitor.expectedStatus,
             expectedBody: monitor.expectedBody,
+            requestBody: monitor.requestBody,
             bodyAssertionType: monitor.bodyAssertionType || 'AUTO',
             bodyAssertionPath: monitor.bodyAssertionPath || null,
             headers: monitor.headers,

@@ -19,6 +19,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         timeoutSeconds: monitor?.timeoutSeconds || 30,
         expectedStatus: monitor?.expectedStatus || 200,
         expectedBody: monitor?.expectedBody || '',
+        requestBody: monitor?.requestBody || '',
         bodyAssertionType: monitor?.bodyAssertionType || (monitor?.expectedBody ? 'AUTO' : 'NONE'),
         bodyAssertionPath: monitor?.bodyAssertionPath || '',
         headers: monitor?.headers || '',
@@ -102,6 +103,9 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
             const normalizedExpectedBody = normalizedAssertionType === 'NONE'
                 ? ''
                 : formData.expectedBody;
+            const normalizedRequestBody = ['GET', 'HEAD'].includes(String(formData.method || 'GET').toUpperCase())
+                ? ''
+                : formData.requestBody;
             const normalizedAssertionPath = (
                 normalizedAssertionType === 'JSON_PATH_EQUALS' || normalizedAssertionType === 'JSON_PATH_CONTAINS'
             )
@@ -114,6 +118,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                 authPayload: constructedPayload,
                 bodyAssertionType: normalizedAssertionType,
                 expectedBody: normalizedExpectedBody,
+                requestBody: normalizedRequestBody,
                 bodyAssertionPath: normalizedAssertionPath,
             });
         } catch (err: any) {
@@ -187,7 +192,14 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             <label>Method</label>
                             <select
                                 value={formData.method}
-                                onChange={e => update('method', e.target.value)}
+                                onChange={e => {
+                                    const nextMethod = e.target.value;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        method: nextMethod,
+                                        requestBody: ['GET', 'HEAD'].includes(nextMethod) ? '' : prev.requestBody,
+                                    }));
+                                }}
                             >
                                 <option value="GET">GET</option>
                                 <option value="POST">POST</option>
@@ -312,6 +324,21 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             rows={3}
                         />
                     </div>
+
+                    {!['GET', 'HEAD'].includes(String(formData.method || 'GET').toUpperCase()) && (
+                        <div className="form-group">
+                            <label>Request Body</label>
+                            <textarea
+                                value={formData.requestBody}
+                                onChange={e => update('requestBody', e.target.value)}
+                                placeholder='{"type":"event"} or key=value'
+                                rows={5}
+                            />
+                            <div className="help-text">
+                                Sent as raw request body for {formData.method}. Set Content-Type explicitly in Custom Headers.
+                            </div>
+                        </div>
+                    )}
 
                     <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

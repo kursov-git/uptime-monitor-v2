@@ -53,6 +53,7 @@ export interface Monitor {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string | null;
+    requestBody: string | null;
     bodyAssertionType: BodyAssertionType;
     bodyAssertionPath: string | null;
     headers: string | null;
@@ -86,6 +87,7 @@ export interface MonitorFormData {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string;
+    requestBody: string;
     bodyAssertionType: BodyAssertionType;
     bodyAssertionPath: string;
     headers: string;

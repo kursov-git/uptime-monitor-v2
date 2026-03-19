@@ -157,4 +157,31 @@ describe('validateMonitorInput', () => {
             message: 'Assertion path is only used for JSON path assertions',
         });
     });
+
+    it('should accept raw request body for POST-style monitors', () => {
+        const errors = validateMonitorInput({
+            name: 'POST Monitor',
+            url: 'https://example.com/api/send',
+            method: 'POST',
+            headers: '{"Content-Type":"application/json"}',
+            requestBody: '{"beep":"boop"}',
+        });
+
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should reject invalid JSON request body when content type is application/json', () => {
+        const errors = validateMonitorInput({
+            name: 'POST Monitor',
+            url: 'https://example.com/api/send',
+            method: 'POST',
+            headers: '{"Content-Type":"application/json"}',
+            requestBody: '{invalid}',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'requestBody',
+            message: 'Request body must be valid JSON when Content-Type is application/json',
+        });
+    });
 });

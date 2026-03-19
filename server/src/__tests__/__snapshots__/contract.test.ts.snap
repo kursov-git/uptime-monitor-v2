@@ -84,6 +84,7 @@ exports[`API Contract > validates monitors list and stats contracts 1`] = `
     },
     "method": "GET",
     "name": "Contract Monitor",
+    "requestBody": null,
     "sslExpiryEnabled": true,
     "sslExpiryThresholdDays": 14,
     "timeoutSeconds": 30,

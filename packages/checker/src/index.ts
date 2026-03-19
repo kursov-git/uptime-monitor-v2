@@ -24,6 +24,7 @@ export interface PerformCheckInput {
     timeoutSeconds: number;
     expectedStatus: number;
     expectedBody: string | null;
+    requestBody?: string | null;
     bodyAssertionType?: string | null;
     bodyAssertionPath?: string | null;
     headers: string | null;
@@ -386,10 +387,14 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
             }
         }
 
+        const method = String(input.method || 'GET').toUpperCase();
+        const canHaveBody = !['GET', 'HEAD'].includes(method);
+
         const response = await client({
-            method: input.method as any,
+            method: method as any,
             url: input.url,
             headers,
+            data: canHaveBody && input.requestBody ? input.requestBody : undefined,
             timeout: input.timeoutSeconds * 1000,
             validateStatus: () => true,
         });

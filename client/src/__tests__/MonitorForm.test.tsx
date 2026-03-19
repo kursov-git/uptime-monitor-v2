@@ -37,4 +37,31 @@ describe('MonitorForm', () => {
         expect(screen.getByPlaceholderText('My Website')).toHaveValue('Auth monitor');
         expect(screen.getByTestId('monitor-form-modal')).toBeInTheDocument();
     });
+
+    it('shows request body only for methods that support payloads and clears it for GET/HEAD', async () => {
+        render(
+            <MonitorForm
+                onSubmit={vi.fn().mockResolvedValue(undefined)}
+                onCancel={vi.fn()}
+            />
+        );
+
+        await waitFor(() => {
+            expect(agentsApi.get).toHaveBeenCalledWith('/');
+        });
+
+        expect(screen.queryByPlaceholderText('{"type":"event"} or key=value')).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByDisplayValue('GET'), { target: { value: 'POST' } });
+
+        const requestBody = screen.getByPlaceholderText('{"type":"event"} or key=value');
+        fireEvent.change(requestBody, { target: { value: '{"beep":"boop"}' } });
+        expect(requestBody).toHaveValue('{"beep":"boop"}');
+
+        fireEvent.change(screen.getByDisplayValue('POST'), { target: { value: 'GET' } });
+        expect(screen.queryByPlaceholderText('{"type":"event"} or key=value')).not.toBeInTheDocument();
+
+        fireEvent.change(screen.getByDisplayValue('GET'), { target: { value: 'POST' } });
+        expect(screen.getByPlaceholderText('{"type":"event"} or key=value')).toHaveValue('');
+    });
 });

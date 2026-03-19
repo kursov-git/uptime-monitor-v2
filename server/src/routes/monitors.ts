@@ -10,6 +10,15 @@ import { encrypt, decrypt } from '../lib/crypto';
 import { serverEnv } from '../lib/env';
 
 export default async function monitorRoutes(fastify: FastifyInstance) {
+    const normalizeRequestBody = (method: string | undefined, requestBody: string | null | undefined) => {
+        const normalizedMethod = String(method || 'GET').toUpperCase();
+        if (['GET', 'HEAD'].includes(normalizedMethod)) {
+            return null;
+        }
+
+        return requestBody && requestBody.length > 0 ? requestBody : null;
+    };
+
     // GET /api/monitors/stream — Server-Sent Events for monitor updates
     fastify.get('/stream', {
         preHandler: [authenticateSseJWT],
@@ -56,6 +65,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             return {
                 ...m,
                 agentName: m.agent?.name || null,
+                requestBody: m.requestBody ?? null,
                 lastCheck: m.checkResults[0] || null,
                 checkResults: undefined,
                 flappingState: state ? {
@@ -102,6 +112,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             return {
                 ...monitor,
                 agentName: monitor.agent?.name || null,
+                requestBody: monitor.requestBody ?? null,
                 flappingState: state ? {
                     isFlapping,
                     consecutiveFailures: state.consecutiveFailures,
@@ -176,6 +187,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             timeoutSeconds,
             expectedStatus,
             expectedBody,
+            requestBody,
             bodyAssertionType,
             bodyAssertionPath,
             headers,
@@ -186,17 +198,20 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             sslExpiryEnabled,
             sslExpiryThresholdDays,
         } = request.body;
+        const normalizedMethod = method || 'GET';
+        const normalizedRequestBody = normalizeRequestBody(normalizedMethod, requestBody);
 
         const monitor = await prisma.monitor.create({
             data: {
                 name: name.trim(),
                 url: url.trim(),
                 agentId: agentId === undefined ? null : agentId,
-                method: method || 'GET',
+                method: normalizedMethod,
                 intervalSeconds: intervalSeconds || 60,
                 timeoutSeconds: timeoutSeconds || 30,
                 expectedStatus: expectedStatus || 200,
                 expectedBody: expectedBody || null,
+                requestBody: normalizedRequestBody,
                 bodyAssertionType: bodyAssertionType || (expectedBody ? 'AUTO' : 'NONE'),
                 bodyAssertionPath: bodyAssertionPath || null,
                 headers: headers || null,
@@ -240,6 +255,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
                 expectedStatus: body.expectedStatus ?? existing.expectedStatus,
                 expectedBody: body.expectedBody ?? existing.expectedBody ?? undefined,
+                requestBody: body.requestBody ?? existing.requestBody ?? undefined,
                 bodyAssertionType: body.bodyAssertionType ?? existing.bodyAssertionType,
                 bodyAssertionPath: body.bodyAssertionPath ?? existing.bodyAssertionPath ?? undefined,
                 headers: body.headers ?? existing.headers ?? undefined,
@@ -257,17 +273,23 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 return reply.status(400).send({ errors });
             }
 
+            const normalizedMethod = body.method ?? existing.method;
+            const normalizedRequestBody = body.requestBody !== undefined || body.method !== undefined
+                ? normalizeRequestBody(normalizedMethod, body.requestBody ?? existing.requestBody)
+                : existing.requestBody;
+
             const monitor = await prisma.monitor.update({
                 where: { id },
                 data: {
                     ...(body.name !== undefined && { name: body.name.trim() }),
                     ...(body.url !== undefined && { url: body.url.trim() }),
                     ...(body.agentId !== undefined && { agentId: body.agentId }),
-                    ...(body.method !== undefined && { method: body.method }),
+                    ...(body.method !== undefined && { method: normalizedMethod }),
                     ...(body.intervalSeconds !== undefined && { intervalSeconds: body.intervalSeconds }),
                     ...(body.timeoutSeconds !== undefined && { timeoutSeconds: body.timeoutSeconds }),
                     ...(body.expectedStatus !== undefined && { expectedStatus: body.expectedStatus }),
                     ...(body.expectedBody !== undefined && { expectedBody: body.expectedBody }),
+                    ...(body.requestBody !== undefined && { requestBody: normalizedRequestBody }),
                     ...(body.bodyAssertionType !== undefined && { bodyAssertionType: body.bodyAssertionType }),
                     ...(body.bodyAssertionPath !== undefined && { bodyAssertionPath: body.bodyAssertionPath || null }),
                     ...(body.headers !== undefined && { headers: body.headers }),
