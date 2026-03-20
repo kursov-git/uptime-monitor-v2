@@ -205,41 +205,41 @@ body {
 .public-status-page {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.16), transparent 28%),
-    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    linear-gradient(180deg, #0b1220 0%, #111827 22%, #0f172a 100%);
 }
 
 .public-status-shell {
-  max-width: 1100px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 32px 20px 48px;
+  padding: 28px 20px 56px;
 }
 
 .public-status-hero {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
-  align-items: flex-end;
-  margin-bottom: 20px;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 18px;
 }
 
 .public-status-kicker {
   display: inline-block;
   margin-bottom: 10px;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: 999px;
-  background: rgba(59, 130, 246, 0.14);
-  color: #93c5fd;
-  font-size: 0.8rem;
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .public-status-hero h1 {
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  margin-bottom: 8px;
+  font-size: clamp(2rem, 4vw, 2.85rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 10px;
 }
 
 .public-status-hero p,
@@ -247,18 +247,25 @@ body {
   color: var(--color-text-secondary);
 }
 
+.public-status-hero p {
+  max-width: 620px;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
 .public-status-meta {
   text-align: right;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   display: grid;
   gap: 6px;
+  min-width: 180px;
 }
 
 .public-status-summary {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .public-status-banner {
@@ -267,10 +274,11 @@ body {
   align-items: center;
   gap: 16px;
   padding: 16px 18px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   border-radius: var(--radius);
   border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.72);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.8));
+  box-shadow: none;
 }
 
 .public-status-banner strong {
@@ -285,17 +293,19 @@ body {
 }
 
 .public-status-banner.up {
-  background: linear-gradient(135deg, rgba(20, 83, 45, 0.58), rgba(15, 23, 42, 0.78));
+  border-color: rgba(34, 197, 94, 0.24);
+  background: linear-gradient(135deg, rgba(20, 83, 45, 0.42), rgba(15, 23, 42, 0.92));
 }
 
 .public-status-banner.down {
-  background: linear-gradient(135deg, rgba(127, 29, 29, 0.65), rgba(15, 23, 42, 0.78));
+  border-color: rgba(239, 68, 68, 0.26);
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.46), rgba(15, 23, 42, 0.92));
 }
 
 .public-status-banner.paused,
 .public-status-banner.unknown,
 .public-status-banner.empty {
-  background: linear-gradient(135deg, rgba(51, 65, 85, 0.6), rgba(15, 23, 42, 0.78));
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.46), rgba(15, 23, 42, 0.92));
 }
 
 .public-status-banner-metric {
@@ -309,12 +319,12 @@ body {
 }
 
 .public-status-pill {
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  border: 1px solid var(--color-border);
-  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.78);
 }
 
 .public-status-pill.up { color: #86efac; }
@@ -324,16 +334,35 @@ body {
 
 .public-status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.public-status-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-end;
+  margin: 28px 0 14px;
+}
+
+.public-status-section-header h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.public-status-section-meta {
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
 }
 
 .public-status-chart-card {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82)),
-    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 36%);
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: none;
 }
 
 .public-status-chart-header {
@@ -345,7 +374,8 @@ body {
 }
 
 .public-status-chart-header h2 {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
 }
 
 .public-status-chart-meta {
@@ -479,8 +509,73 @@ body {
   align-items: flex-start;
 }
 
+.public-status-card {
+  padding: 18px 20px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.9));
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: none;
+  position: relative;
+}
+
+.public-status-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.public-status-card.up::before {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.72));
+}
+
+.public-status-card.down::before {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.96), rgba(220, 38, 38, 0.76));
+}
+
+.public-status-card.paused::before {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.82), rgba(100, 116, 139, 0.72));
+}
+
+.public-status-card.unknown::before {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.72));
+}
+
+.public-status-card-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .public-status-card-header h3 {
   margin-bottom: 8px;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.public-status-card-meta {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+  flex: 0 0 auto;
+}
+
+.public-service-availability {
+  text-align: right;
+}
+
+.public-service-availability span {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.public-service-availability strong {
+  font-size: 1rem;
+  color: #e2e8f0;
 }
 
 .public-status-sparkline {
@@ -488,7 +583,7 @@ body {
   margin: 6px 0 12px;
   padding: 10px 12px 2px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(180deg, rgba(2, 6, 23, 0.52), rgba(15, 23, 42, 0.2));
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0.68), rgba(15, 23, 42, 0.26));
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
@@ -534,7 +629,7 @@ body {
   padding: 14px;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(148, 163, 184, 0.12);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(2, 6, 23, 0.4));
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.48));
 }
 
 .public-drilldown-summary {
@@ -621,6 +716,15 @@ body {
   margin-top: 16px;
 }
 
+.public-status-stats-inline {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 2px 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(2, 6, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
 .public-status-stats span {
   display: block;
   font-size: 0.8rem;
@@ -644,14 +748,14 @@ body {
 }
 
 .monitor-url {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
   word-break: break-all;
-  margin-bottom: 12px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 0;
+  padding: 0;
   border-radius: var(--radius-sm);
   font-family: 'Courier New', monospace;
+  background: transparent;
 }
 
 .monitor-stats {
@@ -1005,6 +1109,20 @@ tr:hover td {
     align-items: flex-start;
   }
 
+  .public-status-card-header,
+  .public-status-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .public-status-card-meta {
+    justify-items: start;
+  }
+
+  .public-service-availability {
+    text-align: left;
+  }
+
   .public-drilldown-summary,
   .public-drilldown-failure-item {
     grid-template-columns: 1fr;
@@ -1022,6 +1140,10 @@ tr:hover td {
   .public-status-timeline-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .public-status-stats-inline {
+    grid-template-columns: 1fr;
   }
 
   .public-incident-axis-labels {

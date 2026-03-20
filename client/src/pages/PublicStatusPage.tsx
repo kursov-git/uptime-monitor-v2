@@ -374,17 +374,47 @@ export default function PublicStatusPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="public-status-grid">
-                        {data.monitors.map((monitor) => (
-                            <div className="card public-status-card" key={monitor.id}>
+                    <>
+                        <div className="public-status-section-header">
+                            <div>
+                                <div className="public-status-kicker">Services</div>
+                                <h2>Current service status</h2>
+                            </div>
+                            <div className="public-status-section-meta">
+                                <span>{data.monitorCount} published {data.monitorCount === 1 ? 'monitor' : 'monitors'}</span>
+                            </div>
+                        </div>
+                        <div className="public-status-grid">
+                            {data.monitors.map((monitor) => (
+                                <div className={`card public-status-card ${monitor.status}`} key={monitor.id}>
                                 <div className="public-status-card-header">
-                                    <div>
+                                    <div className="public-status-card-title">
                                         <h3>{monitor.name}</h3>
                                         <div className="monitor-url">{monitor.url}</div>
                                     </div>
-                                    <span className={`status-badge ${monitor.status}`}>
-                                        {getStatusLabel(monitor.status)}
-                                    </span>
+                                    <div className="public-status-card-meta">
+                                        <span className={`status-badge ${monitor.status}`}>
+                                            {getStatusLabel(monitor.status)}
+                                        </span>
+                                        <div className="public-service-availability">
+                                            <span>24h Uptime</span>
+                                            <strong>{monitor.uptimePercent24h}%</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="public-status-stats public-status-stats-inline">
+                                    <div>
+                                        <span>Method</span>
+                                        <strong>{monitor.method}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Latest response</span>
+                                        <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
+                                    </div>
+                                    <div>
+                                        <span>Last check</span>
+                                        <strong>{formatTimestamp(monitor.lastCheck?.timestamp ?? null)}</strong>
+                                    </div>
                                 </div>
                                 <div className="public-status-timeline-header">
                                     <span>Incident timeline</span>
@@ -563,32 +593,15 @@ export default function PublicStatusPage() {
                                         })()}
                                     </div>
                                 )}
-                                <div className="public-status-stats">
-                                    <div>
-                                        <span>Method</span>
-                                        <strong>{monitor.method}</strong>
-                                    </div>
-                                    <div>
-                                        <span>24h Uptime</span>
-                                        <strong>{monitor.uptimePercent24h}%</strong>
-                                    </div>
-                                    <div>
-                                        <span>Last Check</span>
-                                        <strong>{formatTimestamp(monitor.lastCheck?.timestamp ?? null)}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Response</span>
-                                        <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
-                                    </div>
-                                </div>
                                 {monitor.lastCheck?.error && (
                                     <div className="history-error" style={{ marginTop: 12 }}>
                                         {monitor.lastCheck.error}
                                     </div>
                                 )}
-                            </div>
-                        ))}
-                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
         </div>
