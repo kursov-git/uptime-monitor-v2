@@ -82,6 +82,9 @@ Rules:
 - keep plans short-lived
 - move completed plans to `completed/` or delete them once absorbed into durable docs
 
+Current active plans:
+- `docs/plans/active/design-system-v1.md`
+
 ### `historical/`
 
 Historical references that should not drive current decisions.
