@@ -74,7 +74,7 @@ describe('MonitorCard', () => {
         fireEvent.click(historyButton);
         expect(onHistory).toHaveBeenCalledWith(monitor);
         expect(screen.getByText('SSL expires in 7 days')).toBeInTheDocument();
-        expect(screen.getByText('Service:')).toBeInTheDocument();
+        expect(screen.getByText('Service')).toBeInTheDocument();
         expect(screen.getByText('Core Web')).toBeInTheDocument();
     });
 });

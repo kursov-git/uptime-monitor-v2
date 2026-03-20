@@ -64,7 +64,10 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
     return (
         <div className="card monitor-card">
             <div className="monitor-card-header">
-                <div className="monitor-name">{monitor.name}</div>
+                <div className="monitor-card-title-block">
+                    <div className="monitor-name">{monitor.name}</div>
+                    <div className="monitor-url">{monitor.url}</div>
+                </div>
                 <div className="monitor-actions">
                     <button
                         className="btn btn-icon btn-sm btn-secondary"
@@ -108,22 +111,27 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                 </div>
             </div>
 
-            <div className="monitor-url">{monitor.url}</div>
-            {monitor.serviceName && (
-                <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-primary)' }}>
-                    Service: <strong>{monitor.serviceName}</strong>
+            <div className="monitor-meta-pills">
+                {monitor.serviceName && (
+                    <div className="monitor-meta-pill service">
+                        <span>Service</span>
+                        <strong>{monitor.serviceName}</strong>
+                    </div>
+                )}
+                <div className="monitor-meta-pill">
+                    <span>Type</span>
+                    <strong>{monitorTypeLabel}</strong>
                 </div>
-            )}
-            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                Type: <strong>{monitorTypeLabel}</strong>
-            </div>
-            {monitor.isPublic && (
-                <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-success)' }}>
-                    Public Status: visible on status page
+                <div className="monitor-meta-pill">
+                    <span>Executor</span>
+                    <strong>{monitor.agentName || 'Builtin Worker'}</strong>
                 </div>
-            )}
-            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                Executor: <strong>{monitor.agentName || 'Builtin Worker'}</strong>
+                {monitor.isPublic && (
+                    <div className="monitor-meta-pill success">
+                        <span>Visibility</span>
+                        <strong>Public status</strong>
+                    </div>
+                )}
             </div>
             {sslSummary && (
                 <div
