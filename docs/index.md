@@ -24,6 +24,7 @@ Current source-of-truth documents:
 - `docs/architecture/harness-documentation-model.md`
 - `docs/architecture/harness-documentation-template.md`
 - `docs/architecture/system-overview.md`
+- `docs/architecture/ui-design-system.md`
 
 Use this section for:
 - runtime model
@@ -83,7 +84,10 @@ Rules:
 - move completed plans to `completed/` or delete them once absorbed into durable docs
 
 Current active plans:
-- `docs/plans/active/design-system-v1.md`
+- none at the moment
+
+Current completed plans:
+- `docs/plans/completed/design-system-v1.md`
 
 ### `historical/`
 

@@ -42,6 +42,7 @@ As of 2026-03-13:
 - ordinary HTTP/HTTPS monitors can now send raw request bodies for body-capable methods, with parity between builtin worker and remote agents
 - monitors can now be configured as `HTTP`, `TCP`, or `DNS` with shared execution support across builtin worker and remote agents
 - monitors can now optionally carry a lightweight `serviceName` used for dashboard and public status grouping without introducing a separate service domain model
+- the first `Design System v1` rollout is complete and the authenticated UI plus `/status` now share one light `calm ops` visual language
 - agent UI supports register, rotate token, revoke, delete, and version visibility
 - split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database
@@ -57,12 +58,13 @@ Read documents in this order.
 4. `docs/architecture/harness-documentation-model.md`
 5. `docs/architecture/harness-documentation-template.md` if you need the reusable cross-project pattern
 6. `docs/architecture/system-overview.md`
-7. `docs/operations/production-topology.md`
-8. `docs/operations/runbook.md`
-9. `docs/operations/agent-deployment-kit.md`
-10. `docs/product/lean-roadmap.md`
-11. `docs/product/strategic-roadmap.md`
-12. `CODE_REVIEW.md`
+7. `docs/architecture/ui-design-system.md`
+8. `docs/operations/production-topology.md`
+9. `docs/operations/runbook.md`
+10. `docs/operations/agent-deployment-kit.md`
+11. `docs/product/lean-roadmap.md`
+12. `docs/product/strategic-roadmap.md`
+13. `CODE_REVIEW.md`
 
 Historical or template documents are not the primary source of truth:
 - `docs/historical/v2-task-tracker.md`
@@ -88,7 +90,8 @@ Use them only for historical context, not for current operational decisions.
 │   ├── architecture/
 │   │   ├── harness-documentation-model.md
 │   │   ├── harness-documentation-template.md
-│   │   └── system-overview.md
+│   │   ├── system-overview.md
+│   │   └── ui-design-system.md
 │   ├── operations/
 │   │   ├── production-topology.md
 │   │   ├── runbook.md
@@ -101,7 +104,7 @@ Use them only for historical context, not for current operational decisions.
 │   │   └── v2-*.md                     # historical rollout/planning templates
 │   └── plans/
 │       ├── active/
-│       └── completed/
+│       └── completed/                  # includes completed design-system rollout record
 ├── apps/
 │   └── agent/                          # remote agent runtime
 ├── client/                             # React + Vite UI

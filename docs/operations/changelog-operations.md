@@ -7,6 +7,30 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-03-20
 
+### Design System v1 rollout close-out
+
+Host:
+- `onedashmsk`
+
+Changes:
+- completed the first cohesive `Design System v1` rollout across authenticated UI and public status surfaces
+- unified the app shell, top navigation, monitor dashboard, monitor history, agents, settings, users, audit log, notification history, and login under the same light `calm ops` language
+- reworked monitor cards multiple times to improve operator scanability:
+  - grouped actions into a dedicated utility rail
+  - reduced action and metadata noise
+  - made monitor name and URL readability explicit design goals
+  - compacted service sections and summary pills
+- promoted the finished design language into durable documentation and moved the original execution doc into `docs/plans/completed/`
+
+Operational result:
+- the main operator surfaces now feel like one product instead of a mix of legacy dashboard styles
+- client-only design rollouts continued to avoid recreating `uptime-server-api`
+
+Verification:
+- repeated `client` test/build passes remained green during the redesign sequence
+- each rollout was performed with `docker compose -f docker-compose.split.yml up -d --build client`
+- `uptime-server-api` container identity remained unchanged during client-only deploys
+
 ### TCP and DNS monitor rollout
 
 Host:

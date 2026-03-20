@@ -7,6 +7,7 @@ For implementation and operator truth, read:
 - `AGENTS.md`
 - `docs/index.md`
 - `docs/architecture/system-overview.md`
+- `docs/architecture/ui-design-system.md`
 - `docs/operations/production-topology.md`
 - `docs/operations/runbook.md`
 - `docs/product/lean-roadmap.md` for current single-operator priorities
@@ -42,6 +43,7 @@ That means the repository is expected to preserve:
 - supports builtin worker execution when `agentId` is not assigned
 - exposes one public status page at `/status` for a curated subset of monitors
 - supports lightweight service grouping for dashboard and public status readability
+- uses one light `calm ops` design language across authenticated pages and the public status page
 
 ## Current State
 
@@ -53,6 +55,7 @@ Implemented and working:
 - `TCP` checks using `tcp://host:port`
 - `DNS` checks using `dns://hostname` plus configurable record type
 - lightweight service grouping via optional monitor-level service names
+- completed `Design System v1` rollout across app shell, monitor dashboard, history/detail pages, agents, admin pages, login, and public status
 - agent offline and recovery notifications through the shared notification stack
 - public status page with per-monitor exposure, 24h availability buckets, and a derived incident timeline
 - SSL expiry monitoring with UI surfacing and warning/recovery notifications

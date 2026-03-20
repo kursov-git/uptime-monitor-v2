@@ -60,6 +60,10 @@ Key responsibilities:
 - agent registration and lifecycle management
 - unauthenticated public status page rendering at `/status`
 
+Current UI rule:
+- durable visual and interaction rules now live in `docs/architecture/ui-design-system.md`
+- temporary redesign sequencing should live in `docs/plans/`, not in this architecture document
+
 ### Shared Packages
 
 #### `packages/checker`

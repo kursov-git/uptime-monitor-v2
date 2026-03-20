@@ -1,18 +1,22 @@
 # Design System v1
 
-Status: active execution plan
+Status: completed execution record
 
 Owner: control-plane UI
 
 Scope: app shell, monitor dashboard, monitor detail surfaces, forms, agent/admin pages
 
-This document defines the first cohesive design system for `uptime-monitor-v2`.
+This document records the execution plan that delivered the first cohesive design system for `uptime-monitor-v2`.
 
 It is intentionally practical:
 - it exists to guide implementation in this repository
 - it is not a marketing brand deck
 - it is not a generic UI philosophy document
-- it is the active source of truth for the current UI redesign pass
+- it is no longer the durable source of truth after rollout completion
+
+Durable follow-up documents:
+- `docs/architecture/ui-design-system.md`
+- `docs/architecture/system-overview.md`
 
 ## Goals
 
