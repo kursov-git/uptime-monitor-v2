@@ -64,4 +64,26 @@ describe('MonitorForm', () => {
         fireEvent.change(screen.getByDisplayValue('GET'), { target: { value: 'POST' } });
         expect(screen.getByPlaceholderText('{"type":"event"} or key=value')).toHaveValue('');
     });
+
+    it('switches to DNS fields without HTTP-specific controls', async () => {
+        render(
+            <MonitorForm
+                onSubmit={vi.fn().mockResolvedValue(undefined)}
+                onCancel={vi.fn()}
+            />
+        );
+
+        await waitFor(() => {
+            expect(agentsApi.get).toHaveBeenCalledWith('/');
+        });
+
+        fireEvent.change(screen.getByDisplayValue('HTTP / HTTPS'), { target: { value: 'DNS' } });
+
+        expect(screen.getByPlaceholderText('dns://example.com')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('A')).toBeInTheDocument();
+        expect(screen.getByText('Expected Answer Contains')).toBeInTheDocument();
+        expect(screen.queryByText('Expected Status')).not.toBeInTheDocument();
+        expect(screen.queryByText('Method')).not.toBeInTheDocument();
+        expect(screen.queryByText('Monitor SSL certificate expiry')).not.toBeInTheDocument();
+    });
 });

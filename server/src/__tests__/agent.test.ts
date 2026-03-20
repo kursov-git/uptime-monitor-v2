@@ -98,7 +98,9 @@ describe('Agent API (Integration)', () => {
         const monitorA = await prisma.monitor.create({
             data: {
                 name: 'm-a',
+                type: 'DNS',
                 url: 'https://example.com/a',
+                dnsRecordType: 'TXT',
                 agentId: agentA.id,
                 method: 'POST',
                 intervalSeconds: 10,
@@ -135,6 +137,8 @@ describe('Agent API (Integration)', () => {
         expect(body.heartbeatIntervalSec).toBe(15);
         expect(body.jobs).toHaveLength(1);
         expect(body.jobs[0].monitorId).toBe(monitorA.id);
+        expect(body.jobs[0].type).toBe('DNS');
+        expect(body.jobs[0].dnsRecordType).toBe('TXT');
         expect(body.jobs[0].requestBody).toBe('{"beep":"boop"}');
         expect(body.jobs[0].sslExpiryEnabled).toBe(true);
         expect(body.jobs[0].sslExpiryThresholdDays).toBe(21);

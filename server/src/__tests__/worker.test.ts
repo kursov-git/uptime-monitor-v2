@@ -155,4 +155,29 @@ describe('CheckWorker', () => {
         expect(result.sslIssuer).toBe('Let\'s Encrypt E7');
         expect(result.sslSubject).toBe('example.com');
     });
+
+    it('should pass TCP monitor configuration to the checker', async () => {
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'TCP Worker Test',
+                type: 'TCP',
+                url: 'tcp://redis.example.com:6379',
+            },
+        });
+
+        vi.mocked(performCheck).mockResolvedValue({
+            isUp: true,
+            responseTimeMs: 12,
+            statusCode: null,
+            error: null,
+            ssl: null,
+        });
+
+        await (worker as any).performCheck(monitor);
+
+        expect(performCheck).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'TCP',
+            url: 'tcp://redis.example.com:6379',
+        }));
+    });
 });

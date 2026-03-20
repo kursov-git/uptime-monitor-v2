@@ -119,10 +119,13 @@ Why this is lean:
 These remain valid if they solve an immediate personal or narrow-circle need:
 - SSL expiry monitoring
 - TCP checks
+- DNS checks
 - better assertions
 
 Recently completed:
 - SSL expiry monitoring
+- TCP checks
+- DNS checks
 - better body assertion UX
 - raw request-body support for body-capable synthetic HTTP methods
 - explicit assertion modes: `contains`, `regex`, `JSON path equals`, `JSON path contains`
@@ -136,11 +139,11 @@ Rule:
 After comparing the product against Uptime Kuma-class tools, the lean interpretation is:
 
 1. `TCP checks`
-   - best immediate capability gap to close
-   - practical operational value without changing the product model
+   - completed
+   - compact socket-level availability checks via `tcp://host:port`
 2. `DNS checks`
-   - next most useful check-type expansion after TCP
-   - still compact and easy to explain
+   - completed
+   - compact DNS record checks via `dns://hostname` plus record type
 3. `Public status polish`
    - continue improving wording, readability, and mobile presentation
    - do not expand into multiple public pages or public configuration complexity

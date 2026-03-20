@@ -457,11 +457,11 @@ export default function PublicStatusPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="public-status-stats public-status-stats-inline">
-                                            <div>
-                                                <span>Method</span>
-                                                <strong>{monitor.method}</strong>
-                                            </div>
+                                            <div className="public-status-stats public-status-stats-inline">
+                                                <div>
+                                                    <span>Type</span>
+                                                    <strong>{monitor.type === 'DNS' ? `DNS ${monitor.dnsRecordType}` : monitor.type === 'TCP' ? 'TCP' : monitor.method}</strong>
+                                                </div>
                                             <div>
                                                 <span>Response</span>
                                                 <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>

@@ -65,6 +65,45 @@ describe('Monitors API (Integration)', () => {
         expect(data.id).toBeDefined();
     });
 
+    it('should allow ADMIN to create TCP and DNS monitors', async () => {
+        const tcpRes = await app.inject({
+            method: 'POST',
+            url: '/api/monitors/',
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: {
+                name: 'Redis TCP',
+                type: 'TCP',
+                url: 'tcp://redis.example.com:6379',
+            },
+        });
+
+        expect(tcpRes.statusCode).toBe(201);
+        expect(JSON.parse(tcpRes.body)).toMatchObject({
+            type: 'TCP',
+            url: 'tcp://redis.example.com:6379',
+        });
+
+        const dnsRes = await app.inject({
+            method: 'POST',
+            url: '/api/monitors/',
+            headers: { Authorization: `Bearer ${adminToken}` },
+            payload: {
+                name: 'DNS A',
+                type: 'DNS',
+                url: 'dns://example.com',
+                dnsRecordType: 'A',
+                expectedBody: '93.184',
+            },
+        });
+
+        expect(dnsRes.statusCode).toBe(201);
+        expect(JSON.parse(dnsRes.body)).toMatchObject({
+            type: 'DNS',
+            dnsRecordType: 'A',
+            url: 'dns://example.com',
+        });
+    });
+
     it('should reject private monitor targets by default', async () => {
         const res = await app.inject({
             method: 'POST',

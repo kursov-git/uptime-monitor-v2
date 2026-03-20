@@ -124,7 +124,9 @@ export default async function publicRoutes(fastify: FastifyInstance) {
                 return {
                     id: monitor.id,
                     name: monitor.name,
+                    type: monitor.type,
                     url: monitor.url,
+                    dnsRecordType: monitor.dnsRecordType,
                     method: monitor.method,
                     isActive: monitor.isActive,
                     status: state && status === 'down' ? 'down' : status,

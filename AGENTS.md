@@ -40,6 +40,7 @@ As of 2026-03-13:
 - public status page is live at `/status` with selected monitors, 24h uptime summary, and a derived incident timeline
 - HTTPS monitors can optionally track certificate expiry and emit warning/recovery notifications without marking the monitor `DOWN`
 - ordinary HTTP/HTTPS monitors can now send raw request bodies for body-capable methods, with parity between builtin worker and remote agents
+- monitors can now be configured as `HTTP`, `TCP`, or `DNS` with shared execution support across builtin worker and remote agents
 - agent UI supports register, rotate token, revoke, delete, and version visibility
 - split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database
@@ -150,6 +151,7 @@ Agent responsibilities:
 - report `agentVersion`
 - collect HTTPS certificate expiry metadata for monitors with SSL expiry monitoring enabled
 - execute configured raw request bodies for assigned `POST`/`PUT`/`PATCH`-style synthetic checks
+- execute `TCP` and `DNS` monitor jobs with the same shared checker contract used by the builtin worker
 
 ## Production Topology
 

@@ -61,6 +61,7 @@ exports[`API Contract > validates monitors list and stats contracts 1`] = `
     "bodyAssertionPath": null,
     "bodyAssertionType": "AUTO",
     "createdAt": "<iso-date>",
+    "dnsRecordType": "A",
     "expectedBody": null,
     "expectedStatus": 200,
     "flappingState": null,
@@ -88,6 +89,7 @@ exports[`API Contract > validates monitors list and stats contracts 1`] = `
     "sslExpiryEnabled": true,
     "sslExpiryThresholdDays": 14,
     "timeoutSeconds": 30,
+    "type": "HTTP",
     "updatedAt": "<iso-date>",
     "url": "https://example.com/contract",
   },
@@ -328,6 +330,7 @@ exports[`API Contract > validates public status contract without authentication 
   "monitorCount": 1,
   "monitors": [
     {
+      "dnsRecordType": "A",
       "history24h": [
         {
           "avgResponseTimeMs": null,
@@ -512,6 +515,7 @@ exports[`API Contract > validates public status contract without authentication 
       "method": "GET",
       "name": "Public Monitor",
       "status": "up",
+      "type": "HTTP",
       "uptimePercent24h": "50.0",
       "url": "https://example.com/public",
     },

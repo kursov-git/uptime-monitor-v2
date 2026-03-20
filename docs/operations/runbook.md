@@ -218,6 +218,33 @@ Current behavior:
   - current monitor state
   - latest check snapshot
   - 24h summary pills
+
+## Monitor Target Formats
+
+Current monitor types:
+- `HTTP`
+- `TCP`
+- `DNS`
+
+Supported target formats:
+- `HTTP`: `https://example.com/health`
+- `TCP`: `tcp://db.example.com:5432`
+- `DNS`: `dns://example.com`
+
+Protocol-specific notes:
+- `TCP` checks only verify that a socket accepts connections within the configured timeout.
+- `DNS` checks resolve the configured record type (`A`, `AAAA`, `CNAME`, `MX`, `TXT`, `NS`).
+- `DNS` monitors can optionally set an expected substring that must appear in the resolved answers.
+- `HTTP` remains the only monitor type that uses:
+  - method
+  - headers
+  - request body
+  - body assertions
+  - auth flows
+  - SSL expiry monitoring
+
+Operational rule:
+- when rolling out monitor-type support, update both control-plane services and remote agents so the shared checker contract stays aligned
   - 24h availability chart
   - derived incident timeline strip
   - per-monitor incident strip and sparkline

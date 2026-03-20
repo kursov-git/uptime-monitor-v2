@@ -5,7 +5,9 @@ import { agentEnv } from './config';
 
 type AgentJob = {
     monitorId: string;
+    type: 'HTTP' | 'TCP' | 'DNS';
     url: string;
+    dnsRecordType?: 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT' | 'NS';
     method: string;
     intervalSeconds: number;
     timeoutMs: number;
@@ -155,7 +157,9 @@ class AgentRuntime {
             const authPayload = decryptAgentPayload(job.authPayloadEncrypted || null, job.keyVersion || 1);
 
             const result = await performCheck({
+                type: job.type,
                 url: job.url,
+                dnsRecordType: job.dnsRecordType || 'A',
                 method: job.method,
                 timeoutSeconds: Math.ceil(job.timeoutMs / 1000),
                 expectedStatus: job.expectedStatus,

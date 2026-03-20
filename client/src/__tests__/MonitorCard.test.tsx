@@ -8,7 +8,9 @@ function createMonitor(): Monitor {
     return {
         id: 'monitor-1',
         name: 'Homepage',
+        type: 'HTTP',
         url: 'https://example.com',
+        dnsRecordType: 'A',
         method: 'GET',
         intervalSeconds: 60,
         timeoutSeconds: 30,

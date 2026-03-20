@@ -4,7 +4,9 @@ import axiosRetry from 'axios-retry';
 import { performCheck } from '../../../packages/checker/src';
 
 const mockLookup = vi.hoisted(() => vi.fn());
+const mockResolve = vi.hoisted(() => vi.fn());
 const mockTlsConnect = vi.hoisted(() => vi.fn());
+const mockNetConnect = vi.hoisted(() => vi.fn());
 
 const mockAxiosInstance = vi.hoisted(() => {
     const fn = vi.fn();
@@ -27,6 +29,22 @@ vi.mock('axios-cookiejar-support', () => ({
 vi.mock('node:dns/promises', () => ({
     default: {
         lookup: mockLookup,
+        resolve: mockResolve,
+    },
+}));
+
+vi.mock('node:net', () => ({
+    default: {
+        connect: mockNetConnect,
+        isIP: (value: string) => {
+            if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)) {
+                return 4;
+            }
+            if (value.includes(':')) {
+                return 6;
+            }
+            return 0;
+        },
     },
 }));
 
@@ -45,6 +63,7 @@ describe('checker', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+        mockResolve.mockResolvedValue(['93.184.216.34']);
     });
 
     it('returns success for expected status', async () => {
@@ -423,5 +442,68 @@ describe('checker', () => {
 
         expect(result.isUp).toBe(true);
         expect(result.error).toBeNull();
+    });
+
+    it('performs TCP connect checks without issuing HTTP requests', async () => {
+        mockNetConnect.mockImplementation(() => {
+            const socket = new EventEmitter() as EventEmitter & {
+                setTimeout: ReturnType<typeof vi.fn>;
+                end: ReturnType<typeof vi.fn>;
+                destroy: ReturnType<typeof vi.fn>;
+                once: EventEmitter['once'];
+            };
+            socket.setTimeout = vi.fn();
+            socket.end = vi.fn();
+            socket.destroy = vi.fn();
+
+            queueMicrotask(() => {
+                socket.emit('connect');
+            });
+
+            return socket as any;
+        });
+
+        const result = await performCheck({
+            type: 'TCP',
+            url: 'tcp://redis.example.com:6379',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: null,
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(result.statusCode).toBeNull();
+        expect(mockNetConnect).toHaveBeenCalledWith({ host: 'redis.example.com', port: 6379 });
+        expect(mockAxiosInstance).not.toHaveBeenCalled();
+    });
+
+    it('performs DNS checks and matches expected answers', async () => {
+        mockResolve.mockResolvedValueOnce(['1.1.1.1', '1.0.0.1']);
+
+        const result = await performCheck({
+            type: 'DNS',
+            url: 'dns://example.com',
+            dnsRecordType: 'A',
+            method: 'GET',
+            timeoutSeconds: 5,
+            expectedStatus: 200,
+            expectedBody: '1.1.1.1',
+            headers: null,
+            authMethod: 'NONE',
+            authUrl: null,
+            authPayload: null,
+            authTokenRegex: null,
+        });
+
+        expect(result.isUp).toBe(true);
+        expect(result.error).toBeNull();
+        expect(mockResolve).toHaveBeenCalledWith('example.com', 'A');
+        expect(mockAxiosInstance).not.toHaveBeenCalled();
     });
 });

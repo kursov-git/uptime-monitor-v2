@@ -7,7 +7,9 @@ export interface ValidationError {
 
 export interface CreateMonitorBody {
     name: string;
+    type?: string;
     url: string;
+    dnsRecordType?: string;
     agentId?: string | null;
     method?: string;
     intervalSeconds?: number;
@@ -35,6 +37,29 @@ export function isValidUrl(url: string): boolean {
     }
 }
 
+function isValidTcpTarget(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'tcp:') {
+            return false;
+        }
+
+        const port = Number.parseInt(parsed.port, 10);
+        return Boolean(parsed.hostname) && Number.isInteger(port) && port >= 1 && port <= 65535;
+    } catch {
+        return false;
+    }
+}
+
+function isValidDnsTarget(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'dns:' && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+}
+
 export function isValidJson(str: string | undefined | null): boolean {
     if (!str) return true; // undefined/null is OK (optional field)
     try {
@@ -54,13 +79,31 @@ export function validateMonitorInputWithOptions(
     options: { allowPrivateTargets?: boolean }
 ): ValidationError[] {
     const errors: ValidationError[] = [];
+    const monitorType = String(body.type || 'HTTP').toUpperCase();
+    const allowedMonitorTypes = ['HTTP', 'TCP', 'DNS'];
+    const allowedDnsRecordTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'];
 
     if (!body.name || body.name.trim().length === 0) {
         errors.push({ field: 'name', message: 'Name is required' });
     }
 
-    if (!body.url || !isValidUrl(body.url)) {
-        errors.push({ field: 'url', message: 'Valid HTTP/HTTPS URL is required' });
+    if (!allowedMonitorTypes.includes(monitorType)) {
+        errors.push({ field: 'type', message: 'Invalid monitor type' });
+    }
+
+    const hasValidTarget = monitorType === 'HTTP'
+        ? isValidUrl(body.url)
+        : monitorType === 'TCP'
+            ? isValidTcpTarget(body.url)
+            : isValidDnsTarget(body.url);
+
+    if (!body.url || !hasValidTarget) {
+        const message = monitorType === 'TCP'
+            ? 'Valid TCP target is required (tcp://host:port)'
+            : monitorType === 'DNS'
+                ? 'Valid DNS target is required (dns://hostname)'
+                : 'Valid HTTP/HTTPS URL is required';
+        errors.push({ field: 'url', message });
     } else {
         const blockedReason = getBlockedTargetReasonFromUrl(body.url, {
             allowPrivateTargets: options.allowPrivateTargets,
@@ -68,6 +111,10 @@ export function validateMonitorInputWithOptions(
         if (blockedReason) {
             errors.push({ field: 'url', message: `Target URL is not allowed: ${blockedReason}` });
         }
+    }
+
+    if (body.dnsRecordType !== undefined && !allowedDnsRecordTypes.includes(String(body.dnsRecordType).toUpperCase())) {
+        errors.push({ field: 'dnsRecordType', message: 'Invalid DNS record type' });
     }
 
     if (body.intervalSeconds !== undefined) {
@@ -89,7 +136,7 @@ export function validateMonitorInputWithOptions(
         }
     }
 
-    if (body.expectedStatus !== undefined) {
+    if (monitorType === 'HTTP' && body.expectedStatus !== undefined) {
         if (body.expectedStatus < 100 || body.expectedStatus > 599) {
             errors.push({ field: 'expectedStatus', message: 'Expected status must be between 100 and 599' });
         }
@@ -105,7 +152,7 @@ export function validateMonitorInputWithOptions(
         }
     }
 
-    if (body.sslExpiryEnabled) {
+    if (body.sslExpiryEnabled && monitorType === 'HTTP') {
         try {
             const parsed = new URL(body.url);
             if (parsed.protocol !== 'https:') {
@@ -116,7 +163,7 @@ export function validateMonitorInputWithOptions(
         }
     }
 
-    if (body.bodyAssertionType !== undefined) {
+    if (monitorType === 'HTTP' && body.bodyAssertionType !== undefined) {
         const allowedAssertionTypes = ['NONE', 'AUTO', 'CONTAINS', 'REGEX', 'JSON_PATH_EQUALS', 'JSON_PATH_CONTAINS'];
         if (!allowedAssertionTypes.includes(body.bodyAssertionType)) {
             errors.push({ field: 'bodyAssertionType', message: 'Invalid body assertion type' });
@@ -127,29 +174,29 @@ export function validateMonitorInputWithOptions(
     const hasExpectedBody = typeof body.expectedBody === 'string' && body.expectedBody.trim().length > 0;
     const hasAssertionPath = typeof body.bodyAssertionPath === 'string' && body.bodyAssertionPath.trim().length > 0;
 
-    if (assertionType === 'NONE') {
+    if (monitorType === 'HTTP' && assertionType === 'NONE') {
         if (hasAssertionPath) {
             errors.push({ field: 'bodyAssertionPath', message: 'Assertion path is only used for JSON path assertions' });
         }
     }
 
-    if ((assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasExpectedBody) {
+    if (monitorType === 'HTTP' && (assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasExpectedBody) {
         errors.push({ field: 'expectedBody', message: 'Assertion value is required for the selected body assertion type' });
     }
 
-    if ((assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasAssertionPath) {
+    if (monitorType === 'HTTP' && (assertionType === 'JSON_PATH_EQUALS' || assertionType === 'JSON_PATH_CONTAINS') && !hasAssertionPath) {
         errors.push({ field: 'bodyAssertionPath', message: 'JSON path is required for the selected body assertion type' });
     }
 
-    if ((assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'AUTO') && hasAssertionPath) {
+    if (monitorType === 'HTTP' && (assertionType === 'CONTAINS' || assertionType === 'REGEX' || assertionType === 'AUTO') && hasAssertionPath) {
         errors.push({ field: 'bodyAssertionPath', message: 'Assertion path is only used for JSON path assertions' });
     }
 
-    if (body.headers && !isValidJson(body.headers)) {
+    if (monitorType === 'HTTP' && body.headers && !isValidJson(body.headers)) {
         errors.push({ field: 'headers', message: 'Headers must be valid JSON' });
     }
 
-    if (body.headers && body.requestBody && isValidJson(body.headers)) {
+    if (monitorType === 'HTTP' && body.headers && body.requestBody && isValidJson(body.headers)) {
         try {
             const parsedHeaders = JSON.parse(body.headers) as Record<string, string>;
             const contentType = Object.entries(parsedHeaders).find(([key]) => key.toLowerCase() === 'content-type')?.[1];
@@ -161,15 +208,15 @@ export function validateMonitorInputWithOptions(
         }
     }
 
-    if (body.authMethod && !['NONE', 'BASIC', 'FORM_LOGIN', 'CSRF_FORM_LOGIN'].includes(body.authMethod)) {
+    if (monitorType === 'HTTP' && body.authMethod && !['NONE', 'BASIC', 'FORM_LOGIN', 'CSRF_FORM_LOGIN'].includes(body.authMethod)) {
         errors.push({ field: 'authMethod', message: 'Invalid authentication method' });
     }
 
-    if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && (!body.authUrl || !isValidUrl(body.authUrl))) {
+    if (monitorType === 'HTTP' && (body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && (!body.authUrl || !isValidUrl(body.authUrl))) {
         errors.push({ field: 'authUrl', message: 'Valid HTTP/HTTPS login URL is required for form login' });
     }
 
-    if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && body.authUrl && isValidUrl(body.authUrl)) {
+    if (monitorType === 'HTTP' && (body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && body.authUrl && isValidUrl(body.authUrl)) {
         const blockedReason = getBlockedTargetReasonFromUrl(body.authUrl, {
             allowPrivateTargets: options.allowPrivateTargets,
         });
@@ -178,11 +225,11 @@ export function validateMonitorInputWithOptions(
         }
     }
 
-    if ((body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && !body.authPayload) {
+    if (monitorType === 'HTTP' && (body.authMethod === 'FORM_LOGIN' || body.authMethod === 'CSRF_FORM_LOGIN') && !body.authPayload) {
         errors.push({ field: 'authPayload', message: 'Login payload is required for form login' });
     }
 
-    if (body.authMethod === 'BASIC' && !body.authPayload) {
+    if (monitorType === 'HTTP' && body.authMethod === 'BASIC' && !body.authPayload) {
         errors.push({ field: 'authPayload', message: 'Credentials payload is required for BASIC auth' });
     }
 

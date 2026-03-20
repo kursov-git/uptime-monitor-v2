@@ -124,7 +124,9 @@ export class CheckWorker {
     private async performCheck(monitor: Monitor) {
         const authPayload = monitor.authPayload ? decrypt(monitor.authPayload) : null;
         const result = await performCheck({
+            type: monitor.type as 'HTTP' | 'TCP' | 'DNS',
             url: monitor.url,
+            dnsRecordType: monitor.dnsRecordType as 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT' | 'NS',
             method: monitor.method,
             timeoutSeconds: monitor.timeoutSeconds,
             expectedStatus: monitor.expectedStatus,

@@ -158,7 +158,9 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             },
             select: {
                 id: true,
+                type: true,
                 url: true,
+                dnsRecordType: true,
                 method: true,
                 intervalSeconds: true,
                 timeoutSeconds: true,
@@ -184,7 +186,9 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             heartbeatIntervalSec: agent.heartbeatIntervalSec,
             jobs: jobs.map((job) => ({
                 monitorId: job.id,
+                type: job.type,
                 url: job.url,
+                dnsRecordType: job.dnsRecordType,
                 method: job.method,
                 intervalSeconds: job.intervalSeconds,
                 timeoutMs: job.timeoutSeconds * 1000,
@@ -236,6 +240,8 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                 id: true,
                 name: true,
                 url: true,
+                type: true,
+                dnsRecordType: true,
                 method: true,
                 intervalSeconds: true,
                 timeoutSeconds: true,

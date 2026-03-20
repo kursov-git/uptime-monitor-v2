@@ -10,6 +10,8 @@ import { encrypt, decrypt } from '../lib/crypto';
 import { serverEnv } from '../lib/env';
 
 export default async function monitorRoutes(fastify: FastifyInstance) {
+    const normalizeMonitorType = (type: string | undefined) => String(type || 'HTTP').toUpperCase();
+    const normalizeDnsRecordType = (dnsRecordType: string | undefined) => String(dnsRecordType || 'A').toUpperCase();
     const normalizeRequestBody = (method: string | undefined, requestBody: string | null | undefined) => {
         const normalizedMethod = String(method || 'GET').toUpperCase();
         if (['GET', 'HEAD'].includes(normalizedMethod)) {
@@ -17,6 +19,107 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         }
 
         return requestBody && requestBody.length > 0 ? requestBody : null;
+    };
+
+    const buildMonitorData = (input: {
+        type: string;
+        url: string;
+        method?: string | null;
+        intervalSeconds?: number | null;
+        timeoutSeconds?: number | null;
+        expectedStatus?: number | null;
+        expectedBody?: string | null;
+        requestBody?: string | null;
+        bodyAssertionType?: string | null;
+        bodyAssertionPath?: string | null;
+        headers?: string | null;
+        authMethod?: string | null;
+        authUrl?: string | null;
+        authPayload?: string | null;
+        authTokenRegex?: string | null;
+        sslExpiryEnabled?: boolean | null;
+        sslExpiryThresholdDays?: number | null;
+        dnsRecordType?: string | null;
+        agentId?: string | null;
+        name: string;
+    }) => {
+        const type = normalizeMonitorType(input.type);
+        const intervalSeconds = input.intervalSeconds ?? 60;
+        const timeoutSeconds = input.timeoutSeconds ?? 30;
+
+        if (type === 'TCP') {
+            return {
+                name: input.name.trim(),
+                type,
+                url: input.url.trim(),
+                dnsRecordType: 'A',
+                agentId: input.agentId === undefined ? null : input.agentId,
+                method: 'GET',
+                intervalSeconds,
+                timeoutSeconds,
+                expectedStatus: 200,
+                expectedBody: null,
+                requestBody: null,
+                bodyAssertionType: 'NONE',
+                bodyAssertionPath: null,
+                headers: null,
+                authMethod: 'NONE',
+                authUrl: null,
+                authPayload: null,
+                authTokenRegex: null,
+                sslExpiryEnabled: false,
+                sslExpiryThresholdDays: 14,
+            };
+        }
+
+        if (type === 'DNS') {
+            return {
+                name: input.name.trim(),
+                type,
+                url: input.url.trim(),
+                dnsRecordType: normalizeDnsRecordType(input.dnsRecordType ?? undefined),
+                agentId: input.agentId === undefined ? null : input.agentId,
+                method: 'GET',
+                intervalSeconds,
+                timeoutSeconds,
+                expectedStatus: 200,
+                expectedBody: input.expectedBody || null,
+                requestBody: null,
+                bodyAssertionType: 'NONE',
+                bodyAssertionPath: null,
+                headers: null,
+                authMethod: 'NONE',
+                authUrl: null,
+                authPayload: null,
+                authTokenRegex: null,
+                sslExpiryEnabled: false,
+                sslExpiryThresholdDays: 14,
+            };
+        }
+
+        const normalizedMethod = String(input.method || 'GET').toUpperCase();
+        return {
+            name: input.name.trim(),
+            type,
+            url: input.url.trim(),
+            dnsRecordType: 'A',
+            agentId: input.agentId === undefined ? null : input.agentId,
+            method: normalizedMethod,
+            intervalSeconds,
+            timeoutSeconds,
+            expectedStatus: input.expectedStatus ?? 200,
+            expectedBody: input.expectedBody || null,
+            requestBody: normalizeRequestBody(normalizedMethod, input.requestBody),
+            bodyAssertionType: input.bodyAssertionType || (input.expectedBody ? 'AUTO' : 'NONE'),
+            bodyAssertionPath: input.bodyAssertionPath || null,
+            headers: input.headers || null,
+            authMethod: input.authMethod || 'NONE',
+            authUrl: input.authUrl || null,
+            authPayload: input.authPayload ? encrypt(input.authPayload) : null,
+            authTokenRegex: input.authTokenRegex || null,
+            sslExpiryEnabled: input.sslExpiryEnabled || false,
+            sslExpiryThresholdDays: input.sslExpiryThresholdDays || 14,
+        };
     };
 
     // GET /api/monitors/stream — Server-Sent Events for monitor updates
@@ -180,7 +283,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
         const {
             name,
+            type,
             url,
+            dnsRecordType,
             agentId,
             method,
             intervalSeconds,
@@ -198,30 +303,29 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             sslExpiryEnabled,
             sslExpiryThresholdDays,
         } = request.body;
-        const normalizedMethod = method || 'GET';
-        const normalizedRequestBody = normalizeRequestBody(normalizedMethod, requestBody);
-
         const monitor = await prisma.monitor.create({
-            data: {
-                name: name.trim(),
-                url: url.trim(),
-                agentId: agentId === undefined ? null : agentId,
-                method: normalizedMethod,
-                intervalSeconds: intervalSeconds || 60,
-                timeoutSeconds: timeoutSeconds || 30,
-                expectedStatus: expectedStatus || 200,
-                expectedBody: expectedBody || null,
-                requestBody: normalizedRequestBody,
-                bodyAssertionType: bodyAssertionType || (expectedBody ? 'AUTO' : 'NONE'),
-                bodyAssertionPath: bodyAssertionPath || null,
-                headers: headers || null,
-                authMethod: authMethod || 'NONE',
-                authUrl: authUrl || null,
-                authPayload: authPayload ? encrypt(authPayload) : null,
-                authTokenRegex: authTokenRegex || null,
-                sslExpiryEnabled: sslExpiryEnabled || false,
-                sslExpiryThresholdDays: sslExpiryThresholdDays || 14,
-            },
+            data: buildMonitorData({
+                name,
+                type: type || 'HTTP',
+                url,
+                dnsRecordType,
+                agentId,
+                method,
+                intervalSeconds,
+                timeoutSeconds,
+                expectedStatus,
+                expectedBody,
+                requestBody,
+                bodyAssertionType,
+                bodyAssertionPath,
+                headers,
+                authMethod,
+                authUrl,
+                authPayload,
+                authTokenRegex,
+                sslExpiryEnabled,
+                sslExpiryThresholdDays,
+            }),
         });
 
 
@@ -249,7 +353,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             const body = request.body;
             const errors = validateMonitorInputWithOptions({
                 name: body.name ?? existing.name,
+                type: body.type ?? existing.type,
                 url: body.url ?? existing.url,
+                dnsRecordType: body.dnsRecordType ?? existing.dnsRecordType,
                 method: body.method ?? existing.method,
                 intervalSeconds: body.intervalSeconds ?? existing.intervalSeconds,
                 timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
@@ -265,7 +371,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 authTokenRegex: body.authTokenRegex ?? existing.authTokenRegex ?? undefined,
                 sslExpiryEnabled: body.sslExpiryEnabled ?? existing.sslExpiryEnabled,
                 sslExpiryThresholdDays: body.sslExpiryThresholdDays ?? existing.sslExpiryThresholdDays,
-                agentId: body.agentId ?? existing.agentId,
+                agentId: body.agentId !== undefined ? body.agentId : existing.agentId,
             }, {
                 allowPrivateTargets: serverEnv.allowPrivateMonitorTargets,
             });
@@ -273,33 +379,30 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 return reply.status(400).send({ errors });
             }
 
-            const normalizedMethod = body.method ?? existing.method;
-            const normalizedRequestBody = body.requestBody !== undefined || body.method !== undefined
-                ? normalizeRequestBody(normalizedMethod, body.requestBody ?? existing.requestBody)
-                : existing.requestBody;
-
             const monitor = await prisma.monitor.update({
                 where: { id },
-                data: {
-                    ...(body.name !== undefined && { name: body.name.trim() }),
-                    ...(body.url !== undefined && { url: body.url.trim() }),
-                    ...(body.agentId !== undefined && { agentId: body.agentId }),
-                    ...(body.method !== undefined && { method: normalizedMethod }),
-                    ...(body.intervalSeconds !== undefined && { intervalSeconds: body.intervalSeconds }),
-                    ...(body.timeoutSeconds !== undefined && { timeoutSeconds: body.timeoutSeconds }),
-                    ...(body.expectedStatus !== undefined && { expectedStatus: body.expectedStatus }),
-                    ...(body.expectedBody !== undefined && { expectedBody: body.expectedBody }),
-                    ...(body.requestBody !== undefined && { requestBody: normalizedRequestBody }),
-                    ...(body.bodyAssertionType !== undefined && { bodyAssertionType: body.bodyAssertionType }),
-                    ...(body.bodyAssertionPath !== undefined && { bodyAssertionPath: body.bodyAssertionPath || null }),
-                    ...(body.headers !== undefined && { headers: body.headers }),
-                    ...(body.authMethod !== undefined && { authMethod: body.authMethod }),
-                    ...(body.authUrl !== undefined && { authUrl: body.authUrl }),
-                    ...(body.authPayload !== undefined && { authPayload: body.authPayload ? encrypt(body.authPayload) : body.authPayload }),
-                    ...(body.authTokenRegex !== undefined && { authTokenRegex: body.authTokenRegex }),
-                    ...(body.sslExpiryEnabled !== undefined && { sslExpiryEnabled: body.sslExpiryEnabled }),
-                    ...(body.sslExpiryThresholdDays !== undefined && { sslExpiryThresholdDays: body.sslExpiryThresholdDays }),
-                },
+                data: buildMonitorData({
+                    name: body.name ?? existing.name,
+                    type: body.type ?? existing.type,
+                    url: body.url ?? existing.url,
+                    dnsRecordType: body.dnsRecordType ?? existing.dnsRecordType,
+                    agentId: body.agentId !== undefined ? body.agentId : existing.agentId,
+                    method: body.method ?? existing.method,
+                    intervalSeconds: body.intervalSeconds ?? existing.intervalSeconds,
+                    timeoutSeconds: body.timeoutSeconds ?? existing.timeoutSeconds,
+                    expectedStatus: body.expectedStatus ?? existing.expectedStatus,
+                    expectedBody: body.expectedBody ?? existing.expectedBody,
+                    requestBody: body.requestBody ?? existing.requestBody,
+                    bodyAssertionType: body.bodyAssertionType ?? existing.bodyAssertionType,
+                    bodyAssertionPath: body.bodyAssertionPath ?? existing.bodyAssertionPath,
+                    headers: body.headers ?? existing.headers,
+                    authMethod: body.authMethod ?? existing.authMethod,
+                    authUrl: body.authUrl ?? existing.authUrl,
+                    authPayload: body.authPayload ?? (existing.authPayload ? decrypt(existing.authPayload) : null),
+                    authTokenRegex: body.authTokenRegex ?? existing.authTokenRegex,
+                    sslExpiryEnabled: body.sslExpiryEnabled ?? existing.sslExpiryEnabled,
+                    sslExpiryThresholdDays: body.sslExpiryThresholdDays ?? existing.sslExpiryThresholdDays,
+                }),
             });
 
             const user = request.user;

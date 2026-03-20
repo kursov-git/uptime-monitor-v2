@@ -18,7 +18,9 @@ const userSchema = z.object({
 const monitorSchema = z.object({
     id: uuid,
     name: z.string(),
+    type: z.enum(['HTTP', 'TCP', 'DNS']),
     url: z.string().url(),
+    dnsRecordType: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']),
     method: z.string(),
     intervalSeconds: z.number(),
     timeoutSeconds: z.number(),
@@ -75,7 +77,9 @@ const publicStatusSchema = z.object({
     monitors: z.array(z.object({
         id: uuid,
         name: z.string(),
+        type: z.enum(['HTTP', 'TCP', 'DNS']),
         url: z.string().url(),
+        dnsRecordType: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']),
         method: z.string(),
         isActive: z.boolean(),
         status: z.enum(['up', 'down', 'paused', 'unknown']),

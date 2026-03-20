@@ -5,6 +5,35 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-03-19
 
+## 2026-03-20
+
+### TCP and DNS monitor rollout
+
+Host:
+- `onedashmsk`
+
+Related agent hosts:
+- `cloudruvm1`
+- `ruvdskzn`
+
+Changes:
+- deployed first-class monitor `type` support with `HTTP`, `TCP`, and `DNS`
+- added `dnsRecordType` to monitor configuration
+- extended shared checker, builtin worker, remote-agent jobs, and public status payloads to carry the new monitor contract
+- updated monitor form and cards so protocol-specific settings are shown conditionally instead of mixing HTTP-only fields into all monitors
+
+Operational result:
+- operators can now create compact `TCP` checks using `tcp://host:port`
+- operators can now create `DNS` checks using `dns://hostname` plus a record type
+- builtin worker and remote agents execute the same protocol-specific check logic
+
+Verification:
+- local builds passed for `packages/shared`, `packages/checker`, `apps/agent`, `server`, and `client`
+- full test suites passed for `server` and `client`
+- contract snapshots updated to include `type` and `dnsRecordType`
+
+## 2026-03-19
+
 ### Synthetic request body rollout
 
 Host:

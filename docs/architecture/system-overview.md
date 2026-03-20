@@ -63,13 +63,14 @@ Key responsibilities:
 ### Shared Packages
 
 #### `packages/checker`
-Shared HTTP check engine used by:
+Shared check engine used by:
 - builtin server worker
 - remote agent
 
 Current extra responsibility:
 - collect HTTPS certificate metadata when SSL expiry monitoring is enabled on a monitor
 - execute configured synthetic HTTP checks including raw request bodies for body-capable methods
+- execute `TCP` port checks and `DNS` record checks with the same result contract
 
 #### `packages/shared`
 Shared TypeScript types and constants used by:
@@ -132,6 +133,7 @@ Important relationships:
   - `null` means builtin worker
   - non-null means assigned to a remote agent
 - `Monitor` also carries synthetic request configuration for ordinary HTTP/HTTPS checks:
+  - `type`
   - `method`
   - `headers`
   - `requestBody`
@@ -139,6 +141,8 @@ Important relationships:
   - `expectedBody`
   - `bodyAssertionType`
   - `bodyAssertionPath`
+- `Monitor` also carries a protocol-specific DNS knob:
+  - `dnsRecordType`
 - `Monitor` also carries optional SSL expiry monitoring config:
   - `sslExpiryEnabled`
   - `sslExpiryThresholdDays`
@@ -174,11 +178,14 @@ Important relationships:
 
 1. Server starts with builtin worker enabled.
 2. `CheckWorker` schedules active monitors with `agentId = null`.
-3. Each check uses `@uptime-monitor/checker` with the monitor's configured method, headers, and raw `requestBody` when the method allows a body.
-4. For HTTPS monitors with SSL expiry enabled, the checker also extracts certificate expiry metadata.
-5. Results are stored in `CheckResult`.
-6. Flapping and notification logic runs from server-side services.
-7. UI receives updates through monitor APIs and SSE.
+3. Each check uses `@uptime-monitor/checker` with the monitor's configured type and protocol-specific settings.
+4. For `HTTP` monitors, the checker uses the configured method, headers, and raw `requestBody` when the method allows a body.
+5. For `TCP` monitors, the checker attempts a socket connection to `tcp://host:port`.
+6. For `DNS` monitors, the checker resolves the configured `dnsRecordType` against `dns://hostname`.
+7. For HTTPS monitors with SSL expiry enabled, the checker also extracts certificate expiry metadata.
+8. Results are stored in `CheckResult`.
+9. Flapping and notification logic runs from server-side services.
+10. UI receives updates through monitor APIs and SSE.
 
 ### Remote Agent Flow
 
@@ -187,12 +194,13 @@ Important relationships:
 3. Operator deploys that token to a real host manually.
 4. Agent starts and calls `GET /api/agent/jobs`.
 5. Agent opens `GET /api/agent/stream` for live updates.
-6. Agent executes assigned checks via `@uptime-monitor/checker`, including configured method, headers, and raw `requestBody` for body-capable methods.
-7. For HTTPS monitors with SSL expiry enabled, the agent includes certificate expiry metadata in the result payload.
-8. Agent batches results to `POST /api/agent/results`.
-9. Agent sends liveness to `POST /api/agent/heartbeat`.
-10. Server updates `lastSeen`, `status`, and `agentVersion`.
-11. Offline monitor service marks stale agents `OFFLINE`.
+6. Agent executes assigned checks via `@uptime-monitor/checker`, including protocol-specific handling for `HTTP`, `TCP`, and `DNS`.
+7. For HTTP body-capable methods, the agent passes through raw `requestBody` exactly as configured.
+8. For HTTPS monitors with SSL expiry enabled, the agent includes certificate expiry metadata in the result payload.
+9. Agent batches results to `POST /api/agent/results`.
+10. Agent sends liveness to `POST /api/agent/heartbeat`.
+11. Server updates `lastSeen`, `status`, and `agentVersion`.
+12. Offline monitor service marks stale agents `OFFLINE`.
 
 ### SSL Expiry Monitoring Flow
 

@@ -1,5 +1,7 @@
 export type Role = 'ADMIN' | 'VIEWER';
 export const CURRENT_AGENT_VERSION = '1.0.0';
+export type MonitorType = 'HTTP' | 'TCP' | 'DNS';
+export type DnsRecordType = 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT' | 'NS';
 export type BodyAssertionType =
     | 'NONE'
     | 'AUTO'
@@ -45,7 +47,9 @@ export interface CheckResult {
 export interface Monitor {
     id: string;
     name: string;
+    type: MonitorType;
     url: string;
+    dnsRecordType: DnsRecordType;
     agentId?: string | null;
     agentName?: string | null;
     method: string;
@@ -80,7 +84,9 @@ export interface Monitor {
 
 export interface MonitorFormData {
     name: string;
+    type: MonitorType;
     url: string;
+    dnsRecordType: DnsRecordType;
     agentId?: string | null;
     method: string;
     intervalSeconds: number;
@@ -157,7 +163,9 @@ export interface StatsResponse {
 export interface PublicStatusMonitor {
     id: string;
     name: string;
+    type: MonitorType;
     url: string;
+    dnsRecordType: DnsRecordType;
     method: string;
     isActive: boolean;
     status: 'up' | 'down' | 'paused' | 'unknown';

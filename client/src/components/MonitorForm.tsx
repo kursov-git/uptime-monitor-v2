@@ -9,10 +9,13 @@ interface MonitorFormProps {
 }
 
 export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: MonitorFormProps) {
+    const monitorType = monitor?.type || 'HTTP';
     const [agents, setAgents] = useState<Agent[]>([]);
     const [formData, setFormData] = useState<MonitorFormData>({
         name: monitor?.name || '',
+        type: monitorType,
         url: monitor?.url || '',
+        dnsRecordType: monitor?.dnsRecordType || 'A',
         agentId: monitor?.agentId || '',
         method: monitor?.method || 'GET',
         intervalSeconds: monitor?.intervalSeconds || 60,
@@ -58,6 +61,73 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     });
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const isHttpMonitor = formData.type === 'HTTP';
+    const isDnsMonitor = formData.type === 'DNS';
+    const isTcpMonitor = formData.type === 'TCP';
+    const currentHttpMethod = String(formData.method || 'GET').toUpperCase();
+    const showRequestBody = isHttpMonitor && !['GET', 'HEAD'].includes(currentHttpMethod);
+
+    const getTargetLabel = () => {
+        if (isTcpMonitor) return 'TCP Target';
+        if (isDnsMonitor) return 'DNS Target';
+        return 'URL';
+    };
+
+    const getTargetPlaceholder = () => {
+        if (isTcpMonitor) return 'tcp://db.example.com:5432';
+        if (isDnsMonitor) return 'dns://example.com';
+        return 'https://example.com';
+    };
+
+    const applyMonitorTypeDefaults = (nextType: MonitorFormData['type']) => {
+        setFormData(prev => {
+            if (nextType === 'TCP') {
+                return {
+                    ...prev,
+                    type: nextType,
+                    dnsRecordType: 'A',
+                    method: 'GET',
+                    expectedStatus: 200,
+                    expectedBody: '',
+                    requestBody: '',
+                    bodyAssertionType: 'NONE',
+                    bodyAssertionPath: '',
+                    headers: '',
+                    authMethod: 'NONE',
+                    authUrl: '',
+                    authPayload: '',
+                    authTokenRegex: '',
+                    sslExpiryEnabled: false,
+                    sslExpiryThresholdDays: 14,
+                };
+            }
+
+            if (nextType === 'DNS') {
+                return {
+                    ...prev,
+                    type: nextType,
+                    method: 'GET',
+                    expectedStatus: 200,
+                    requestBody: '',
+                    bodyAssertionType: 'NONE',
+                    bodyAssertionPath: '',
+                    headers: '',
+                    authMethod: 'NONE',
+                    authUrl: '',
+                    authPayload: '',
+                    authTokenRegex: '',
+                    sslExpiryEnabled: false,
+                    sslExpiryThresholdDays: 14,
+                };
+            }
+
+            return {
+                ...prev,
+                type: nextType,
+                method: prev.method || 'GET',
+            };
+        });
+    };
 
     useEffect(() => {
         const loadAgents = async () => {
@@ -99,15 +169,15 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         setSubmitting(true);
 
         try {
-            const normalizedAssertionType = formData.bodyAssertionType || 'NONE';
-            const normalizedExpectedBody = normalizedAssertionType === 'NONE'
-                ? ''
-                : formData.expectedBody;
-            const normalizedRequestBody = ['GET', 'HEAD'].includes(String(formData.method || 'GET').toUpperCase())
-                ? ''
-                : formData.requestBody;
+            const normalizedAssertionType = isHttpMonitor ? (formData.bodyAssertionType || 'NONE') : 'NONE';
+            const normalizedExpectedBody = isHttpMonitor
+                ? (normalizedAssertionType === 'NONE' ? '' : formData.expectedBody)
+                : isDnsMonitor
+                    ? formData.expectedBody
+                    : '';
+            const normalizedRequestBody = showRequestBody ? formData.requestBody : '';
             const normalizedAssertionPath = (
-                normalizedAssertionType === 'JSON_PATH_EQUALS' || normalizedAssertionType === 'JSON_PATH_CONTAINS'
+                isHttpMonitor && (normalizedAssertionType === 'JSON_PATH_EQUALS' || normalizedAssertionType === 'JSON_PATH_CONTAINS')
             )
                 ? formData.bodyAssertionPath
                 : '';
@@ -115,11 +185,18 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
             await onSubmit({
                 ...formData,
                 agentId: formData.agentId || null,
-                authPayload: constructedPayload,
+                method: isHttpMonitor ? currentHttpMethod : 'GET',
+                authPayload: isHttpMonitor ? constructedPayload : '',
                 bodyAssertionType: normalizedAssertionType,
                 expectedBody: normalizedExpectedBody,
                 requestBody: normalizedRequestBody,
                 bodyAssertionPath: normalizedAssertionPath,
+                headers: isHttpMonitor ? formData.headers : '',
+                authMethod: isHttpMonitor ? formData.authMethod : 'NONE',
+                authUrl: isHttpMonitor ? formData.authUrl : '',
+                authTokenRegex: isHttpMonitor ? formData.authTokenRegex : '',
+                sslExpiryEnabled: isHttpMonitor ? formData.sslExpiryEnabled : false,
+                sslExpiryThresholdDays: isHttpMonitor ? formData.sslExpiryThresholdDays : 14,
             });
         } catch (err: any) {
             const msg = err.response?.data?.errors?.[0]?.message
@@ -162,14 +239,31 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                     </div>
 
                     <div className="form-group">
-                        <label>URL</label>
+                        <label>Monitor Type</label>
+                        <select
+                            value={formData.type}
+                            onChange={e => applyMonitorTypeDefaults(e.target.value as MonitorFormData['type'])}
+                        >
+                            <option value="HTTP">HTTP / HTTPS</option>
+                            <option value="TCP">TCP Port</option>
+                            <option value="DNS">DNS Record</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group">
+                        <label>{getTargetLabel()}</label>
                         <input
-                            type="url"
+                            type="text"
                             value={formData.url}
                             onChange={e => update('url', e.target.value)}
-                            placeholder="https://example.com"
+                            placeholder={getTargetPlaceholder()}
                             required
                         />
+                        <div className="help-text">
+                            {isHttpMonitor && 'Use a full HTTP or HTTPS URL.'}
+                            {isTcpMonitor && 'Use tcp://host:port to verify that a TCP socket accepts connections.'}
+                            {isDnsMonitor && 'Use dns://hostname to resolve a DNS record from the assigned executor.'}
+                        </div>
                     </div>
 
                     <div className="form-row">
@@ -188,6 +282,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             </select>
                         </div>
 
+                        {isHttpMonitor && (
                         <div className="form-group">
                             <label>Method</label>
                             <select
@@ -209,6 +304,24 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                 <option value="PATCH">PATCH</option>
                             </select>
                         </div>
+                        )}
+
+                        {isDnsMonitor && (
+                        <div className="form-group">
+                            <label>Record Type</label>
+                            <select
+                                value={formData.dnsRecordType}
+                                onChange={e => update('dnsRecordType', e.target.value)}
+                            >
+                                <option value="A">A</option>
+                                <option value="AAAA">AAAA</option>
+                                <option value="CNAME">CNAME</option>
+                                <option value="MX">MX</option>
+                                <option value="TXT">TXT</option>
+                                <option value="NS">NS</option>
+                            </select>
+                        </div>
+                        )}
 
                         <div className="form-group">
                             <label>Interval (seconds)</label>
@@ -235,6 +348,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                         </div>
                     </div>
 
+                    {isHttpMonitor && (
                     <div className="form-row">
                         <div className="form-group">
                             <label>Expected Status</label>
@@ -272,8 +386,9 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             </select>
                         </div>
                     </div>
+                    )}
 
-                    {formData.bodyAssertionType !== 'NONE' && (
+                    {isHttpMonitor && formData.bodyAssertionType !== 'NONE' && (
                         <div className="form-row">
                             {(formData.bodyAssertionType === 'JSON_PATH_EQUALS' || formData.bodyAssertionType === 'JSON_PATH_CONTAINS') && (
                                 <div className="form-group">
@@ -305,7 +420,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                         </div>
                     )}
 
-                    {formData.bodyAssertionType !== 'NONE' && (
+                    {isHttpMonitor && formData.bodyAssertionType !== 'NONE' && (
                         <div className="help-text" style={{ marginBottom: 16 }}>
                             {formData.bodyAssertionType === 'AUTO' && 'Backward-compatible mode: tries regex first, then falls back to substring matching.'}
                             {formData.bodyAssertionType === 'CONTAINS' && 'Marks the check down if the response body does not contain the provided text.'}
@@ -315,6 +430,22 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                         </div>
                     )}
 
+                    {isDnsMonitor && (
+                        <div className="form-group">
+                            <label>Expected Answer Contains</label>
+                            <input
+                                type="text"
+                                value={formData.expectedBody}
+                                onChange={e => update('expectedBody', e.target.value)}
+                                placeholder="optional"
+                            />
+                            <div className="help-text">
+                                Optional substring match against the resolved DNS answers.
+                            </div>
+                        </div>
+                    )}
+
+                    {isHttpMonitor && (
                     <div className="form-group">
                         <label>Custom Headers (JSON)</label>
                         <textarea
@@ -324,8 +455,9 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             rows={3}
                         />
                     </div>
+                    )}
 
-                    {!['GET', 'HEAD'].includes(String(formData.method || 'GET').toUpperCase()) && (
+                    {showRequestBody && (
                         <div className="form-group">
                             <label>Request Body</label>
                             <textarea
@@ -340,6 +472,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                         </div>
                     )}
 
+                    {isHttpMonitor && (
                     <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <input
@@ -367,7 +500,9 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             </div>
                         </div>
                     </div>
+                    )}
 
+                    {isHttpMonitor && (
                     <div className="form-group" style={{ marginTop: '1rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
                         <label>Authentication Settings (Multi-Step)</label>
                         <select
@@ -452,6 +587,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             </div>
                         )}
                     </div>
+                    )}
 
                     <div className="modal-actions">
                         {monitor && onToggle && (

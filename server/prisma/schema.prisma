@@ -11,7 +11,9 @@ datasource db {
 model Monitor {
   id              String  @id @default(uuid())
   name            String
+  type            String  @default("HTTP")
   url             String
+  dnsRecordType   String  @default("A")
   method          String  @default("GET")
   intervalSeconds Float   @default(60)
   timeoutSeconds  Int     @default(30)

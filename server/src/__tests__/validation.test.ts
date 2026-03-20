@@ -55,6 +55,7 @@ describe('validateMonitorInput', () => {
     it('should accept valid input', () => {
         const errors = validateMonitorInput({
             name: 'Test Monitor',
+            type: 'HTTP',
             url: 'https://example.com',
             intervalSeconds: 5,
             expectedStatus: 200,
@@ -161,6 +162,7 @@ describe('validateMonitorInput', () => {
     it('should accept raw request body for POST-style monitors', () => {
         const errors = validateMonitorInput({
             name: 'POST Monitor',
+            type: 'HTTP',
             url: 'https://example.com/api/send',
             method: 'POST',
             headers: '{"Content-Type":"application/json"}',
@@ -173,6 +175,7 @@ describe('validateMonitorInput', () => {
     it('should reject invalid JSON request body when content type is application/json', () => {
         const errors = validateMonitorInput({
             name: 'POST Monitor',
+            type: 'HTTP',
             url: 'https://example.com/api/send',
             method: 'POST',
             headers: '{"Content-Type":"application/json"}',
@@ -182,6 +185,54 @@ describe('validateMonitorInput', () => {
         expect(errors).toContainEqual({
             field: 'requestBody',
             message: 'Request body must be valid JSON when Content-Type is application/json',
+        });
+    });
+
+    it('should accept valid TCP targets', () => {
+        const errors = validateMonitorInput({
+            name: 'Postgres Port',
+            type: 'TCP',
+            url: 'tcp://db.example.com:5432',
+        });
+
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should require port for TCP targets', () => {
+        const errors = validateMonitorInput({
+            name: 'Broken TCP',
+            type: 'TCP',
+            url: 'tcp://db.example.com',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'url',
+            message: 'Valid TCP target is required (tcp://host:port)',
+        });
+    });
+
+    it('should accept valid DNS targets', () => {
+        const errors = validateMonitorInput({
+            name: 'DNS A Record',
+            type: 'DNS',
+            url: 'dns://example.com',
+            dnsRecordType: 'A',
+        });
+
+        expect(errors).toHaveLength(0);
+    });
+
+    it('should reject invalid DNS record types', () => {
+        const errors = validateMonitorInput({
+            name: 'DNS Weird',
+            type: 'DNS',
+            url: 'dns://example.com',
+            dnsRecordType: 'SRV',
+        });
+
+        expect(errors).toContainEqual({
+            field: 'dnsRecordType',
+            message: 'Invalid DNS record type',
         });
     });
 });

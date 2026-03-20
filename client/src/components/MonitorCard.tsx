@@ -12,8 +12,9 @@ interface MonitorCardProps {
 
 export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onToggle, onTogglePublic, onHistory }: MonitorCardProps) {
     const lastCheck = monitor.lastCheck;
+    const isHttpMonitor = monitor.type === 'HTTP';
     const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
-    const hasSslSnapshot = monitor.sslExpiryEnabled && lastCheck?.sslDaysRemaining !== null && lastCheck?.sslDaysRemaining !== undefined;
+    const hasSslSnapshot = isHttpMonitor && monitor.sslExpiryEnabled && lastCheck?.sslDaysRemaining !== null && lastCheck?.sslDaysRemaining !== undefined;
     const sslWarning = hasSslSnapshot && (lastCheck!.sslDaysRemaining as number) <= sslThresholdDays;
 
     const getStatus = () => {
@@ -46,11 +47,17 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
         return `${Math.round(sec / 3600)}h`;
     };
 
+    const monitorTypeLabel = monitor.type === 'DNS'
+        ? `DNS ${monitor.dnsRecordType}`
+        : monitor.type === 'TCP'
+            ? 'TCP'
+            : monitor.method;
+
     const sslSummary = hasSslSnapshot
         ? (lastCheck!.sslDaysRemaining as number) <= 0
             ? 'SSL expired'
             : `SSL expires in ${lastCheck!.sslDaysRemaining} day${lastCheck!.sslDaysRemaining === 1 ? '' : 's'}`
-        : monitor.sslExpiryEnabled
+        : isHttpMonitor && monitor.sslExpiryEnabled
             ? 'SSL expiry pending first HTTPS check'
             : null;
 
@@ -102,6 +109,9 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             </div>
 
             <div className="monitor-url">{monitor.url}</div>
+            <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
+                Type: <strong>{monitorTypeLabel}</strong>
+            </div>
             {monitor.isPublic && (
                 <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-success)' }}>
                     Public Status: visible on status page

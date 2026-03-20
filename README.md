@@ -30,6 +30,8 @@ That means the repository is expected to preserve:
 ## What It Does
 
 - monitors HTTP/HTTPS endpoints
+- monitors TCP ports
+- monitors DNS records
 - validates response status and optional body expectations
 - supports synthetic request configuration with method, custom headers, and raw request bodies for body-capable HTTP methods
 - warns about expiring HTTPS certificates with configurable thresholds
@@ -47,6 +49,8 @@ Implemented and working:
 - agent registration, token rotation, revocation, deletion, and version tracking
 - agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
 - raw request-body support for synthetic `POST`/`PUT`/`PATCH` monitor checks across builtin worker and remote agents
+- `TCP` checks using `tcp://host:port`
+- `DNS` checks using `dns://hostname` plus configurable record type
 - agent offline and recovery notifications through the shared notification stack
 - public status page with per-monitor exposure, 24h availability buckets, and a derived incident timeline
 - SSL expiry monitoring with UI surfacing and warning/recovery notifications
