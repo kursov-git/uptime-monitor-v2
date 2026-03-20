@@ -28,11 +28,11 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
 
 
     const statusLabel: Record<string, string> = {
-        up: '• Up',
-        down: '• Down',
-        paused: '• Paused',
-        unknown: '• Unknown',
-        flapping: '• Flapping',
+        up: 'Operational',
+        down: 'Outage',
+        paused: 'Paused',
+        unknown: 'Unknown',
+        flapping: 'Flapping',
     };
 
     const formatTime = (ms: number) => {
@@ -66,11 +66,8 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             <div className="monitor-card-main">
                 <div className="monitor-card-header">
                     <div className="monitor-card-title-block">
-                        <div className="monitor-name">{monitor.name}</div>
+                        <div className="monitor-name" title={monitor.name}>{monitor.name}</div>
                         <div className="monitor-url">{monitor.url}</div>
-                    </div>
-                    <div className="monitor-card-inline-status">
-                        <span className={`status-badge ${status}`}>{statusLabel[status]}</span>
                     </div>
                 </div>
                 <div className="monitor-meta-pills">
@@ -104,32 +101,20 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                     </div>
                 )}
 
-                <div className="monitor-stats">
-                    <div className="stat">
-                        <div className="stat-label">Resp</div>
-                        <div className="stat-value">
-                            {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
-                        </div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Every</div>
-                        <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Timeout</div>
-                        <div className="stat-value">{monitor.timeoutSeconds}s</div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Checked</div>
-                        <div className="stat-value">
-                            {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <div className="monitor-card-side">
-                <div className="monitor-actions monitor-actions-grid">
+                <div className="monitor-side-status">
+                    <span className={`status-badge ${status}`}>
+                        <span className={`status-semaphore ${status}`} aria-hidden="true">
+                            <span />
+                            <span />
+                            <span />
+                        </span>
+                        {statusLabel[status]}
+                    </span>
+                </div>
+                <div className="monitor-actions monitor-control-group">
                     <button
                         className="btn btn-icon btn-sm btn-secondary"
                         onClick={() => onHistory(monitor)}
@@ -169,6 +154,28 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                             </button>
                         </>
                     )}
+                </div>
+                <div className="monitor-stats monitor-stats-compact">
+                    <div className="stat">
+                        <div className="stat-label">Resp</div>
+                        <div className="stat-value">
+                            {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
+                        </div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Every</div>
+                        <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Timeout</div>
+                        <div className="stat-value">{monitor.timeoutSeconds}s</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Checked</div>
+                        <div className="stat-value">
+                            {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
