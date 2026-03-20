@@ -36,6 +36,20 @@ export default function DashboardPage({
         return monitor.lastCheck.isUp ? 'up' : 'down';
     };
 
+    const buildServiceDescription = (serviceMonitors: Monitor[]) => {
+        const typeLabels = Array.from(new Set(serviceMonitors.map((monitor) => (
+            monitor.type === 'DNS'
+                ? `DNS ${monitor.dnsRecordType}`
+                : monitor.type === 'TCP'
+                    ? 'TCP'
+                    : `HTTP ${monitor.method}`
+        ))));
+        const publicCount = serviceMonitors.filter((monitor) => monitor.isPublic).length;
+        const coverage = typeLabels.slice(0, 3).join(', ');
+        const suffix = publicCount > 0 ? ` ${publicCount} public.` : '';
+        return `${coverage} coverage.${suffix}`;
+    };
+
     const groupedMonitors = monitors.reduce((acc, monitor) => {
         const key = monitor.serviceName?.trim() || 'Standalone Monitors';
         const existing = acc.get(key);
@@ -60,10 +74,16 @@ export default function DashboardPage({
                 else if (status === 'up') acc.up += 1;
                 else if (status === 'paused') acc.paused += 1;
                 else acc.unknown += 1;
+                if (monitor.isPublic) acc.publicCount += 1;
                 return acc;
-            }, { up: 0, attention: 0, paused: 0, unknown: 0 });
+            }, { up: 0, attention: 0, paused: 0, unknown: 0, publicCount: 0 });
 
-            return { serviceName, monitors: serviceMonitors, summary };
+            return {
+                serviceName,
+                monitors: serviceMonitors,
+                summary,
+                description: buildServiceDescription(serviceMonitors),
+            };
         });
 
     const overallSummary = monitors.reduce((acc, monitor) => {
@@ -163,18 +183,18 @@ export default function DashboardPage({
                 </div>
             ) : (
                 <div className="monitor-service-sections">
-                    {serviceSections.map(({ serviceName, monitors: serviceMonitors, summary }) => (
+                    {serviceSections.map(({ serviceName, monitors: serviceMonitors, summary, description }) => (
                         <section key={serviceName} className="monitor-service-section">
                             <div className="monitor-service-section-header">
-                                <div>
+                                <div className="monitor-service-section-copy">
                                     <h2>{serviceName}</h2>
-                                    <p>
-                                        {serviceMonitors.length} {serviceMonitors.length === 1 ? 'monitor' : 'monitors'}
-                                    </p>
+                                    <p>{description}</p>
                                 </div>
                                 <div className="monitor-service-summary">
+                                    <span>{serviceMonitors.length} {serviceMonitors.length === 1 ? 'monitor' : 'monitors'}</span>
+                                    {summary.publicCount > 0 && <span>{summary.publicCount} public</span>}
                                     {summary.attention > 0 && <span>{summary.attention} needs attention</span>}
-                                    {summary.up > 0 && <span>{summary.up} up</span>}
+                                    {summary.attention === 0 && summary.unknown === 0 && summary.paused === 0 && <span>all operational</span>}
                                     {summary.paused > 0 && <span>{summary.paused} paused</span>}
                                     {summary.unknown > 0 && <span>{summary.unknown} unknown</span>}
                                 </div>

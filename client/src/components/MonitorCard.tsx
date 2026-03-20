@@ -28,11 +28,11 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
 
 
     const statusLabel: Record<string, string> = {
-        up: '● UP',
-        down: '● DOWN',
-        paused: '⏸ PAUSED',
-        unknown: '○ UNKNOWN',
-        flapping: '⚠️ FLAPPING',
+        up: '• Up',
+        down: '• Down',
+        paused: '• Paused',
+        unknown: '• Unknown',
+        flapping: '• Flapping',
     };
 
     const formatTime = (ms: number) => {
@@ -129,18 +129,6 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             </div>
 
             <div className="monitor-card-side">
-                <div className={`monitor-status-panel status-${status}`}>
-                    <div className="monitor-status-panel-label">Status</div>
-                    <span
-                        className={`status-badge ${status}`}
-                        title={monitor.flappingState?.isFlapping
-                            ? `Diagnostic Info:\nFailures: ${monitor.flappingState.consecutiveFailures}\nSince: ${monitor.flappingState.firstFailureTime ? new Date(monitor.flappingState.firstFailureTime).toLocaleTimeString() : 'N/A'}\nError: ${monitor.flappingState.lastError || 'None'}`
-                            : ''}
-                    >
-                        {statusLabel[status]}
-                    </span>
-                </div>
-
                 <div className="monitor-actions monitor-actions-grid">
                     <button
                         className="btn btn-icon btn-sm btn-secondary"

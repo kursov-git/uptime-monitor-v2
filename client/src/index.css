@@ -251,11 +251,11 @@ body {
 .monitor-service-section {
   display: grid;
   gap: 14px;
-  padding: 22px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.86);
-  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
+  padding: 20px;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(222, 232, 225, 0.92);
+  box-shadow: 0 24px 46px rgba(15, 23, 42, 0.06);
 }
 
 .monitor-service-section-header {
@@ -265,16 +265,21 @@ body {
   gap: 16px;
 }
 
+.monitor-service-section-copy {
+  display: grid;
+  gap: 8px;
+}
+
 .monitor-service-section-header h2 {
-  margin-bottom: 6px;
-  font-size: 1.45rem;
-  letter-spacing: -0.03em;
+  margin-bottom: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.04em;
   color: #102036;
 }
 
 .monitor-service-section-header p {
   color: #63748a;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 .monitor-service-summary {
@@ -282,27 +287,29 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  align-self: flex-start;
   color: #466356;
   font-size: 0.8rem;
 }
 
 .monitor-service-summary span {
-  padding: 8px 12px;
+  padding: 9px 12px;
   border-radius: 999px;
-  background: #eff5f1;
-  border: 1px solid #dde8e0;
+  background: #f2f6f3;
+  border: 1px solid #dfe8e1;
+  font-weight: 700;
 }
 
 /* Monitor Card */
 .monitor-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 136px;
-  gap: 14px;
-  padding: 18px;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 12px;
+  padding: 16px 16px 18px;
   background: linear-gradient(180deg, #ffffff, #fcfdfc);
   border-color: #e3ebe5;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
 }
 
 .monitor-card-header {
@@ -310,6 +317,7 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+  margin-bottom: 4px;
 }
 
 .monitor-card-title-block {
@@ -322,17 +330,27 @@ body {
   flex: 0 0 auto;
 }
 
+.monitor-card-inline-status .status-badge {
+  min-width: 126px;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
 .monitor-card-main {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .monitor-card-side {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: stretch;
+  justify-content: center;
 }
 
 .agents-page {
@@ -1339,14 +1357,14 @@ body {
 .monitor-meta-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
 }
 
 .monitor-meta-pill {
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 8px 11px;
+  padding: 7px 10px;
   border-radius: 999px;
   border: 1px solid #dce6de;
   background: #f0f6f2;
@@ -1378,7 +1396,7 @@ body {
 
 .monitor-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   padding-top: 2px;
 }
@@ -1451,53 +1469,19 @@ body {
 .monitor-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .monitor-actions-grid .btn {
   justify-content: center;
-  min-height: 44px;
+  min-height: 40px;
+  border-radius: 16px;
 }
 
 .monitor-actions-grid .btn-danger {
   background: #fff6f5;
   border: 1px solid #f0d5d1;
   color: #b3453d;
-}
-
-.monitor-status-panel {
-  border-radius: 18px;
-  padding: 14px;
-  border: 1px solid #dbe5de;
-  background: #f8fbf9;
-}
-
-.monitor-status-panel-label {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #789082;
-  margin-bottom: 10px;
-}
-
-.monitor-status-panel.status-up {
-  background: #e9f8ef;
-  border-color: #cfe8d8;
-}
-
-.monitor-status-panel.status-down {
-  background: #fff0ef;
-  border-color: #f2d4d1;
-}
-
-.monitor-status-panel.status-paused,
-.monitor-status-panel.status-unknown {
-  background: #f4f7f5;
-}
-
-.monitor-status-panel.status-flapping {
-  background: #fff7e7;
-  border-color: #f0ddb4;
 }
 
 .status-up { color: var(--color-success); }
@@ -1517,23 +1501,23 @@ body {
 }
 
 .status-badge.up {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: #dff4e6;
+  color: #16734a;
 }
 
 .status-badge.down {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
+  background: #fde8e4;
+  color: #be4b3d;
 }
 
 .status-badge.paused {
-  background: rgba(100, 116, 139, 0.15);
-  color: var(--color-paused);
+  background: #eef3ef;
+  color: #6b7f73;
 }
 
 .status-badge.flapping {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: #fff1df;
+  color: #b7791f;
 }
 
 /* Modal */
