@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ping Agent Status Prototype B</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --text: #102036;
+      --muted: #63748a;
+      --line: #d8e1ea;
+      --surface: rgba(255, 255, 255, 0.86);
+      --surface-strong: #ffffff;
+      --ok: #17a34a;
+      --warn: #d97706;
+      --down: #dc2626;
+      --shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30%),
+        linear-gradient(180deg, #eef4f9 0%, #f7fafc 100%);
+    }
+    .shell {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 38px 24px 56px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 28px;
+      margin-bottom: 24px;
+    }
+    .hero-card,
+    .metric-card,
+    .service-card,
+    .timeline-card {
+      background: var(--surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.7);
+      box-shadow: var(--shadow);
+      border-radius: 24px;
+    }
+    .hero-card {
+      padding: 26px 28px 30px;
+    }
+    .eyebrow {
+      display: inline-block;
+      margin-bottom: 14px;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 50px;
+      line-height: 1;
+      letter-spacing: -.05em;
+    }
+    .hero-card p {
+      margin: 0;
+      max-width: 610px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .hero-stat {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(248, 250, 252, 0.9);
+      border: 1px solid var(--line);
+    }
+    .hero-stat label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 5px;
+    }
+    .hero-stat strong {
+      font-size: 20px;
+      letter-spacing: -.03em;
+    }
+    .metric-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .metric-card .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .metric-card .big {
+      font-size: 44px;
+      line-height: 1;
+      letter-spacing: -.05em;
+      margin-bottom: 10px;
+      color: #0f172a;
+    }
+    .metric-card .state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(23, 163, 74, 0.08);
+      color: var(--ok);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .metric-card .small {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: auto;
+    }
+    .timeline-card {
+      padding: 22px 24px;
+      margin-bottom: 18px;
+    }
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+    .row-head h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+    .row-head p,
+    .row-head span {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .graph {
+      height: 160px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(37, 99, 235, 0.02), rgba(37, 99, 235, 0.00)),
+        repeating-linear-gradient(
+          to right,
+          transparent 0,
+          transparent 34px,
+          rgba(99, 116, 138, 0.08) 35px
+        );
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .graph svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .bars {
+      display: grid;
+      grid-template-columns: repeat(24, 1fr);
+      gap: 4px;
+    }
+    .bars div {
+      height: 20px;
+      border-radius: 6px;
+    }
+    .ok { background: linear-gradient(180deg, #22c55e, #16a34a); }
+    .warn { background: linear-gradient(180deg, #f59e0b, #d97706); }
+    .down { background: linear-gradient(180deg, #ef4444, #dc2626); }
+    .axis {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    .services {
+      display: grid;
+      gap: 14px;
+    }
+    .service-card {
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .service-card::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 3px;
+      background: rgba(148,163,184,.25);
+    }
+    .service-card.ok-card::after { background: linear-gradient(90deg, #22c55e, #86efac); }
+    .service-card.warn-card::after { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
+    .service-card.down-card::after { background: linear-gradient(90deg, #ef4444, #fda4af); }
+    .service-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+    .service-top h3 {
+      margin: 0 0 7px;
+      font-size: 22px;
+      letter-spacing: -.03em;
+    }
+    .service-url {
+      color: var(--muted);
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .service-status {
+      text-align: right;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .badge.ok-badge { color: var(--ok); background: rgba(23, 163, 74, 0.08); }
+    .badge.warn-badge { color: var(--warn); background: rgba(217, 119, 6, 0.08); }
+    .badge.down-badge { color: var(--down); background: rgba(220, 38, 38, 0.08); }
+    .uptime {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .service-meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .service-meta > div {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+    }
+    .service-meta label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+    }
+    .service-meta strong {
+      font-size: 14px;
+    }
+    .mini {
+      display: grid;
+      grid-template-columns: repeat(24, 1fr);
+      gap: 3px;
+      margin-bottom: 8px;
+    }
+    .mini div {
+      height: 14px;
+      border-radius: 5px;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <article class="hero-card">
+        <div class="eyebrow">Status Page</div>
+        <h1>Ping Agent</h1>
+        <p>Prototype B goes in a softer direction: lighter surface, stronger typography, and presentation that feels more like a product status page than an internal monitoring dashboard.</p>
+        <div class="hero-stats">
+          <div class="hero-stat"><label>Published</label><strong>5</strong></div>
+          <div class="hero-stat"><label>Operational</label><strong>4</strong></div>
+          <div class="hero-stat"><label>Down</label><strong>1</strong></div>
+          <div class="hero-stat"><label>24h Uptime</label><strong>99.98%</strong></div>
+        </div>
+      </article>
+      <aside class="metric-card">
+        <div>
+          <div class="label">Current status</div>
+          <div class="big">Operational</div>
+          <div class="state">All systems normal</div>
+        </div>
+        <div class="small">Last updated Mar 20, 2026 · 06:40 UTC. Incident summaries remain available per service row.</div>
+      </aside>
+    </section>
+
+    <section class="timeline-card">
+      <div class="row-head">
+        <div>
+          <div class="eyebrow">Overview</div>
+          <h2>24-hour availability</h2>
+          <p>One shared graph followed by a strip for fast incident scanning.</p>
+        </div>
+        <div><span>1 impacted hour in the last 24h</span></div>
+      </div>
+      <div class="graph">
+        <svg viewBox="0 0 900 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="fillB" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#2563eb" stop-opacity="0.02"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,26 C60,25 120,25 180,26 C240,27 300,26 360,27 C420,28 480,42 540,32 C600,24 660,26 720,27 C780,28 840,28 900,27 L900,160 L0,160 Z" fill="url(#fillB)"></path>
+          <path d="M0,26 C60,25 120,25 180,26 C240,27 300,26 360,27 C420,28 480,42 540,32 C600,24 660,26 720,27 C780,28 840,28 900,27" fill="none" stroke="#2563eb" stroke-width="3"></path>
+        </svg>
+      </div>
+      <div class="bars">
+        <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        <div class="ok"></div><div class="ok"></div><div class="warn"></div><div class="ok"></div>
+        <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+      </div>
+      <div class="axis"><span>24h ago</span><span>Now</span></div>
+    </section>
+
+    <section class="services">
+      <article class="service-card ok-card">
+        <div class="service-top">
+          <div>
+            <h3>auth.alutech24.com</h3>
+            <div class="service-url">https://auth.alutech24.com/en/login</div>
+          </div>
+          <div class="service-status">
+            <div class="badge ok-badge">Operational</div>
+            <div class="uptime">24h Uptime 99.98%</div>
+          </div>
+        </div>
+        <div class="service-meta">
+          <div><label>Method</label><strong>GET</strong></div>
+          <div><label>Response</label><strong>182ms</strong></div>
+          <div><label>Last check</label><strong>8 sec ago</strong></div>
+          <div><label>Agent</label><strong>cloudruvm1</strong></div>
+        </div>
+        <div class="mini">
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="warn"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        </div>
+        <div class="hint">Incident strip remains clickable for hourly drill-down.</div>
+      </article>
+
+      <article class="service-card ok-card">
+        <div class="service-top">
+          <div>
+            <h3>auth.alutech24.eu</h3>
+            <div class="service-url">https://auth.alutech24.eu/en/login</div>
+          </div>
+          <div class="service-status">
+            <div class="badge ok-badge">Operational</div>
+            <div class="uptime">24h Uptime 100.00%</div>
+          </div>
+        </div>
+        <div class="service-meta">
+          <div><label>Method</label><strong>GET</strong></div>
+          <div><label>Response</label><strong>205ms</strong></div>
+          <div><label>Last check</label><strong>11 sec ago</strong></div>
+          <div><label>Agent</label><strong>ruvdskzn</strong></div>
+        </div>
+        <div class="mini">
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+        </div>
+      </article>
+
+      <article class="service-card down-card">
+        <div class="service-top">
+          <div>
+            <h3>payments-gateway</h3>
+            <div class="service-url">https://pay.example.internal/health</div>
+          </div>
+          <div class="service-status">
+            <div class="badge down-badge">Major outage</div>
+            <div class="uptime">24h Uptime 92.41%</div>
+          </div>
+        </div>
+        <div class="service-meta">
+          <div><label>Method</label><strong>POST</strong></div>
+          <div><label>Response</label><strong>—</strong></div>
+          <div><label>Last check</label><strong>4 sec ago</strong></div>
+          <div><label>Agent</label><strong>cloudruvm1</strong></div>
+        </div>
+        <div class="mini">
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="ok"></div>
+          <div class="ok"></div><div class="ok"></div><div class="down"></div><div class="down"></div>
+          <div class="down"></div><div class="down"></div><div class="down"></div><div class="down"></div>
+          <div class="down"></div><div class="warn"></div><div class="warn"></div><div class="down"></div>
+          <div class="down"></div><div class="down"></div><div class="down"></div><div class="down"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

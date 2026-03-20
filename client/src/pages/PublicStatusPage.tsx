@@ -261,68 +261,89 @@ export default function PublicStatusPage() {
         <div className="public-status-page">
             <div className="public-status-shell">
                 <div className="public-status-hero">
-                    <div>
+                    <div className="public-status-hero-card">
                         <div className="public-status-kicker">Public Status</div>
                         <h1>Ping Agent Status</h1>
-                        <p>Live status for the monitors you decided to expose publicly.</p>
+                        <p>Live status for the monitors you decided to expose publicly, with a clean service-first view and hourly drill-down into failure windows.</p>
+                        <div className="public-status-summary">
+                            <div className="public-status-summary-stat">
+                                <span>Published</span>
+                                <strong>{data?.monitorCount ?? 0}</strong>
+                            </div>
+                            <div className="public-status-summary-stat">
+                                <span>Operational</span>
+                                <strong>{summary.up}</strong>
+                            </div>
+                            <div className="public-status-summary-stat">
+                                <span>Down</span>
+                                <strong>{summary.down}</strong>
+                            </div>
+                            <div className="public-status-summary-stat">
+                                <span>Overall 24h</span>
+                                <strong>{formatAvailabilityValue(latestAvailability)}</strong>
+                            </div>
+                        </div>
                     </div>
-                    <div className="public-status-meta">
+                    <div className="public-status-metric-card">
+                        <div className="public-status-kicker">Current Status</div>
+                        <div className="public-status-metric-label">Public summary</div>
+                        <div className="public-status-metric-big">{formatAvailabilityValue(latestAvailability)}</div>
+                        <strong className="public-status-metric-title">{headline.title}</strong>
+                        <span className="public-status-metric-description">{headline.description}</span>
+                        <div className="public-status-metric-footer">
+                            <span className={`status-badge ${headline.tone === 'down' ? 'down' : headline.tone === 'up' ? 'up' : headline.tone === 'paused' ? 'paused' : 'flapping'}`}>
+                                {headline.tone === 'down'
+                                    ? 'Attention'
+                                    : headline.tone === 'up'
+                                        ? 'Operational'
+                                        : headline.tone === 'paused'
+                                            ? 'Paused'
+                                            : 'Watch'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="public-status-meta">
+                    <div className="public-status-meta-card">
                         <div>Updated: {data ? formatTimestamp(data.generatedAt) : '—'}</div>
                         <div>Published monitors: {data?.monitorCount ?? 0}</div>
                     </div>
                 </div>
 
-                <div className="public-status-summary">
-                    <div className="public-status-pill up">Up {summary.up}</div>
-                    <div className="public-status-pill down">Down {summary.down}</div>
-                    <div className="public-status-pill paused">Paused {summary.paused}</div>
-                    <div className="public-status-pill unknown">Unknown {summary.unknown}</div>
-                </div>
-
-                <div className={`public-status-banner ${headline.tone}`}>
-                    <div>
-                        <strong>{headline.title}</strong>
-                        <span>{headline.description}</span>
-                    </div>
-                    {!loading && !error && data && data.monitors.length > 0 && (
-                        <div className="public-status-banner-metric">
-                            <span>24h availability</span>
-                            <strong>{formatAvailabilityValue(latestAvailability)}</strong>
-                        </div>
-                    )}
-                </div>
-
                 {!loading && !error && data && data.monitors.length > 0 && (
-                    <div className="card public-status-chart-card">
-                        <div className="public-status-chart-header">
+                    <section className="public-status-overview-card">
+                        <div className="public-status-overview-header">
                             <div>
                                 <div className="public-status-kicker">24h Availability</div>
                                 <h2>Public service health</h2>
+                                <p>Hourly uptime across every published monitor, with incident coloring carried through into the service drill-downs below.</p>
                             </div>
-                            <div className="public-status-chart-meta">
-                                <div>Current</div>
+                            <div className="public-status-overview-metric">
+                                <span>Current</span>
                                 <strong>{formatAvailabilityValue(latestAvailability)}</strong>
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={280}>
+                        <div className="public-status-overview-graph">
+                        <ResponsiveContainer width="100%" height={260}>
                             <AreaChart data={availabilitySeries} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="publicStatusAvailability" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.45} />
+                                        <stop offset="0%" stopColor="#2563eb" stopOpacity={0.28} />
                                         <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.16)" vertical={false} />
+                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(99, 116, 138, 0.16)" vertical={false} />
                                 <XAxis
                                     dataKey="time"
-                                    stroke="#94a3b8"
+                                    stroke="#63748a"
                                     fontSize={11}
                                     tickLine={false}
                                     axisLine={false}
                                     minTickGap={20}
                                 />
                                 <YAxis
-                                    stroke="#94a3b8"
+                                    stroke="#63748a"
                                     fontSize={11}
                                     tickLine={false}
                                     axisLine={false}
@@ -333,14 +354,15 @@ export default function PublicStatusPage() {
                                 <Area
                                     type="monotone"
                                     dataKey="availability"
-                                    stroke="#22c55e"
+                                    stroke="#2563eb"
                                     strokeWidth={3}
                                     fill="url(#publicStatusAvailability)"
                                     connectNulls={false}
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
-                        <div className="public-incident-panel">
+                        </div>
+                        <div className="public-status-overview-timeline">
                             <div className="public-incident-panel-header">
                                 <div>
                                     <strong>Incident Timeline</strong>
@@ -359,7 +381,7 @@ export default function PublicStatusPage() {
                                 <span><i className="unknown" /> No data</span>
                             </div>
                         </div>
-                    </div>
+                    </section>
                 )}
 
                 {loading ? (
@@ -379,6 +401,7 @@ export default function PublicStatusPage() {
                             <div>
                                 <div className="public-status-kicker">Services</div>
                                 <h2>Current service status</h2>
+                                <p>Each service stays clickable down to the exact failure window without leaving the public page.</p>
                             </div>
                             <div className="public-status-section-meta">
                                 <span>{data.monitorCount} published {data.monitorCount === 1 ? 'monitor' : 'monitors'}</span>
@@ -386,13 +409,13 @@ export default function PublicStatusPage() {
                         </div>
                         <div className="public-status-grid">
                             {data.monitors.map((monitor) => (
-                                <div className={`card public-status-card ${monitor.status}`} key={monitor.id}>
-                                <div className="public-status-card-header">
+                                <section className={`public-status-service-card ${monitor.status}`} key={monitor.id}>
+                                <div className="public-status-service-top">
                                     <div className="public-status-card-title">
                                         <h3>{monitor.name}</h3>
                                         <div className="monitor-url">{monitor.url}</div>
                                     </div>
-                                    <div className="public-status-card-meta">
+                                    <div className="public-status-service-status">
                                         <span className={`status-badge ${monitor.status}`}>
                                             {getStatusLabel(monitor.status)}
                                         </span>
@@ -454,14 +477,14 @@ export default function PublicStatusPage() {
                                             >
                                                 <defs>
                                                     <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.4} />
-                                                        <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#3b82f6'} stopOpacity={0.04} />
+                                                        <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.28} />
+                                                        <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.03} />
                                                     </linearGradient>
                                                 </defs>
                                                 <Area
                                                     type="monotone"
                                                     dataKey="availability"
-                                                    stroke={monitor.status === 'down' ? '#ef4444' : '#3b82f6'}
+                                                    stroke={monitor.status === 'down' ? '#dc2626' : '#2563eb'}
                                                     strokeWidth={2}
                                                     fill={`url(#monitorAvailability-${monitor.id})`}
                                                     connectNulls={false}
@@ -538,7 +561,7 @@ export default function PublicStatusPage() {
                                                             <strong>{drilldown.failures.length}</strong>
                                                         </div>
                                                     </div>
-                                                    <div className="public-status-sparkline" style={{ marginTop: 10 }}>
+                                                    <div className="public-status-sparkline public-status-minute-chart" style={{ marginTop: 10 }}>
                                                         <ResponsiveContainer width="100%" height={120}>
                                                             <AreaChart data={detailedSeries} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
                                                                 <defs>
@@ -598,7 +621,7 @@ export default function PublicStatusPage() {
                                         {monitor.lastCheck.error}
                                     </div>
                                 )}
-                                </div>
+                                </section>
                             ))}
                         </div>
                     </>
