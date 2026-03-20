@@ -421,11 +421,12 @@ body {
 }
 
 .public-status-overview-graph {
-  height: 160px;
+  height: 260px;
   padding: 12px 12px 4px;
   margin-bottom: 16px;
   border-radius: 18px;
   border: 1px solid #d8e1ea;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(37, 99, 235, 0.02), rgba(37, 99, 235, 0)),
     repeating-linear-gradient(
@@ -481,6 +482,40 @@ body {
   grid-template-columns: repeat(24, minmax(0, 1fr));
   gap: 4px;
 }
+
+.public-incident-strip-shell {
+  position: relative;
+}
+
+.public-incident-tooltip {
+  position: absolute;
+  top: -12px;
+  z-index: 5;
+  min-width: 148px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(216, 225, 234, 0.92);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+  display: grid;
+  gap: 2px;
+  color: #63748a;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.public-incident-tooltip-status {
+  display: block;
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
+}
+
+.public-incident-tooltip-status.operational { color: #15803d; }
+.public-incident-tooltip-status.degraded { color: #b45309; }
+.public-incident-tooltip-status.outage { color: #b91c1c; }
+.public-incident-tooltip-status.unknown { color: #475569; }
 
 .public-incident-strip.compact {
   gap: 3px;

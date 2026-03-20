@@ -42,6 +42,10 @@ function formatMinuteLabel(value: string): string {
     return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDateLabel(value: string): string {
+    return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function formatAvailabilityValue(value: number | null): string {
     return value === null ? '—' : `${value.toFixed(1)}%`;
 }
@@ -148,14 +152,34 @@ function IncidentStrip({
     onSelectBucket?: (bucket: PublicBucket) => void;
     labelPrefix?: string;
 }) {
+    const [hoveredTimestamp, setHoveredTimestamp] = useState<string | null>(null);
+    const hoveredBucket = hoveredTimestamp
+        ? buckets.find((bucket) => bucket.timestamp === hoveredTimestamp) ?? null
+        : null;
+    const hoveredIndex = hoveredBucket
+        ? buckets.findIndex((bucket) => bucket.timestamp === hoveredBucket.timestamp)
+        : -1;
+
     return (
-        <div className={`public-incident-strip ${compact ? 'compact' : ''}`} aria-label="Incident timeline for the last 24 hours">
+        <div className={`public-incident-strip-shell ${compact ? 'compact' : ''}`}>
+            {hoveredBucket && hoveredIndex >= 0 && (
+                <div
+                    className="public-incident-tooltip"
+                    role="status"
+                    aria-live="polite"
+                    style={{ left: `calc(${((hoveredIndex + 0.5) / buckets.length) * 100}% )` }}
+                >
+                    <strong className={`public-incident-tooltip-status ${getIncidentTone(hoveredBucket)}`}>
+                        {getIncidentLabel(hoveredBucket)}
+                    </strong>
+                    <span>{formatDateLabel(hoveredBucket.timestamp)}</span>
+                    <span>{formatHourRange(hoveredBucket.timestamp)}</span>
+                </div>
+            )}
+            <div className={`public-incident-strip ${compact ? 'compact' : ''}`} aria-label="Incident timeline for the last 24 hours">
             {buckets.map((bucket) => {
                 const tone = getIncidentTone(bucket);
-                const availability = formatAvailabilityValue(bucket.uptimePercent);
-                const response = bucket.avgResponseTimeMs === null ? '—' : `${bucket.avgResponseTimeMs}ms`;
                 const isSelected = selectedTimestamp === bucket.timestamp;
-                const title = `${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)} · Availability ${availability} · Avg response ${response}`;
 
                 if (interactive) {
                     return (
@@ -163,8 +187,11 @@ function IncidentStrip({
                             key={bucket.timestamp}
                             type="button"
                             className={`public-incident-segment interactive ${tone} ${isSelected ? 'selected' : ''}`}
-                            title={title}
                             aria-label={`Drill down ${labelPrefix} ${formatHourRange(bucket.timestamp)}`}
+                            onMouseEnter={() => setHoveredTimestamp(bucket.timestamp)}
+                            onMouseLeave={() => setHoveredTimestamp(null)}
+                            onFocus={() => setHoveredTimestamp(bucket.timestamp)}
+                            onBlur={() => setHoveredTimestamp(null)}
                             onClick={() => onSelectBucket?.(bucket)}
                         />
                     );
@@ -174,10 +201,12 @@ function IncidentStrip({
                     <div
                         key={bucket.timestamp}
                         className={`public-incident-segment ${tone} ${isSelected ? 'selected' : ''}`}
-                        title={title}
+                        onMouseEnter={() => setHoveredTimestamp(bucket.timestamp)}
+                        onMouseLeave={() => setHoveredTimestamp(null)}
                     />
                 );
             })}
+            </div>
         </div>
     );
 }

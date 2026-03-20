@@ -114,6 +114,12 @@ describe('PublicStatusPage', () => {
         expect(screen.getByText('95.8%')).toBeInTheDocument();
         expect(screen.getAllByText('Operational').length).toBeGreaterThan(0);
 
+        fireEvent.mouseEnter(screen.getAllByRole('button', { name: /Drill down Homepage hour/i })[18]);
+
+        const incidentTooltip = screen.getByRole('status');
+        expect(incidentTooltip).toHaveTextContent('Partial outage');
+        expect(incidentTooltip).toHaveTextContent('Mar 12, 2026');
+
         fireEvent.click(screen.getAllByRole('button', { name: /Chart drill down Homepage/i })[18]);
 
         await waitFor(() => {
