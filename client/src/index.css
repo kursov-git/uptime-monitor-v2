@@ -591,6 +591,20 @@ body {
   padding: 18px 20px 20px;
   position: relative;
   overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.public-status-service-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(37, 99, 235, 0.18);
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+}
+
+.public-status-service-card.selected {
+  border-color: rgba(37, 99, 235, 0.28);
+  box-shadow:
+    0 24px 42px rgba(15, 23, 42, 0.1),
+    0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .public-status-service-card::after {
@@ -642,6 +656,36 @@ body {
   gap: 10px;
   justify-items: end;
   flex: 0 0 auto;
+}
+
+.public-status-page .status-badge {
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.public-status-page .status-badge.up {
+  background: rgba(22, 163, 74, 0.1);
+  color: #15803d;
+}
+
+.public-status-page .status-badge.down {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+
+.public-status-page .status-badge.paused {
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+}
+
+.public-status-page .status-badge.flapping {
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
 }
 
 .public-service-availability {
@@ -700,24 +744,29 @@ body {
 }
 
 .public-status-sparkline-hitbox:hover {
-  background: rgba(37, 99, 235, 0.05);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.03));
 }
 
 .public-status-sparkline-hitbox.selected {
-  background: rgba(37, 99, 235, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28);
 }
 
 .public-drilldown-card {
   margin: 14px 0 14px;
   padding: 18px;
   border-radius: 20px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  box-shadow:
+    0 16px 32px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .public-drilldown-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  margin-bottom: 4px;
 }
 
 .public-drilldown-summary span {
@@ -730,6 +779,13 @@ body {
 .public-drilldown-summary strong {
   color: #102036;
   font-size: 1rem;
+}
+
+.public-drilldown-summary > div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #d8e1ea;
+  background: rgba(248, 250, 252, 0.88);
 }
 
 .public-status-minute-chart {
@@ -1186,6 +1242,27 @@ tr:hover td {
     grid-template-columns: 1fr;
   }
 
+  .public-status-shell {
+    padding: 22px 14px 40px;
+  }
+
+  .public-status-hero-card,
+  .public-status-metric-card,
+  .public-status-overview-card,
+  .public-status-service-card,
+  .public-drilldown-card {
+    border-radius: 20px;
+  }
+
+  .public-status-hero-card,
+  .public-status-metric-card,
+  .public-status-overview-card,
+  .public-status-service-card,
+  .public-drilldown-card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
   .public-status-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1198,6 +1275,11 @@ tr:hover td {
   .public-status-overview-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .public-status-overview-graph {
+    height: 228px;
+    padding: 8px 8px 2px;
   }
 
   .public-status-service-top,
@@ -1226,6 +1308,10 @@ tr:hover td {
     min-width: 0;
   }
 
+  .public-drilldown-summary {
+    grid-template-columns: 1fr;
+  }
+
   .public-incident-panel-header,
   .public-status-timeline-header {
     flex-direction: column;
@@ -1239,6 +1325,37 @@ tr:hover td {
   .public-incident-axis-labels {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .public-incident-tooltip {
+    min-width: 132px;
+    padding: 9px 10px;
+    font-size: 0.74rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .public-status-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .public-status-hero h1 {
+    font-size: 2.4rem;
+  }
+
+  .public-status-overview-header h2,
+  .public-status-section-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .public-status-overview-graph {
+    height: 206px;
+  }
+
+  .public-status-meta-card {
+    width: 100%;
+    gap: 10px;
+    display: grid;
   }
 }
 

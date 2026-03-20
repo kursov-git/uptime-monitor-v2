@@ -437,221 +437,225 @@ export default function PublicStatusPage() {
                             </div>
                         </div>
                         <div className="public-status-grid">
-                            {data.monitors.map((monitor) => (
-                                <section className={`public-status-service-card ${monitor.status}`} key={monitor.id}>
-                                <div className="public-status-service-top">
-                                    <div className="public-status-card-title">
-                                        <h3>{monitor.name}</h3>
-                                        <div className="monitor-url">{monitor.url}</div>
-                                    </div>
-                                    <div className="public-status-service-status">
-                                        <span className={`status-badge ${monitor.status}`}>
-                                            {getStatusLabel(monitor.status)}
-                                        </span>
-                                        <div className="public-service-availability">
-                                            <span>24h Uptime</span>
-                                            <strong>{monitor.uptimePercent24h}%</strong>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="public-status-stats public-status-stats-inline">
-                                    <div>
-                                        <span>Method</span>
-                                        <strong>{monitor.method}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Latest response</span>
-                                        <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
-                                    </div>
-                                    <div>
-                                        <span>Last check</span>
-                                        <strong>{formatTimestamp(monitor.lastCheck?.timestamp ?? null)}</strong>
-                                    </div>
-                                </div>
-                                <div className="public-status-timeline-header">
-                                    <span>Incident timeline</span>
-                                    <strong>{getIncidentSummary(monitor.history24h)}</strong>
-                                </div>
-                                <IncidentStrip
-                                    buckets={monitor.history24h}
-                                    compact
-                                    interactive
-                                    selectedTimestamp={selectedDrilldown?.monitorId === monitor.id ? selectedDrilldown.timestamp : null}
-                                    labelPrefix={`${monitor.name} hour`}
-                                    onSelectBucket={(bucket) => {
-                                        const isSameSelection = selectedDrilldown?.monitorId === monitor.id
-                                            && selectedDrilldown.timestamp === bucket.timestamp;
-                                        if (isSameSelection) {
-                                            setSelectedDrilldown(null);
-                                            setDrilldownError('');
-                                            return;
-                                        }
+                            {data.monitors.map((monitor) => {
+                                const isMonitorSelected = selectedDrilldown?.monitorId === monitor.id;
 
-                                        fetchDrilldown(monitor.id, bucket.timestamp);
-                                    }}
-                                />
-                                <div className="help-text" style={{ marginTop: 8 }}>
-                                    Click any hour on the strip or the chart to inspect the exact failure window in 5-minute detail.
-                                </div>
-                                <div className="public-status-sparkline clickable">
-                                    <div className="public-status-sparkline-chart">
-                                        <ResponsiveContainer width="100%" height={72}>
-                                            <AreaChart
-                                                data={monitor.history24h.map((bucket) => ({
-                                                    timestamp: bucket.timestamp,
-                                                    time: formatHourLabel(bucket.timestamp),
-                                                    availability: bucket.uptimePercent,
-                                                }))}
-                                                margin={{ top: 6, right: 0, left: 0, bottom: 0 }}
-                                            >
-                                                <defs>
-                                                    <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.28} />
-                                                        <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.03} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <Area
-                                                    type="monotone"
-                                                    dataKey="availability"
-                                                    stroke={monitor.status === 'down' ? '#dc2626' : '#2563eb'}
-                                                    strokeWidth={2}
-                                                    fill={`url(#monitorAvailability-${monitor.id})`}
-                                                    connectNulls={false}
-                                                />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <div className="public-status-sparkline-overlay">
-                                        {monitor.history24h.map((bucket) => {
-                                            const isSelected = selectedDrilldown?.monitorId === monitor.id
-                                                && selectedDrilldown.timestamp === bucket.timestamp;
-
-                                            return (
-                                                <button
-                                                    key={bucket.timestamp}
-                                                    type="button"
-                                                    className={`public-status-sparkline-hitbox ${isSelected ? 'selected' : ''}`}
-                                                    aria-label={`Chart drill down ${monitor.name} ${formatHourRange(bucket.timestamp)}`}
-                                                    title={`Chart drill-down · ${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)}`}
-                                                    onClick={() => {
-                                                        const isSameSelection = selectedDrilldown?.monitorId === monitor.id
-                                                            && selectedDrilldown.timestamp === bucket.timestamp;
-                                                        if (isSameSelection) {
-                                                            setSelectedDrilldown(null);
-                                                            setDrilldownError('');
-                                                            return;
-                                                        }
-
-                                                        fetchDrilldown(monitor.id, bucket.timestamp);
-                                                    }}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                                {selectedDrilldown?.monitorId === monitor.id && (
-                                    <div className="public-drilldown-card">
-                                        <div className="public-status-timeline-header">
-                                            <span>Selected hour</span>
-                                            <strong>{formatHourRange(selectedDrilldown.timestamp)}</strong>
-                                        </div>
-                                        {drilldownError ? (
-                                            <div className="error-message" style={{ marginBottom: 0 }}>{drilldownError}</div>
-                                        ) : drilldownLoading === `${monitor.id}:${selectedDrilldown.timestamp}` ? (
-                                            <div className="empty-state" style={{ padding: '16px 0' }}>
-                                                <h3>Loading drill-down…</h3>
+                                return (
+                                    <section className={`public-status-service-card ${monitor.status} ${isMonitorSelected ? 'selected' : ''}`} key={monitor.id}>
+                                        <div className="public-status-service-top">
+                                            <div className="public-status-card-title">
+                                                <h3>{monitor.name}</h3>
+                                                <div className="monitor-url">{monitor.url}</div>
                                             </div>
-                                        ) : (() => {
-                                            const drilldown = drilldownCache[`${monitor.id}:${selectedDrilldown.timestamp}`];
-                                            if (!drilldown) {
-                                                return null;
-                                            }
+                                            <div className="public-status-service-status">
+                                                <span className={`status-badge ${monitor.status}`}>
+                                                    {getStatusLabel(monitor.status)}
+                                                </span>
+                                                <div className="public-service-availability">
+                                                    <span>24h Uptime</span>
+                                                    <strong>{monitor.uptimePercent24h}%</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="public-status-stats public-status-stats-inline">
+                                            <div>
+                                                <span>Method</span>
+                                                <strong>{monitor.method}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Response</span>
+                                                <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
+                                            </div>
+                                            <div>
+                                                <span>Checked</span>
+                                                <strong>{formatTimestamp(monitor.lastCheck?.timestamp ?? null)}</strong>
+                                            </div>
+                                        </div>
+                                        <div className="public-status-timeline-header">
+                                            <span>Incident timeline</span>
+                                            <strong>{getIncidentSummary(monitor.history24h)}</strong>
+                                        </div>
+                                        <IncidentStrip
+                                            buckets={monitor.history24h}
+                                            compact
+                                            interactive
+                                            selectedTimestamp={selectedDrilldown?.monitorId === monitor.id ? selectedDrilldown.timestamp : null}
+                                            labelPrefix={`${monitor.name} hour`}
+                                            onSelectBucket={(bucket) => {
+                                                const isSameSelection = selectedDrilldown?.monitorId === monitor.id
+                                                    && selectedDrilldown.timestamp === bucket.timestamp;
+                                                if (isSameSelection) {
+                                                    setSelectedDrilldown(null);
+                                                    setDrilldownError('');
+                                                    return;
+                                                }
 
-                                            const detailedSeries = drilldown.history.map((bucket: PublicStatusBucket) => ({
-                                                time: formatMinuteLabel(bucket.timestamp),
-                                                availability: bucket.uptimePercent,
-                                                responseTimeMs: bucket.avgResponseTimeMs,
-                                                checks: bucket.totalChecks,
-                                            }));
+                                                fetchDrilldown(monitor.id, bucket.timestamp);
+                                            }}
+                                        />
+                                        <div className="help-text" style={{ marginTop: 8 }}>
+                                            Click any hour on the strip or chart to inspect that window in 5-minute detail.
+                                        </div>
+                                        <div className="public-status-sparkline clickable">
+                                            <div className="public-status-sparkline-chart">
+                                                <ResponsiveContainer width="100%" height={72}>
+                                                    <AreaChart
+                                                        data={monitor.history24h.map((bucket) => ({
+                                                            timestamp: bucket.timestamp,
+                                                            time: formatHourLabel(bucket.timestamp),
+                                                            availability: bucket.uptimePercent,
+                                                        }))}
+                                                        margin={{ top: 6, right: 0, left: 0, bottom: 0 }}
+                                                    >
+                                                        <defs>
+                                                            <linearGradient id={`monitorAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="0%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.28} />
+                                                                <stop offset="100%" stopColor={monitor.status === 'down' ? '#ef4444' : '#2563eb'} stopOpacity={0.03} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <Area
+                                                            type="monotone"
+                                                            dataKey="availability"
+                                                            stroke={monitor.status === 'down' ? '#dc2626' : '#2563eb'}
+                                                            strokeWidth={2}
+                                                            fill={`url(#monitorAvailability-${monitor.id})`}
+                                                            connectNulls={false}
+                                                        />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <div className="public-status-sparkline-overlay">
+                                                {monitor.history24h.map((bucket) => {
+                                                    const isSelected = selectedDrilldown?.monitorId === monitor.id
+                                                        && selectedDrilldown.timestamp === bucket.timestamp;
 
-                                            return (
-                                                <>
-                                                    <div className="public-drilldown-summary">
-                                                        <div>
-                                                            <span>Checks</span>
-                                                            <strong>{drilldown.totalChecks}</strong>
-                                                        </div>
-                                                        <div>
-                                                            <span>Availability</span>
-                                                            <strong>{formatAvailabilityValue(drilldown.uptimePercent)}</strong>
-                                                        </div>
-                                                        <div>
-                                                            <span>Failed checks</span>
-                                                            <strong>{drilldown.failures.length}</strong>
-                                                        </div>
+                                                    return (
+                                                        <button
+                                                            key={bucket.timestamp}
+                                                            type="button"
+                                                            className={`public-status-sparkline-hitbox ${isSelected ? 'selected' : ''}`}
+                                                            aria-label={`Chart drill down ${monitor.name} ${formatHourRange(bucket.timestamp)}`}
+                                                            title={`Chart drill-down · ${formatTimestamp(bucket.timestamp)} · ${getIncidentLabel(bucket)}`}
+                                                            onClick={() => {
+                                                                const isSameSelection = selectedDrilldown?.monitorId === monitor.id
+                                                                    && selectedDrilldown.timestamp === bucket.timestamp;
+                                                                if (isSameSelection) {
+                                                                    setSelectedDrilldown(null);
+                                                                    setDrilldownError('');
+                                                                    return;
+                                                                }
+
+                                                                fetchDrilldown(monitor.id, bucket.timestamp);
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                        {selectedDrilldown?.monitorId === monitor.id && (
+                                            <div className="public-drilldown-card">
+                                                <div className="public-status-timeline-header">
+                                                    <span>Selected window</span>
+                                                    <strong>{formatHourRange(selectedDrilldown.timestamp)}</strong>
+                                                </div>
+                                                {drilldownError ? (
+                                                    <div className="error-message" style={{ marginBottom: 0 }}>{drilldownError}</div>
+                                                ) : drilldownLoading === `${monitor.id}:${selectedDrilldown.timestamp}` ? (
+                                                    <div className="empty-state" style={{ padding: '16px 0' }}>
+                                                        <h3>Loading drill-down…</h3>
                                                     </div>
-                                                    <div className="public-status-sparkline public-status-minute-chart" style={{ marginTop: 10 }}>
-                                                        <ResponsiveContainer width="100%" height={120}>
-                                                            <AreaChart data={detailedSeries} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
-                                                                <defs>
-                                                                    <linearGradient id={`drilldownAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
-                                                                        <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.42} />
-                                                                        <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.04} />
-                                                                    </linearGradient>
-                                                                </defs>
-                                                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
-                                                                <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={12} />
-                                                                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                                                                <Tooltip content={<OverviewTooltip />} />
-                                                                <Area
-                                                                    type="monotone"
-                                                                    dataKey="availability"
-                                                                    stroke="#f59e0b"
-                                                                    strokeWidth={2}
-                                                                    fill={`url(#drilldownAvailability-${monitor.id})`}
-                                                                    connectNulls={false}
-                                                                />
-                                                            </AreaChart>
-                                                        </ResponsiveContainer>
-                                                    </div>
-                                                    {drilldown.failures.length > 0 ? (
-                                                        <div className="public-drilldown-failures">
-                                                            <strong>Failure timestamps</strong>
-                                                            <div className="public-drilldown-failure-list">
-                                                                {drilldown.failures.map((failure: PublicStatusDrilldownFailure) => (
-                                                                    <div key={failure.timestamp} className="public-drilldown-failure-item">
-                                                                        <div className="public-drilldown-failure-main">
-                                                                            <strong>{formatTimestamp(failure.timestamp)}</strong>
-                                                                            <span>
-                                                                                {failure.statusCode ? `HTTP ${failure.statusCode}` : 'No status'}
-                                                                                {failure.error ? ` · ${failure.error}` : ''}
-                                                                            </span>
-                                                                        </div>
-                                                                        <div className="public-drilldown-failure-metrics">
-                                                                            <span>Response</span>
-                                                                            <strong>{failure.responseTimeMs}ms</strong>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
+                                                ) : (() => {
+                                                    const drilldown = drilldownCache[`${monitor.id}:${selectedDrilldown.timestamp}`];
+                                                    if (!drilldown) {
+                                                        return null;
+                                                    }
+
+                                                    const detailedSeries = drilldown.history.map((bucket: PublicStatusBucket) => ({
+                                                        time: formatMinuteLabel(bucket.timestamp),
+                                                        availability: bucket.uptimePercent,
+                                                        responseTimeMs: bucket.avgResponseTimeMs,
+                                                        checks: bucket.totalChecks,
+                                                    }));
+
+                                                    return (
+                                                        <>
+                                                            <div className="public-drilldown-summary">
+                                                                <div>
+                                                                    <span>Checks</span>
+                                                                    <strong>{drilldown.totalChecks}</strong>
+                                                                </div>
+                                                                <div>
+                                                                    <span>Availability</span>
+                                                                    <strong>{formatAvailabilityValue(drilldown.uptimePercent)}</strong>
+                                                                </div>
+                                                                <div>
+                                                                    <span>Failed checks</span>
+                                                                    <strong>{drilldown.failures.length}</strong>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="help-text" style={{ marginTop: 10 }}>
-                                                            No failed checks inside this hour.
-                                                        </div>
-                                                    )}
-                                                </>
-                                            );
-                                        })()}
-                                    </div>
-                                )}
-                                {monitor.lastCheck?.error && (
-                                    <div className="history-error" style={{ marginTop: 12 }}>
-                                        {monitor.lastCheck.error}
-                                    </div>
-                                )}
-                                </section>
-                            ))}
+                                                            <div className="public-status-sparkline public-status-minute-chart" style={{ marginTop: 10 }}>
+                                                                <ResponsiveContainer width="100%" height={120}>
+                                                                    <AreaChart data={detailedSeries} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
+                                                                        <defs>
+                                                                            <linearGradient id={`drilldownAvailability-${monitor.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                                                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.42} />
+                                                                                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.04} />
+                                                                            </linearGradient>
+                                                                        </defs>
+                                                                        <CartesianGrid strokeDasharray="4 4" stroke="rgba(148, 163, 184, 0.12)" vertical={false} />
+                                                                        <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={12} />
+                                                                        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                                                                        <Tooltip content={<OverviewTooltip />} />
+                                                                        <Area
+                                                                            type="monotone"
+                                                                            dataKey="availability"
+                                                                            stroke="#f59e0b"
+                                                                            strokeWidth={2}
+                                                                            fill={`url(#drilldownAvailability-${monitor.id})`}
+                                                                            connectNulls={false}
+                                                                        />
+                                                                    </AreaChart>
+                                                                </ResponsiveContainer>
+                                                            </div>
+                                                            {drilldown.failures.length > 0 ? (
+                                                                <div className="public-drilldown-failures">
+                                                                    <strong>Failure timestamps</strong>
+                                                                    <div className="public-drilldown-failure-list">
+                                                                        {drilldown.failures.map((failure: PublicStatusDrilldownFailure) => (
+                                                                            <div key={failure.timestamp} className="public-drilldown-failure-item">
+                                                                                <div className="public-drilldown-failure-main">
+                                                                                    <strong>{formatTimestamp(failure.timestamp)}</strong>
+                                                                                    <span>
+                                                                                        {failure.statusCode ? `HTTP ${failure.statusCode}` : 'No status'}
+                                                                                        {failure.error ? ` · ${failure.error}` : ''}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="public-drilldown-failure-metrics">
+                                                                                    <span>Response</span>
+                                                                                    <strong>{failure.responseTimeMs}ms</strong>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="help-text" style={{ marginTop: 10 }}>
+                                                                    No failed checks inside this hour.
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
+                                            </div>
+                                        )}
+                                        {monitor.lastCheck?.error && (
+                                            <div className="history-error" style={{ marginTop: 12 }}>
+                                                {monitor.lastCheck.error}
+                                            </div>
+                                        )}
+                                    </section>
+                                );
+                            })}
                         </div>
                     </>
                 )}

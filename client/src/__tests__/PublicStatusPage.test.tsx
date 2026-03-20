@@ -123,7 +123,7 @@ describe('PublicStatusPage', () => {
         fireEvent.click(screen.getAllByRole('button', { name: /Chart drill down Homepage/i })[18]);
 
         await waitFor(() => {
-            expect(screen.getByText('Selected hour')).toBeInTheDocument();
+            expect(screen.getByText('Selected window')).toBeInTheDocument();
         });
 
         expect(screen.getByText('Failure timestamps')).toBeInTheDocument();
