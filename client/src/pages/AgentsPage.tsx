@@ -255,7 +255,7 @@ sudo bash scripts/install-agent.sh`
         <div className="agents-page">
             <div className="dashboard-toolbar">
                 <div className="dashboard-toolbar-copy">
-                    <h2>Agents</h2>
+                    <h2 data-testid="agents-page-title">Agents</h2>
                     <p>Register runtimes, issue tokens, and watch fleet health from one control surface.</p>
                 </div>
             </div>

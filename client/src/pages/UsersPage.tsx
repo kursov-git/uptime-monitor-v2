@@ -78,7 +78,7 @@ export default function UsersPage() {
         <div className="app-container page-container admin-page">
             <div className="dashboard-toolbar">
                 <div className="dashboard-toolbar-copy">
-                    <h2>Users</h2>
+                    <h2 data-testid="users-page-title">Users</h2>
                     <p>Manage operator accounts, assign viewer access, and rotate credentials without leaving the control plane.</p>
                 </div>
                 <div className="admin-toolbar-actions">

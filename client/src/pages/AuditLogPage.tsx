@@ -79,7 +79,7 @@ export default function AuditLogPage() {
         <div className="app-container page-container admin-page">
             <div className="dashboard-toolbar">
                 <div className="dashboard-toolbar-copy">
-                    <h2>Audit Log</h2>
+                    <h2 data-testid="audit-page-title">Audit Log</h2>
                     <p>Review operator actions, authentication events, and change history across monitors, agents, and access control.</p>
                 </div>
             </div>

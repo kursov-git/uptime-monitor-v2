@@ -1,4 +1,4 @@
-import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -69,131 +69,116 @@ export default function App() {
 
     return (
         <div className="app-container page-container">
-            {/* Header */}
             <div className="app-header">
-                <h1 data-testid="app-title">Ping Agent</h1>
-                <div className="header-actions">
+                <div className="app-shell-brand">
+                    <div className="app-shell-kicker">Control Plane</div>
+                    <h1 data-testid="app-title">Ping Agent</h1>
+                </div>
+                <div className="app-shell-meta">
                     <span className="header-user">
-                        {user?.username} ({user?.role})
+                        {user?.username} · {user?.role}
                     </span>
-                    {isAdmin && (
-                        <>
-                            <Link to="/settings" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-settings">
-                                ⚙️ Settings
-                            </Link>
-                            <Link to="/users" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-users">
-                                👥 Users
-                            </Link>
-                            <Link to="/audit" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-audit">
-                                📋 Audit Log
-                            </Link>
-                            <Link to="/agents" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-agents">
-                                🛰 Agents
-                            </Link>
-                            <Link to="/status" className="btn btn-secondary" style={{ textDecoration: 'none' }} data-testid="nav-public-status">
-                                🌐 Public Status
-                            </Link>
-                        </>
-                    )}
-                    <button className="btn btn-secondary" onClick={logout} data-testid="logout-button">
+                    <button className="btn btn-secondary btn-sm" onClick={logout} data-testid="logout-button">
                         Logout
                     </button>
                 </div>
             </div>
 
-            {/* Routes */}
-            <Routes>
-                <Route path="/" element={
-                    <DashboardPage
-                        monitors={monitors}
-                        loading={loading}
-                        onCreateMonitor={createMonitor}
-                        onUpdateMonitor={updateMonitor}
-                        onDeleteMonitor={deleteMonitor}
-                        onToggleMonitor={toggleMonitor}
-                        onTogglePublicVisibility={togglePublicVisibility}
-                    />
-                } />
+            <div className="app-nav">
+                <NavLink to="/" end className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`}>
+                    Monitors
+                </NavLink>
+                {isAdmin && (
+                    <>
+                        <NavLink to="/agents" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`} data-testid="nav-agents">
+                            Agents
+                        </NavLink>
+                        <NavLink to="/settings" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`} data-testid="nav-settings">
+                            Settings
+                        </NavLink>
+                        <NavLink to="/settings/history" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`}>
+                            Notification History
+                        </NavLink>
+                        <NavLink to="/users" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`} data-testid="nav-users">
+                            Users
+                        </NavLink>
+                        <NavLink to="/audit" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`} data-testid="nav-audit">
+                            Audit
+                        </NavLink>
+                        <NavLink to="/status" className={({ isActive }: { isActive: boolean }) => `app-nav-link${isActive ? ' active' : ''}`} data-testid="nav-public-status">
+                            Public Status
+                        </NavLink>
+                    </>
+                )}
+            </div>
 
-                <Route path="/users" element={
-                    isAdmin ? (
-                        <div>
-                            <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1 data-testid="users-page-title">👥 User Management</h1>
-                                <button className="btn btn-secondary" onClick={() => navigate('/')}>
-                                    ← Back
-                                </button>
-                            </div>
+            <div className="app-shell-body">
+                {/* Routes */}
+                <Routes>
+                    <Route path="/" element={
+                        <DashboardPage
+                            monitors={monitors}
+                            loading={loading}
+                            onCreateMonitor={createMonitor}
+                            onUpdateMonitor={updateMonitor}
+                            onDeleteMonitor={deleteMonitor}
+                            onToggleMonitor={toggleMonitor}
+                            onTogglePublicVisibility={togglePublicVisibility}
+                        />
+                    } />
+
+                    <Route path="/users" element={
+                        isAdmin ? (
                             <UsersPage />
-                        </div>
-                    ) : (
-                        <div className="empty-state"><h3>Unauthorized</h3></div>
-                    )
-                } />
+                        ) : (
+                            <div className="empty-state"><h3>Unauthorized</h3></div>
+                        )
+                    } />
 
-                <Route path="/audit" element={
-                    isAdmin ? (
-                        <div>
-                            <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1 data-testid="audit-page-title">📋 Audit Log</h1>
-                                <button className="btn btn-secondary" onClick={() => navigate('/')}>
-                                    ← Back
-                                </button>
-                            </div>
+                    <Route path="/audit" element={
+                        isAdmin ? (
                             <AuditLogPage />
-                        </div>
-                    ) : (
-                        <div className="empty-state"><h3>Unauthorized</h3></div>
-                    )
-                } />
+                        ) : (
+                            <div className="empty-state"><h3>Unauthorized</h3></div>
+                        )
+                    } />
 
-                <Route path="/settings" element={
-                    isAdmin ? (
-                        <div>
+                    <Route path="/settings" element={
+                        isAdmin ? (
                             <NotificationSettings />
-                        </div>
-                    ) : (
-                        <div className="empty-state"><h3>Unauthorized</h3></div>
-                    )
-                } />
+                        ) : (
+                            <div className="empty-state"><h3>Unauthorized</h3></div>
+                        )
+                    } />
 
-                <Route path="/settings/history" element={
-                    isAdmin ? (
-                        <div>
+                    <Route path="/settings/history" element={
+                        isAdmin ? (
                             <NotificationHistoryPage />
-                        </div>
-                    ) : (
-                        <div className="empty-state"><h3>Unauthorized</h3></div>
-                    )
-                } />
+                        ) : (
+                            <div className="empty-state"><h3>Unauthorized</h3></div>
+                        )
+                    } />
 
-                <Route path="/agents" element={
-                    isAdmin ? (
-                        <div>
-                            <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                                <h1 data-testid="agents-page-title">🛰 Agents</h1>
-                                <button className="btn btn-secondary" onClick={() => navigate('/')}>
-                                    ← Back
-                                </button>
-                            </div>
+                    <Route path="/agents" element={
+                        isAdmin ? (
                             <AgentsPage />
+                        ) : (
+                            <div className="empty-state"><h3>Unauthorized</h3></div>
+                        )
+                    } />
+
+                    <Route path="/monitors/:id/history" element={
+                        <MonitorHistory onBack={() => navigate('/')} />
+                    } />
+
+                    <Route path="*" element={
+                        <div className="empty-state">
+                            <h3>Page not found</h3>
+                            <button className="btn btn-primary" onClick={() => navigate('/')}>Go Home</button>
                         </div>
-                    ) : (
-                        <div className="empty-state"><h3>Unauthorized</h3></div>
-                    )
-                } />
-
-                <Route path="/monitors/:id/history" element={
-                    <MonitorHistory onBack={() => navigate('/')} />
-                } />
-
-                <Route path="*" element={
-                    <div className="empty-state">
-                        <h3>Page not found</h3>
-                        <button className="btn btn-primary" onClick={() => navigate('/')}>Go Home</button>
-                    </div>
-                } />
-            </Routes>
+                    } />
+                </Routes>
+            </div>
         </div>
     );
 }
