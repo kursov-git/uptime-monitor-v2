@@ -8,6 +8,7 @@ function createMonitor(): Monitor {
     return {
         id: 'monitor-1',
         name: 'Homepage',
+        serviceName: 'Core Web',
         type: 'HTTP',
         url: 'https://example.com',
         dnsRecordType: 'A',
@@ -73,5 +74,7 @@ describe('MonitorCard', () => {
         fireEvent.click(historyButton);
         expect(onHistory).toHaveBeenCalledWith(monitor);
         expect(screen.getByText('SSL expires in 7 days')).toBeInTheDocument();
+        expect(screen.getByText('Service:')).toBeInTheDocument();
+        expect(screen.getByText('Core Web')).toBeInTheDocument();
     });
 });

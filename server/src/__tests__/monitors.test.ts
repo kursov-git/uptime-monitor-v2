@@ -51,6 +51,7 @@ describe('Monitors API (Integration)', () => {
             headers: { Authorization: `Bearer ${adminToken}` },
             payload: {
                 name: 'Test Monitor',
+                serviceName: 'Customer Portal',
                 url: 'https://example.com',
                 method: 'GET',
                 intervalSeconds: 60,
@@ -62,6 +63,7 @@ describe('Monitors API (Integration)', () => {
         expect(res.statusCode).toBe(201);
         const data = JSON.parse(res.body);
         expect(data.name).toBe('Test Monitor');
+        expect(data.serviceName).toBe('Customer Portal');
         expect(data.id).toBeDefined();
     });
 

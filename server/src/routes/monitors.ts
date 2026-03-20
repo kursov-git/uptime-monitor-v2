@@ -24,6 +24,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
     const buildMonitorData = (input: {
         type: string;
         url: string;
+        serviceName?: string | null;
         method?: string | null;
         intervalSeconds?: number | null;
         timeoutSeconds?: number | null;
@@ -46,10 +47,12 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         const type = normalizeMonitorType(input.type);
         const intervalSeconds = input.intervalSeconds ?? 60;
         const timeoutSeconds = input.timeoutSeconds ?? 30;
+        const serviceName = input.serviceName?.trim() ? input.serviceName.trim() : null;
 
         if (type === 'TCP') {
             return {
                 name: input.name.trim(),
+                serviceName,
                 type,
                 url: input.url.trim(),
                 dnsRecordType: 'A',
@@ -75,6 +78,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         if (type === 'DNS') {
             return {
                 name: input.name.trim(),
+                serviceName,
                 type,
                 url: input.url.trim(),
                 dnsRecordType: normalizeDnsRecordType(input.dnsRecordType ?? undefined),
@@ -100,6 +104,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         const normalizedMethod = String(input.method || 'GET').toUpperCase();
         return {
             name: input.name.trim(),
+            serviceName,
             type,
             url: input.url.trim(),
             dnsRecordType: 'A',
@@ -283,6 +288,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
         const {
             name,
+            serviceName,
             type,
             url,
             dnsRecordType,
@@ -306,6 +312,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         const monitor = await prisma.monitor.create({
             data: buildMonitorData({
                 name,
+                serviceName,
                 type: type || 'HTTP',
                 url,
                 dnsRecordType,
@@ -353,6 +360,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             const body = request.body;
             const errors = validateMonitorInputWithOptions({
                 name: body.name ?? existing.name,
+                serviceName: body.serviceName ?? existing.serviceName ?? undefined,
                 type: body.type ?? existing.type,
                 url: body.url ?? existing.url,
                 dnsRecordType: body.dnsRecordType ?? existing.dnsRecordType,
@@ -383,6 +391,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 where: { id },
                 data: buildMonitorData({
                     name: body.name ?? existing.name,
+                    serviceName: body.serviceName ?? existing.serviceName,
                     type: body.type ?? existing.type,
                     url: body.url ?? existing.url,
                     dnsRecordType: body.dnsRecordType ?? existing.dnsRecordType,

@@ -109,6 +109,11 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             </div>
 
             <div className="monitor-url">{monitor.url}</div>
+            {monitor.serviceName && (
+                <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-primary)' }}>
+                    Service: <strong>{monitor.serviceName}</strong>
+                </div>
+            )}
             <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--color-text-secondary)' }}>
                 Type: <strong>{monitorTypeLabel}</strong>
             </div>

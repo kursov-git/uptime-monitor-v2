@@ -41,6 +41,7 @@ As of 2026-03-13:
 - HTTPS monitors can optionally track certificate expiry and emit warning/recovery notifications without marking the monitor `DOWN`
 - ordinary HTTP/HTTPS monitors can now send raw request bodies for body-capable methods, with parity between builtin worker and remote agents
 - monitors can now be configured as `HTTP`, `TCP`, or `DNS` with shared execution support across builtin worker and remote agents
+- monitors can now optionally carry a lightweight `serviceName` used for dashboard and public status grouping without introducing a separate service domain model
 - agent UI supports register, rotate token, revoke, delete, and version visibility
 - split runtime, backup/restore, runtime diagnostics, and CI parity across server/client/agent/e2e are implemented
 - SQLite is still the production database

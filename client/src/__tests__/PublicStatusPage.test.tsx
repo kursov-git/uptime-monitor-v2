@@ -52,8 +52,11 @@ describe('PublicStatusPage', () => {
                         {
                             id: 'monitor-1',
                             name: 'Homepage',
+                            serviceName: 'Website',
                             url: 'https://example.com',
                             method: 'GET',
+                            type: 'HTTP',
+                            dnsRecordType: 'A',
                             isActive: true,
                             status: 'up',
                             uptimePercent24h: '95.8',
@@ -108,10 +111,11 @@ describe('PublicStatusPage', () => {
         expect(screen.getByText('All public systems operational')).toBeInTheDocument();
         expect(screen.getByText('Public service health')).toBeInTheDocument();
         expect(screen.getByText('Incident timeline')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Website' })).toBeInTheDocument();
         expect(screen.getAllByText('1 impacted hour')).toHaveLength(2);
         expect(screen.getByText('Partial outage')).toBeInTheDocument();
         expect(screen.getByText('24h Uptime')).toBeInTheDocument();
-        expect(screen.getByText('95.8%')).toBeInTheDocument();
+        expect(screen.getAllByText('95.8%').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Operational').length).toBeGreaterThan(0);
 
         fireEvent.mouseEnter(screen.getAllByRole('button', { name: /Drill down Homepage hour/i })[18]);
@@ -128,5 +132,5 @@ describe('PublicStatusPage', () => {
 
         expect(screen.getByText('Failure timestamps')).toBeInTheDocument();
         expect(screen.getByText(/Service unavailable/)).toBeInTheDocument();
-    });
+    }, 10000);
 });

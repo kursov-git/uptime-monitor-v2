@@ -158,6 +158,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             },
             select: {
                 id: true,
+                serviceName: true,
                 type: true,
                 url: true,
                 dnsRecordType: true,
@@ -239,6 +240,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             select: {
                 id: true,
                 name: true,
+                serviceName: true,
                 url: true,
                 type: true,
                 dnsRecordType: true,

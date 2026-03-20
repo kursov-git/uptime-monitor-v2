@@ -86,4 +86,31 @@ describe('MonitorForm', () => {
         expect(screen.queryByText('Method')).not.toBeInTheDocument();
         expect(screen.queryByText('Monitor SSL certificate expiry')).not.toBeInTheDocument();
     });
+
+    it('submits optional service name as part of monitor payload', async () => {
+        const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+        render(
+            <MonitorForm
+                onSubmit={onSubmit}
+                onCancel={vi.fn()}
+            />
+        );
+
+        await waitFor(() => {
+            expect(agentsApi.get).toHaveBeenCalledWith('/');
+        });
+
+        fireEvent.change(screen.getByPlaceholderText('My Website'), { target: { value: 'Homepage' } });
+        fireEvent.change(screen.getByPlaceholderText('Auth API'), { target: { value: 'Customer Portal' } });
+        fireEvent.change(screen.getByPlaceholderText('https://example.com'), { target: { value: 'https://example.com/health' } });
+        fireEvent.click(screen.getByTestId('monitor-form-submit'));
+
+        await waitFor(() => {
+            expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+                name: 'Homepage',
+                serviceName: 'Customer Portal',
+            }));
+        });
+    });
 });

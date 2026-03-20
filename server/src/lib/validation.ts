@@ -7,6 +7,7 @@ export interface ValidationError {
 
 export interface CreateMonitorBody {
     name: string;
+    serviceName?: string;
     type?: string;
     url: string;
     dnsRecordType?: string;
@@ -85,6 +86,14 @@ export function validateMonitorInputWithOptions(
 
     if (!body.name || body.name.trim().length === 0) {
         errors.push({ field: 'name', message: 'Name is required' });
+    }
+
+    if (body.serviceName !== undefined) {
+        if (typeof body.serviceName !== 'string') {
+            errors.push({ field: 'serviceName', message: 'Service name must be a string' });
+        } else if (body.serviceName.trim().length > 80) {
+            errors.push({ field: 'serviceName', message: 'Service name must be 80 characters or fewer' });
+        }
     }
 
     if (!allowedMonitorTypes.includes(monitorType)) {

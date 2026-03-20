@@ -11,6 +11,7 @@ datasource db {
 model Monitor {
   id              String  @id @default(uuid())
   name            String
+  serviceName     String?
   type            String  @default("HTTP")
   url             String
   dnsRecordType   String  @default("A")

@@ -29,6 +29,43 @@ export default function DashboardPage({
     const [showForm, setShowForm] = useState(false);
     const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
 
+    const getMonitorStatus = (monitor: Monitor) => {
+        if (!monitor.isActive) return 'paused';
+        if (monitor.flappingState?.isFlapping) return 'flapping';
+        if (!monitor.lastCheck) return 'unknown';
+        return monitor.lastCheck.isUp ? 'up' : 'down';
+    };
+
+    const groupedMonitors = monitors.reduce((acc, monitor) => {
+        const key = monitor.serviceName?.trim() || 'Standalone Monitors';
+        const existing = acc.get(key);
+        if (existing) {
+            existing.push(monitor);
+        } else {
+            acc.set(key, [monitor]);
+        }
+        return acc;
+    }, new Map<string, Monitor[]>());
+
+    const serviceSections = Array.from(groupedMonitors.entries())
+        .sort(([a], [b]) => {
+            if (a === 'Standalone Monitors') return 1;
+            if (b === 'Standalone Monitors') return -1;
+            return a.localeCompare(b);
+        })
+        .map(([serviceName, serviceMonitors]) => {
+            const summary = serviceMonitors.reduce((acc, monitor) => {
+                const status = getMonitorStatus(monitor);
+                if (status === 'down' || status === 'flapping') acc.attention += 1;
+                else if (status === 'up') acc.up += 1;
+                else if (status === 'paused') acc.paused += 1;
+                else acc.unknown += 1;
+                return acc;
+            }, { up: 0, attention: 0, paused: 0, unknown: 0 });
+
+            return { serviceName, monitors: serviceMonitors, summary };
+        });
+
     const handleCreate = async (data: MonitorFormData) => {
         await onCreateMonitor(data);
         setShowForm(false);
@@ -76,18 +113,38 @@ export default function DashboardPage({
                     )}
                 </div>
             ) : (
-                <div className="monitors-grid">
-                    {monitors.map((monitor) => (
-                        <MonitorCard
-                            key={monitor.id}
-                            monitor={monitor}
-                            isAdmin={isAdmin}
-                            onEdit={setEditingMonitor}
-                            onDelete={handleDelete}
-                            onToggle={onToggleMonitor}
-                            onTogglePublic={onTogglePublicVisibility}
-                            onHistory={(m) => navigate(`/monitors/${m.id}/history`)}
-                        />
+                <div className="monitor-service-sections">
+                    {serviceSections.map(({ serviceName, monitors: serviceMonitors, summary }) => (
+                        <section key={serviceName} className="monitor-service-section">
+                            <div className="monitor-service-section-header">
+                                <div>
+                                    <h2>{serviceName}</h2>
+                                    <p>
+                                        {serviceMonitors.length} {serviceMonitors.length === 1 ? 'monitor' : 'monitors'}
+                                    </p>
+                                </div>
+                                <div className="monitor-service-summary">
+                                    {summary.attention > 0 && <span>{summary.attention} needs attention</span>}
+                                    {summary.up > 0 && <span>{summary.up} up</span>}
+                                    {summary.paused > 0 && <span>{summary.paused} paused</span>}
+                                    {summary.unknown > 0 && <span>{summary.unknown} unknown</span>}
+                                </div>
+                            </div>
+                            <div className="monitors-grid">
+                                {serviceMonitors.map((monitor) => (
+                                    <MonitorCard
+                                        key={monitor.id}
+                                        monitor={monitor}
+                                        isAdmin={isAdmin}
+                                        onEdit={setEditingMonitor}
+                                        onDelete={handleDelete}
+                                        onToggle={onToggleMonitor}
+                                        onTogglePublic={onTogglePublicVisibility}
+                                        onHistory={(m) => navigate(`/monitors/${m.id}/history`)}
+                                    />
+                                ))}
+                            </div>
+                        </section>
                     ))}
                 </div>
             )}

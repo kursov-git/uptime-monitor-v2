@@ -13,6 +13,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     const [agents, setAgents] = useState<Agent[]>([]);
     const [formData, setFormData] = useState<MonitorFormData>({
         name: monitor?.name || '',
+        serviceName: monitor?.serviceName || '',
         type: monitorType,
         url: monitor?.url || '',
         dnsRecordType: monitor?.dnsRecordType || 'A',
@@ -236,6 +237,19 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                             placeholder="My Website"
                             required
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label>Service (optional)</label>
+                        <input
+                            type="text"
+                            value={formData.serviceName}
+                            onChange={e => update('serviceName', e.target.value)}
+                            placeholder="Auth API"
+                        />
+                        <div className="help-text">
+                            Monitors with the same service name are grouped together in the dashboard and public status page.
+                        </div>
                     </div>
 
                     <div className="form-group">

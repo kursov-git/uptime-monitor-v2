@@ -148,7 +148,8 @@ After comparing the product against Uptime Kuma-class tools, the lean interpreta
    - continue improving wording, readability, and mobile presentation
    - do not expand into multiple public pages or public configuration complexity
 4. `Lightweight service view`
-   - only when the monitor list becomes large enough that raw monitor cards stop being clear
+   - completed
+   - monitors can now carry an optional service name for lightweight grouping in the dashboard and public status page
    - keep this as a light grouping layer, not a full incident/process model
 
 Not part of the immediate lean queue:

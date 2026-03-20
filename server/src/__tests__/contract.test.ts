@@ -18,6 +18,7 @@ const userSchema = z.object({
 const monitorSchema = z.object({
     id: uuid,
     name: z.string(),
+    serviceName: z.string().nullable(),
     type: z.enum(['HTTP', 'TCP', 'DNS']),
     url: z.string().url(),
     dnsRecordType: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']),
@@ -77,6 +78,7 @@ const publicStatusSchema = z.object({
     monitors: z.array(z.object({
         id: uuid,
         name: z.string(),
+        serviceName: z.string().nullable(),
         type: z.enum(['HTTP', 'TCP', 'DNS']),
         url: z.string().url(),
         dnsRecordType: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']),

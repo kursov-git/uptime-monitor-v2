@@ -133,6 +133,7 @@ Important relationships:
   - `null` means builtin worker
   - non-null means assigned to a remote agent
 - `Monitor` also carries synthetic request configuration for ordinary HTTP/HTTPS checks:
+  - `serviceName`
   - `type`
   - `method`
   - `headers`
@@ -168,10 +169,12 @@ Important relationships:
    - latest check snapshot
    - 24-hour uptime summary
    - 24 hourly availability buckets
+   - lightweight grouping by monitor `serviceName`
 6. Client renders `/status` without auth and uses those buckets for:
    - summary pills
    - the 24h availability chart
    - the derived incident timeline strip
+   - lightweight service sections
    - per-monitor sparkline and incident strip
 
 ### Builtin Worker Flow

@@ -137,6 +137,30 @@ function getPublicHeadline(summary: PublicStatusResponse['summary'], monitorCoun
     };
 }
 
+function getServiceGroupLabel(serviceName: string | null): string {
+    return serviceName?.trim() || 'Standalone checks';
+}
+
+function getServiceGroupStatus(monitors: PublicStatusResponse['monitors']): PublicStatusResponse['monitors'][number]['status'] {
+    if (monitors.some((monitor) => monitor.status === 'down')) return 'down';
+    if (monitors.some((monitor) => monitor.status === 'unknown')) return 'unknown';
+    if (monitors.some((monitor) => monitor.status === 'up')) return 'up';
+    if (monitors.some((monitor) => monitor.status === 'paused')) return 'paused';
+    return 'unknown';
+}
+
+function getAverageUptime(monitors: PublicStatusResponse['monitors']): string {
+    const values = monitors
+        .map((monitor) => Number.parseFloat(monitor.uptimePercent24h))
+        .filter((value) => Number.isFinite(value));
+
+    if (values.length === 0) {
+        return '—';
+    }
+
+    return (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
+}
+
 function IncidentStrip({
     buckets,
     compact = false,
@@ -267,6 +291,24 @@ export default function PublicStatusPage() {
     })) ?? [];
     const latestAvailability = availabilitySeries[availabilitySeries.length - 1]?.availability ?? null;
     const headline = getPublicHeadline(summary, data?.monitorCount ?? 0);
+    const serviceGroups = data
+        ? Array.from(
+            data.monitors.reduce((acc, monitor) => {
+                const key = getServiceGroupLabel(monitor.serviceName);
+                const existing = acc.get(key);
+                if (existing) {
+                    existing.push(monitor);
+                } else {
+                    acc.set(key, [monitor]);
+                }
+                return acc;
+            }, new Map<string, PublicStatusResponse['monitors']>())
+        ).sort(([a], [b]) => {
+            if (a === 'Standalone checks') return 1;
+            if (b === 'Standalone checks') return -1;
+            return a.localeCompare(b);
+        })
+        : [];
 
     const OverviewTooltip = ({ active, payload }: any) => {
         if (!active || !payload?.[0]) return null;
@@ -430,33 +472,57 @@ export default function PublicStatusPage() {
                             <div>
                                 <div className="public-status-kicker">Services</div>
                                 <h2>Current service status</h2>
-                                <p>Each service stays clickable down to the exact failure window without leaving the public page.</p>
+                                <p>Published checks are grouped into lightweight services, while each monitor still supports hour-to-minute drill-down.</p>
                             </div>
                             <div className="public-status-section-meta">
-                                <span>{data.monitorCount} published {data.monitorCount === 1 ? 'monitor' : 'monitors'}</span>
+                                <span>{serviceGroups.length} {serviceGroups.length === 1 ? 'service' : 'services'} · {data.monitorCount} published {data.monitorCount === 1 ? 'monitor' : 'monitors'}</span>
                             </div>
                         </div>
-                        <div className="public-status-grid">
-                            {data.monitors.map((monitor) => {
-                                const isMonitorSelected = selectedDrilldown?.monitorId === monitor.id;
+                        <div className="public-status-group-list">
+                            {serviceGroups.map(([serviceName, monitors]) => {
+                                const groupStatus = getServiceGroupStatus(monitors);
+                                const groupUptime = getAverageUptime(monitors);
+                                const selectedInsideGroup = monitors.some((monitor) => selectedDrilldown?.monitorId === monitor.id);
 
                                 return (
-                                    <section className={`public-status-service-card ${monitor.status} ${isMonitorSelected ? 'selected' : ''}`} key={monitor.id}>
-                                        <div className="public-status-service-top">
-                                            <div className="public-status-card-title">
-                                                <h3>{monitor.name}</h3>
-                                                <div className="monitor-url">{monitor.url}</div>
+                                    <section key={serviceName} className={`public-status-group-card ${groupStatus} ${selectedInsideGroup ? 'selected' : ''}`}>
+                                        <div className="public-status-group-header">
+                                            <div>
+                                                <div className="public-status-kicker">Service</div>
+                                                <h3>{serviceName}</h3>
+                                                <p>{monitors.length} {monitors.length === 1 ? 'monitor' : 'monitors'} published in this group</p>
                                             </div>
-                                            <div className="public-status-service-status">
-                                                <span className={`status-badge ${monitor.status}`}>
-                                                    {getStatusLabel(monitor.status)}
+                                            <div className="public-status-group-status">
+                                                <span className={`status-badge ${groupStatus}`}>
+                                                    {getStatusLabel(groupStatus)}
                                                 </span>
                                                 <div className="public-service-availability">
-                                                    <span>24h Uptime</span>
-                                                    <strong>{monitor.uptimePercent24h}%</strong>
+                                                    <span>Avg 24h uptime</span>
+                                                    <strong>{groupUptime === '—' ? groupUptime : `${groupUptime}%`}</strong>
                                                 </div>
                                             </div>
                                         </div>
+                                        <div className="public-status-grid">
+                                            {monitors.map((monitor) => {
+                                                const isMonitorSelected = selectedDrilldown?.monitorId === monitor.id;
+
+                                                return (
+                                                    <section className={`public-status-service-card ${monitor.status} ${isMonitorSelected ? 'selected' : ''}`} key={monitor.id}>
+                                                        <div className="public-status-service-top">
+                                                            <div className="public-status-card-title">
+                                                                <h3>{monitor.name}</h3>
+                                                                <div className="monitor-url">{monitor.url}</div>
+                                                            </div>
+                                                            <div className="public-status-service-status">
+                                                                <span className={`status-badge ${monitor.status}`}>
+                                                                    {getStatusLabel(monitor.status)}
+                                                                </span>
+                                                                <div className="public-service-availability">
+                                                                    <span>24h Uptime</span>
+                                                                    <strong>{monitor.uptimePercent24h}%</strong>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                             <div className="public-status-stats public-status-stats-inline">
                                                 <div>
                                                     <span>Type</span>
@@ -653,6 +719,10 @@ export default function PublicStatusPage() {
                                                 {monitor.lastCheck.error}
                                             </div>
                                         )}
+                                                    </section>
+                                                );
+                                            })}
+                                        </div>
                                     </section>
                                 );
                             })}

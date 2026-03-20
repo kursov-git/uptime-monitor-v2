@@ -47,6 +47,7 @@ export interface CheckResult {
 export interface Monitor {
     id: string;
     name: string;
+    serviceName: string | null;
     type: MonitorType;
     url: string;
     dnsRecordType: DnsRecordType;
@@ -84,6 +85,7 @@ export interface Monitor {
 
 export interface MonitorFormData {
     name: string;
+    serviceName: string;
     type: MonitorType;
     url: string;
     dnsRecordType: DnsRecordType;
@@ -163,6 +165,7 @@ export interface StatsResponse {
 export interface PublicStatusMonitor {
     id: string;
     name: string;
+    serviceName: string | null;
     type: MonitorType;
     url: string;
     dnsRecordType: DnsRecordType;
