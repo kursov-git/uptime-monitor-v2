@@ -363,7 +363,7 @@ body {
 .monitor-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
+  grid-template-columns: minmax(0, 1fr) 58px;
   gap: 10px;
   padding: 14px;
   background: linear-gradient(180deg, #ffffff, #fcfdfc);
@@ -396,10 +396,10 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 10px;
+  padding-left: 8px;
   border-left: 1px solid #e3ebe5;
 }
 
@@ -1417,35 +1417,35 @@ body {
 .monitor-meta-pill {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 6px 9px;
+  gap: 5px;
+  padding: 5px 8px;
   border-radius: 999px;
-  border: 1px solid #dce6de;
-  background: #f0f6f2;
-  color: #4d6558;
-  font-size: 0.75rem;
+  border: 1px solid #e3ebe5;
+  background: #f7faf8;
+  color: #667d70;
+  font-size: 0.72rem;
 }
 
 .monitor-meta-pill span {
-  color: #71877a;
+  color: #8a9d91;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
 }
 
 .monitor-meta-pill strong {
-  color: #1e3a2d;
-  font-weight: 700;
+  color: #4f675a;
+  font-weight: 600;
 }
 
 .monitor-meta-pill.service {
-  border-color: #cde6d7;
-  background: #e8f7ee;
+  border-color: #dbe9e0;
+  background: #f3f8f5;
 }
 
 .monitor-meta-pill.success {
-  border-color: #cde6d7;
-  background: #e8f7ee;
+  border-color: #dbe9e0;
+  background: #f3f8f5;
 }
 
 .monitor-stats {
@@ -1528,10 +1528,10 @@ body {
 
 .monitor-control-group {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  padding: 8px;
-  border-radius: 16px;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 14px;
   background: #f6faf7;
   border: 1px solid #dfe8e1;
   width: 100%;
@@ -1539,10 +1539,10 @@ body {
 
 .monitor-control-group .btn {
   justify-content: center;
-  min-height: 36px;
-  min-width: 36px;
+  min-height: 34px;
+  min-width: 34px;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: none;
 }
 
