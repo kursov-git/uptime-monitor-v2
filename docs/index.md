@@ -11,7 +11,8 @@ For an AI agent or operator entering the repository:
 2. `README.md`
 3. `docs/index.md`
 4. `docs/architecture/harness-documentation-model.md`
-5. the specific document for the current task
+5. `docs/architecture/harness-documentation-template.md` when you need the reusable pattern rather than this repository's exact implementation
+6. the specific document for the current task
 
 ## Sections
 
@@ -21,6 +22,7 @@ Long-lived technical truth about how the system works.
 
 Current source-of-truth documents:
 - `docs/architecture/harness-documentation-model.md`
+- `docs/architecture/harness-documentation-template.md`
 - `docs/architecture/system-overview.md`
 
 Use this section for:

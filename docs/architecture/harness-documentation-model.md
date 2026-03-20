@@ -1,10 +1,14 @@
-# Harness Documentation Model
+# Harness Documentation Model For This Repository
 
-This document explains the documentation model used in this repository.
+This document explains the project-specific documentation model used in `uptime-monitor-v2`.
 
 It is written for:
 - AI coding agents that were not created specifically for this project
 - human contributors who need to understand why the documentation tree is structured this way
+
+It is not intended to be a universal standard by itself.
+For a reusable cross-project version, read:
+- `docs/architecture/harness-documentation-template.md`
 
 The goal is not to copy a vendor-specific internal process.
 The goal is to keep repository knowledge:
@@ -32,6 +36,18 @@ That means:
 - product assumptions should be documented, not kept implicit
 - strategic backlog expansion should be informed by competitor research
 - the repository should preserve not only code decisions, but also good decision-making rules
+
+## Scope
+
+This file describes:
+- the actual documentation contract currently used in this repository
+- the current directory split and routing rules
+- the precedence and lifecycle rules that contributors should follow here
+
+This file does not try to be:
+- a generic documentation handbook for every repository
+- a substitute for `AGENTS.md`
+- a substitute for the durable documents it routes to
 
 ## Core Rules
 
@@ -61,6 +77,34 @@ Use `README.md` to give a high-level entry point:
 - where to find deeper truth
 
 Do not use `README.md` as the primary operational source of truth.
+
+### 2a. Change granularity matters
+
+Different root documents have different jobs.
+
+- `AGENTS.md`
+  - routing
+  - safety rules
+  - current-state summary
+- `README.md`
+  - human entry point
+  - local setup
+  - feature overview
+- `docs/index.md`
+  - documentation navigation
+  - section rules
+- `docs/architecture/*`
+  - durable technical truth
+- `docs/operations/*`
+  - live operational truth
+- `docs/product/*`
+  - prioritization and product intent
+
+Do not copy the same explanation into all of them.
+
+Use this rule:
+- explain once in the most specific durable doc
+- summarize briefly in routing docs only when needed
 
 ### 3. `docs/` is split by document role
 
@@ -117,6 +161,26 @@ They may be useful for:
 
 They must not be treated as active operating instructions.
 
+## Source-Of-Truth Precedence
+
+When sources disagree, use this order.
+
+1. code and executable config
+2. the most specific durable document for that topic
+3. the more general routing or summary document
+4. historical documents
+
+In practice:
+- Prisma schema beats architecture prose about stored fields
+- `docs/operations/production-topology.md` beats `README.md`
+- `docs/operations/runbook.md` beats changelog prose for current procedure
+- `docs/product/lean-roadmap.md` beats a stale task note in `historical/`
+
+Routing rule:
+- specific durable docs beat general durable docs
+- durable docs beat plans after the plan has been absorbed
+- plans beat nothing by default; they are temporary working documents
+
 ## Reading Strategy For External Agents
 
 If you are an external AI agent entering this repository, read in this order:
@@ -165,6 +229,32 @@ The minimum standard is:
 - if product priority changed, the roadmap doc must change
 - if a strategic feature is proposed, the relevant product doc should record why existing tools do not already solve the problem well enough
 
+## Documentation Update Policy
+
+The minimum acceptable update policy in this repository is:
+
+### Required updates
+
+Update docs in the same change when:
+- an API shape changes
+- a runtime role changes
+- deploy or rollback procedure changes
+- operational ownership or host topology changes
+- a new monitor capability or protocol behavior is introduced
+- product prioritization or product-mode policy changes
+- a temporary plan becomes completed and its conclusions become durable truth
+
+### Usually not required
+
+Documentation updates are usually not required for:
+- typo-only code changes
+- refactors with no behavior, contract, or operational impact
+- purely local test maintenance with no new repository rule
+
+### Required follow-through
+
+If a task changes behavior and no durable doc is updated, the task is incomplete.
+
 ## What Belongs Where
 
 ### Put it in `docs/architecture/` when it answers:
@@ -190,6 +280,36 @@ The minimum standard is:
 ### Put it in `docs/plans/` when it answers:
 - how exactly are we going to do this specific change
 - what is the staged sequence for this active body of work
+
+## Plan Lifecycle
+
+Plans are allowed, but they must stay temporary.
+
+### `docs/plans/active/`
+
+Put a plan here when:
+- the work is currently in progress
+- the staged sequence matters to execution
+- the document still influences what happens next
+
+### `docs/plans/completed/`
+
+Move a plan here when:
+- the execution is finished
+- the plan still has reference value
+- durable conclusions have already been copied into architecture, operations, or product docs
+
+### Delete the plan instead of archiving it when:
+- it has no lasting reference value
+- it was only scratch coordination
+- all meaningful decisions are already preserved elsewhere
+
+### Garbage-collection rule
+
+Do not leave old plans in `active/`.
+If a plan is no longer driving work, either:
+- move it to `completed/`
+- or delete it
 
 ### Put it in `docs/historical/` when it answers:
 - how was an older migration handled
@@ -219,6 +339,10 @@ If two docs disagree:
 - example:
   - `docs/operations/production-topology.md` beats `README.md`
   - `docs/architecture/system-overview.md` beats a roadmap document
+
+If a plan and a durable doc disagree:
+- prefer the durable doc unless the plan is the explicit active migration authority for an in-flight change
+- once the change is complete, repair the durable doc and stop relying on the plan
 
 ## Current Applied Shape In This Repository
 

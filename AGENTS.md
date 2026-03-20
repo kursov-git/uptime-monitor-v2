@@ -54,13 +54,14 @@ Read documents in this order.
 2. `README.md`
 3. `docs/index.md`
 4. `docs/architecture/harness-documentation-model.md`
-5. `docs/architecture/system-overview.md`
-6. `docs/operations/production-topology.md`
-7. `docs/operations/runbook.md`
-8. `docs/operations/agent-deployment-kit.md`
-9. `docs/product/lean-roadmap.md`
-10. `docs/product/strategic-roadmap.md`
-11. `CODE_REVIEW.md`
+5. `docs/architecture/harness-documentation-template.md` if you need the reusable cross-project pattern
+6. `docs/architecture/system-overview.md`
+7. `docs/operations/production-topology.md`
+8. `docs/operations/runbook.md`
+9. `docs/operations/agent-deployment-kit.md`
+10. `docs/product/lean-roadmap.md`
+11. `docs/product/strategic-roadmap.md`
+12. `CODE_REVIEW.md`
 
 Historical or template documents are not the primary source of truth:
 - `docs/historical/v2-task-tracker.md`
@@ -85,6 +86,7 @@ Use them only for historical context, not for current operational decisions.
 │   ├── index.md
 │   ├── architecture/
 │   │   ├── harness-documentation-model.md
+│   │   ├── harness-documentation-template.md
 │   │   └── system-overview.md
 │   ├── operations/
 │   │   ├── production-topology.md
