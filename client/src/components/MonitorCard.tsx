@@ -103,13 +103,13 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
 
                 <div className="monitor-stats">
                     <div className="stat">
-                        <div className="stat-label">Response</div>
+                        <div className="stat-label">Resp</div>
                         <div className="stat-value">
                             {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
                         </div>
                     </div>
                     <div className="stat">
-                        <div className="stat-label">Interval</div>
+                        <div className="stat-label">Every</div>
                         <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
                     </div>
                     <div className="stat">
@@ -117,7 +117,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                         <div className="stat-value">{monitor.timeoutSeconds}s</div>
                     </div>
                     <div className="stat">
-                        <div className="stat-label">Last check</div>
+                        <div className="stat-label">Checked</div>
                         <div className="stat-value">
                             {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                         </div>

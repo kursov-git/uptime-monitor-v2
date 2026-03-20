@@ -293,7 +293,7 @@ body {
 .monitor-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px;
+  grid-template-columns: minmax(0, 1fr) 136px;
   gap: 14px;
   padding: 18px;
   background: linear-gradient(180deg, #ffffff, #fcfdfc);
@@ -1115,8 +1115,8 @@ body {
 
 .monitor-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   padding-top: 2px;
 }
 
@@ -1126,20 +1126,24 @@ body {
   background: #f8fbf9;
   border-radius: 16px;
   border: 1px solid #e4ece6;
+  min-height: 72px;
 }
 
 .stat-label {
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   text-transform: uppercase;
   color: #789082;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
+  white-space: nowrap;
 }
 
 .stat-value {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #173126;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .monitor-ssl-summary {
