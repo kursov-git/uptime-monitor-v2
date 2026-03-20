@@ -66,6 +66,14 @@ export default function DashboardPage({
             return { serviceName, monitors: serviceMonitors, summary };
         });
 
+    const overallSummary = monitors.reduce((acc, monitor) => {
+        const status = getMonitorStatus(monitor);
+        if (status === 'down' || status === 'flapping') acc.attention += 1;
+        if (monitor.isPublic) acc.publicCount += 1;
+        if (monitor.sslExpiryEnabled) acc.sslEnabled += 1;
+        return acc;
+    }, { attention: 0, publicCount: 0, sslEnabled: 0 });
+
     const handleCreate = async (data: MonitorFormData) => {
         await onCreateMonitor(data);
         setShowForm(false);
@@ -83,12 +91,37 @@ export default function DashboardPage({
     };
 
     return (
-        <>
-            {isAdmin && (
-                <div style={{ marginBottom: 16 }}>
+        <div className="dashboard-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Monitors</h2>
+                    <p>Focused cards with clearer actions, grouped by service.</p>
+                </div>
+                {isAdmin && (
                     <button className="btn btn-primary" onClick={() => setShowForm(true)} data-testid="new-monitor-button">
                         ＋ New Monitor
                     </button>
+                )}
+            </div>
+
+            {monitors.length > 0 && (
+                <div className="dashboard-summary-cards">
+                    <div className="dashboard-summary-card">
+                        <span>Total monitors</span>
+                        <strong>{monitors.length}</strong>
+                    </div>
+                    <div className="dashboard-summary-card">
+                        <span>Need attention</span>
+                        <strong>{overallSummary.attention}</strong>
+                    </div>
+                    <div className="dashboard-summary-card">
+                        <span>Public checks</span>
+                        <strong>{overallSummary.publicCount}</strong>
+                    </div>
+                    <div className="dashboard-summary-card">
+                        <span>SSL watched</span>
+                        <strong>{overallSummary.sslEnabled}</strong>
+                    </div>
                 </div>
             )}
 
@@ -169,6 +202,6 @@ export default function DashboardPage({
                     }}
                 />
             )}
-        </>
+        </div>
     );
 }

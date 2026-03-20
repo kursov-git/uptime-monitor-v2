@@ -63,12 +63,82 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
 
     return (
         <div className="card monitor-card">
-            <div className="monitor-card-header">
-                <div className="monitor-card-title-block">
-                    <div className="monitor-name">{monitor.name}</div>
-                    <div className="monitor-url">{monitor.url}</div>
+            <div className="monitor-card-main">
+                <div className="monitor-card-header">
+                    <div className="monitor-card-title-block">
+                        <div className="monitor-name">{monitor.name}</div>
+                        <div className="monitor-url">{monitor.url}</div>
+                    </div>
                 </div>
-                <div className="monitor-actions">
+                <div className="monitor-meta-pills">
+                    {monitor.serviceName && (
+                        <div className="monitor-meta-pill service">
+                            <span>Service</span>
+                            <strong>{monitor.serviceName}</strong>
+                        </div>
+                    )}
+                    <div className="monitor-meta-pill">
+                        <span>Type</span>
+                        <strong>{monitorTypeLabel}</strong>
+                    </div>
+                    <div className="monitor-meta-pill">
+                        <span>Executor</span>
+                        <strong>{monitor.agentName || 'Builtin Worker'}</strong>
+                    </div>
+                    {monitor.isPublic && (
+                        <div className="monitor-meta-pill success">
+                            <span>Visibility</span>
+                            <strong>Public status</strong>
+                        </div>
+                    )}
+                </div>
+                {sslSummary && (
+                    <div
+                        className={`monitor-ssl-summary ${sslWarning ? 'warning' : 'ok'}`}
+                        title={lastCheck?.sslExpiresAt ? `Certificate expires at ${new Date(lastCheck.sslExpiresAt).toLocaleString()}` : undefined}
+                    >
+                        {sslSummary}
+                    </div>
+                )}
+
+                <div className="monitor-stats">
+                    <div className="stat">
+                        <div className="stat-label">Response</div>
+                        <div className="stat-value">
+                            {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
+                        </div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Interval</div>
+                        <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Timeout</div>
+                        <div className="stat-value">{monitor.timeoutSeconds}s</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Last check</div>
+                        <div className="stat-value">
+                            {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="monitor-card-side">
+                <div className={`monitor-status-panel status-${status}`}>
+                    <div className="monitor-status-panel-label">Status</div>
+                    <span
+                        className={`status-badge ${status}`}
+                        title={monitor.flappingState?.isFlapping
+                            ? `Diagnostic Info:\nFailures: ${monitor.flappingState.consecutiveFailures}\nSince: ${monitor.flappingState.firstFailureTime ? new Date(monitor.flappingState.firstFailureTime).toLocaleTimeString() : 'N/A'}\nError: ${monitor.flappingState.lastError || 'None'}`
+                            : ''}
+                    >
+                        {statusLabel[status]}
+                    </span>
+                </div>
+
+                <div className="monitor-actions monitor-actions-grid">
                     <button
                         className="btn btn-icon btn-sm btn-secondary"
                         onClick={() => onHistory(monitor)}
@@ -78,97 +148,36 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                     </button>
                     {isAdmin && (
                         <>
-                        <button
-                            className={`btn btn-icon btn-sm ${monitor.isPublic ? 'btn-success' : 'btn-secondary'}`}
-                            onClick={() => onTogglePublic(monitor.id, !monitor.isPublic)}
-                            title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
-                        >
-                            🌐
-                        </button>
-                        <button
-                            className="btn btn-icon btn-sm btn-secondary"
-                            onClick={() => onToggle(monitor.id)}
-                            title={monitor.isActive ? 'Pause' : 'Resume'}
-                        >
-                            {monitor.isActive ? '⏸' : '▶️'}
-                        </button>
-                        <button
-                            className="btn btn-icon btn-sm btn-secondary"
-                            onClick={() => onEdit(monitor)}
-                            title="Edit"
-                        >
-                            ✏️
-                        </button>
-                        <button
-                            className="btn btn-icon btn-sm btn-danger"
-                            onClick={() => onDelete(monitor.id)}
-                            title="Delete"
-                        >
-                            🗑
-                        </button>
+                            <button
+                                className={`btn btn-icon btn-sm ${monitor.isPublic ? 'btn-success' : 'btn-secondary'}`}
+                                onClick={() => onTogglePublic(monitor.id, !monitor.isPublic)}
+                                title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
+                            >
+                                🌐
+                            </button>
+                            <button
+                                className="btn btn-icon btn-sm btn-secondary"
+                                onClick={() => onToggle(monitor.id)}
+                                title={monitor.isActive ? 'Pause' : 'Resume'}
+                            >
+                                {monitor.isActive ? '⏸' : '▶️'}
+                            </button>
+                            <button
+                                className="btn btn-icon btn-sm btn-secondary"
+                                onClick={() => onEdit(monitor)}
+                                title="Edit"
+                            >
+                                ✏️
+                            </button>
+                            <button
+                                className="btn btn-icon btn-sm btn-danger"
+                                onClick={() => onDelete(monitor.id)}
+                                title="Delete"
+                            >
+                                🗑
+                            </button>
                         </>
                     )}
-                </div>
-            </div>
-
-            <div className="monitor-meta-pills">
-                {monitor.serviceName && (
-                    <div className="monitor-meta-pill service">
-                        <span>Service</span>
-                        <strong>{monitor.serviceName}</strong>
-                    </div>
-                )}
-                <div className="monitor-meta-pill">
-                    <span>Type</span>
-                    <strong>{monitorTypeLabel}</strong>
-                </div>
-                <div className="monitor-meta-pill">
-                    <span>Executor</span>
-                    <strong>{monitor.agentName || 'Builtin Worker'}</strong>
-                </div>
-                {monitor.isPublic && (
-                    <div className="monitor-meta-pill success">
-                        <span>Visibility</span>
-                        <strong>Public status</strong>
-                    </div>
-                )}
-            </div>
-            {sslSummary && (
-                <div
-                    className={`monitor-ssl-summary ${sslWarning ? 'warning' : 'ok'}`}
-                    title={lastCheck?.sslExpiresAt ? `Certificate expires at ${new Date(lastCheck.sslExpiresAt).toLocaleString()}` : undefined}
-                >
-                    {sslSummary}
-                </div>
-            )}
-
-            <div className="monitor-stats">
-                <div className="stat">
-                    <div className="stat-label">Status</div>
-                    <div className={`stat-value status-${status}`}>
-                        <span
-                            className={`status-badge ${status}`}
-                            title={monitor.flappingState?.isFlapping
-                                ? `Diagnostic Info:\nFailures: ${monitor.flappingState.consecutiveFailures}\nSince: ${monitor.flappingState.firstFailureTime ? new Date(monitor.flappingState.firstFailureTime).toLocaleTimeString() : 'N/A'}\nError: ${monitor.flappingState.lastError || 'None'}`
-                                : ''}
-                        >
-                            {statusLabel[status]}
-                        </span>
-                    </div>
-                </div>
-                <div className="stat">
-                    <div className="stat-label">Response</div>
-                    <div className="stat-value">
-                        {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
-                    </div>
-                </div>
-                <div className="stat">
-                    <div className="stat-label">Interval</div>
-                    <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
-                </div>
-                <div className="stat">
-                    <div className="stat-label">Timeout</div>
-                    <div className="stat-value">{monitor.timeoutSeconds}s</div>
                 </div>
             </div>
         </div>
