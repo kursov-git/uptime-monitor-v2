@@ -37,10 +37,7 @@ export default function AuditLogPage() {
         fetchLogs(newOffset);
     };
 
-    const formatDate = (ts: string) => {
-        const d = new Date(ts);
-        return d.toLocaleString();
-    };
+    const formatDate = (ts: string) => new Date(ts).toLocaleString();
 
     const formatAction = (action: string) => {
         const icons: Record<string, string> = {
@@ -57,6 +54,8 @@ export default function AuditLogPage() {
             PASSWORD_CHANGED: '🔒',
             GENERATE_API_KEY: '🔑',
             REVOKE_API_KEY: '🚫',
+            AGENT_ONLINE: '🟢',
+            AGENT_OFFLINE: '🔴',
         };
         return `${icons[action] || '📝'} ${action}`;
     };
@@ -73,13 +72,42 @@ export default function AuditLogPage() {
         }
     };
 
+    const userCount = new Set(logs.map(log => log.user?.username).filter(Boolean)).size;
+    const authEvents = logs.filter(log => log.action.includes('LOGIN') || log.action.includes('LOGOUT')).length;
+
     return (
-        <div>
-            <div className="section-header">
-                <h2>Activity Log ({total} entries)</h2>
+        <div className="app-container page-container admin-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Audit Log</h2>
+                    <p>Review operator actions, authentication events, and change history across monitors, agents, and access control.</p>
+                </div>
             </div>
 
-            <div className="card">
+            <div className="dashboard-summary-cards">
+                <div className="dashboard-summary-card">
+                    <span>Total entries</span>
+                    <strong>{total}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Loaded</span>
+                    <strong>{logs.length}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Actors in view</span>
+                    <strong>{userCount}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Auth events</span>
+                    <strong>{authEvents}</strong>
+                </div>
+            </div>
+
+            <div className="agents-section-card">
+                <div className="section-header">
+                    <h2>Activity Stream</h2>
+                </div>
+
                 <div className="table-container">
                     <table>
                         <thead>
@@ -94,17 +122,15 @@ export default function AuditLogPage() {
                         <tbody>
                             {logs.map(log => (
                                 <tr key={log.id}>
-                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
-                                        {formatDate(log.timestamp)}
+                                    <td className="history-timestamp">{formatDate(log.timestamp)}</td>
+                                    <td>
+                                        <div className="admin-entity-primary">
+                                            <strong>{formatAction(log.action)}</strong>
+                                        </div>
                                     </td>
-                                    <td style={{ fontWeight: 500 }}>{formatAction(log.action)}</td>
                                     <td>{log.user?.username || '—'}</td>
-                                    <td style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-                                        {parseDetails(log.details)}
-                                    </td>
-                                    <td style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                                        {log.ipAddress || '—'}
-                                    </td>
+                                    <td className="admin-table-secondary">{parseDetails(log.details)}</td>
+                                    <td className="admin-table-muted">{log.ipAddress || '—'}</td>
                                 </tr>
                             ))}
                         </tbody>

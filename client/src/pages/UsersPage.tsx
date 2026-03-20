@@ -70,17 +70,47 @@ export default function UsersPage() {
         }
     };
 
+    const adminCount = users.filter(user => user.role === 'ADMIN').length;
+    const viewerCount = users.filter(user => user.role === 'VIEWER').length;
+    const apiKeyCount = users.filter(user => user.apiKey && !user.apiKey.revokedAt).length;
+
     return (
-        <div>
-            <div className="section-header">
-                <h2>Users ({users.length})</h2>
-                <button className="btn btn-primary btn-sm" onClick={() => setShowCreateForm(true)}>
-                    ＋ Create User
-                </button>
+        <div className="app-container page-container admin-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Users</h2>
+                    <p>Manage operator accounts, assign viewer access, and rotate credentials without leaving the control plane.</p>
+                </div>
+                <div className="admin-toolbar-actions">
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowCreateForm(true)}>
+                        + Create User
+                    </button>
+                </div>
             </div>
 
-            {/* Users Table */}
-            <div className="card">
+            <div className="dashboard-summary-cards">
+                <div className="dashboard-summary-card">
+                    <span>Total users</span>
+                    <strong>{users.length}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Admins</span>
+                    <strong className="admin-summary-value success">{adminCount}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Viewers</span>
+                    <strong>{viewerCount}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>API keys</span>
+                    <strong>{apiKeyCount}</strong>
+                </div>
+            </div>
+
+            <div className="agents-section-card">
+                <div className="section-header">
+                    <h2>Access Directory</h2>
+                </div>
                 <div className="table-container">
                     <table>
                         <thead>
@@ -95,7 +125,11 @@ export default function UsersPage() {
                         <tbody>
                             {users.map(user => (
                                 <tr key={user.id}>
-                                    <td style={{ fontWeight: 600 }}>{user.username}</td>
+                                    <td>
+                                        <div className="admin-entity-primary">
+                                            <strong>{user.username}</strong>
+                                        </div>
+                                    </td>
                                     <td>
                                         <span className={`status-badge ${user.role === 'ADMIN' ? 'up' : 'paused'}`}>
                                             {user.role}
@@ -103,13 +137,12 @@ export default function UsersPage() {
                                     </td>
                                     <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                                     <td>
-                                        {user.apiKey && !user.apiKey.revokedAt
-                                            ? <span style={{ color: 'var(--color-success)', fontSize: '0.85rem' }}>Active</span>
-                                            : <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>None</span>
-                                        }
+                                        <span className={`admin-inline-badge ${user.apiKey && !user.apiKey.revokedAt ? 'success' : 'muted'}`}>
+                                            {user.apiKey && !user.apiKey.revokedAt ? 'Active' : 'None'}
+                                        </span>
                                     </td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: 4 }}>
+                                        <div className="admin-row-actions">
                                             <button
                                                 className="btn btn-icon btn-sm btn-secondary"
                                                 onClick={() => setPasswordModal(user)}
@@ -131,74 +164,115 @@ export default function UsersPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {users.length === 0 && (
+                    <div className="empty-state" style={{ padding: '28px 20px' }}>
+                        <p>No users created yet</p>
+                    </div>
+                )}
             </div>
 
-            {/* Create User Modal */}
             {showCreateForm && (
-                <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2>Create User</h2>
+                <div className="modal-overlay">
+                    <div className="modal monitor-form-modal" onClick={e => e.stopPropagation()}>
+                        <div className="app-modal-header">
+                            <div>
+                                <div className="app-modal-kicker">Access Control</div>
+                                <h2>Create User</h2>
+                                <p className="app-modal-subtitle">Create a new operator account with either full admin access or read-only viewer access.</p>
+                            </div>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateForm(false)}>
+                                Cancel
+                            </button>
+                        </div>
                         {error && <div className="error-message">{error}</div>}
                         <form onSubmit={handleCreate}>
-                            <div className="form-group">
-                                <label>Username</label>
-                                <input
-                                    type="text"
-                                    value={newUsername}
-                                    onChange={e => setNewUsername(e.target.value)}
-                                    placeholder="username"
-                                    required
-                                    minLength={3}
-                                />
+                            <div className="form-sections">
+                                <div className="form-section-card">
+                                    <div className="form-section-header">
+                                        <h3>Identity</h3>
+                                        <p>Use a stable username that maps clearly to an operator.</p>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Username</label>
+                                        <input
+                                            type="text"
+                                            value={newUsername}
+                                            onChange={e => setNewUsername(e.target.value)}
+                                            placeholder="username"
+                                            required
+                                            minLength={3}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Password</label>
+                                        <input
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={e => setNewPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            required
+                                            minLength={6}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-section-card">
+                                    <div className="form-section-header">
+                                        <h3>Role</h3>
+                                        <p>Viewer accounts can read dashboards and history but cannot mutate operators or configuration.</p>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Role</label>
+                                        <select value={newRole} onChange={e => setNewRole(e.target.value as 'ADMIN' | 'VIEWER')}>
+                                            <option value="VIEWER">Viewer</option>
+                                            <option value="ADMIN">Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    minLength={6}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Role</label>
-                                <select value={newRole} onChange={e => setNewRole(e.target.value as any)}>
-                                    <option value="VIEWER">Viewer</option>
-                                    <option value="ADMIN">Admin</option>
-                                </select>
-                            </div>
-                            <div className="modal-actions">
+                            <div className="app-modal-footer modal-actions">
+                                <div className="modal-footer-spacer" />
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowCreateForm(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">Create</button>
+                                <button type="submit" className="btn btn-primary">Create User</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Change Password Modal */}
             {passwordModal && (
-                <div className="modal-overlay" onClick={() => setPasswordModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <h2>Change Password — {passwordModal.username}</h2>
-                        <form onSubmit={handleChangePassword}>
-                            <div className="form-group">
-                                <label>New Password</label>
-                                <input
-                                    type="password"
-                                    value={changePassword}
-                                    onChange={e => setChangePassword(e.target.value)}
-                                    placeholder="New password"
-                                    required
-                                    minLength={6}
-                                    autoFocus
-                                />
+                <div className="modal-overlay">
+                    <div className="modal monitor-form-modal modal-compact" onClick={e => e.stopPropagation()}>
+                        <div className="app-modal-header">
+                            <div>
+                                <div className="app-modal-kicker">Credential Rotation</div>
+                                <h2>Change Password</h2>
+                                <p className="app-modal-subtitle">Issue a new password for {passwordModal.username}. Existing browser sessions will be revoked.</p>
                             </div>
-                            <div className="modal-actions">
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPasswordModal(null)}>
+                                Cancel
+                            </button>
+                        </div>
+                        <form onSubmit={handleChangePassword}>
+                            <div className="form-section-card">
+                                <div className="form-group">
+                                    <label>New Password</label>
+                                    <input
+                                        type="password"
+                                        value={changePassword}
+                                        onChange={e => setChangePassword(e.target.value)}
+                                        placeholder="New password"
+                                        required
+                                        minLength={6}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <div className="app-modal-footer modal-actions">
+                                <div className="modal-footer-spacer" />
                                 <button type="button" className="btn btn-secondary" onClick={() => setPasswordModal(null)}>
                                     Cancel
                                 </button>
