@@ -124,11 +124,39 @@ These remain valid if they solve an immediate personal or narrow-circle need:
 Recently completed:
 - SSL expiry monitoring
 - better body assertion UX
+- raw request-body support for body-capable synthetic HTTP methods
 - explicit assertion modes: `contains`, `regex`, `JSON path equals`, `JSON path contains`
 - assertion validation and checker coverage across builtin worker and remote agents
 
 Rule:
 - take these one at a time, only when there is a concrete monitoring need
+
+#### Near-Term Prioritization From Competitive Review
+
+After comparing the product against Uptime Kuma-class tools, the lean interpretation is:
+
+1. `TCP checks`
+   - best immediate capability gap to close
+   - practical operational value without changing the product model
+2. `DNS checks`
+   - next most useful check-type expansion after TCP
+   - still compact and easy to explain
+3. `Public status polish`
+   - continue improving wording, readability, and mobile presentation
+   - do not expand into multiple public pages or public configuration complexity
+4. `Lightweight service view`
+   - only when the monitor list becomes large enough that raw monitor cards stop being clear
+   - keep this as a light grouping layer, not a full incident/process model
+
+Not part of the immediate lean queue:
+- real-browser checks
+- multiple status pages
+- broad monitor-type expansion for its own sake
+
+Why:
+- Uptime Kuma already covers commodity breadth well
+- lean mode should respond by choosing only the next few additions with the strongest practical ROI
+- the product should stay focused on operator clarity and remote-agent execution, not on matching Kuma feature-for-feature
 
 #### SSL Expiry Monitoring Backlog
 
@@ -185,7 +213,8 @@ Acceptance criteria:
 ## Later
 
 These are still reasonable in lean mode, but not urgent:
-- DNS / domain monitoring
+- DNS checks after TCP if there is a real monitoring need
+- domain-oriented monitoring beyond simple DNS checks
 - better reporting and compact summaries
 - more alert channels only if a real delivery need appears
 

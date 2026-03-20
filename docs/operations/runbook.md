@@ -296,6 +296,39 @@ Operational interpretation:
 - a monitor can remain `UP` while still carrying an SSL warning if expiry is approaching
 - after renewal, the warning should disappear on the next successful HTTPS check and a recovery notification should be recorded
 
+## Synthetic Request Bodies
+
+Ordinary HTTP/HTTPS monitors now support raw request bodies for body-capable methods.
+
+Current behavior:
+- available on the normal monitor form
+- intended for `POST`, `PUT`, and `PATCH`
+- hidden for `GET` and `HEAD`
+- stored as a plain string without extra serialization
+- executed consistently by the builtin worker and remote agents
+
+Operator flow:
+1. Open or create an HTTP/HTTPS monitor.
+2. Choose a body-capable method such as `POST`.
+3. Add any required JSON or text headers in `Custom Headers`.
+4. Fill `Request Body` with the exact payload that should be sent.
+5. Save the monitor.
+
+Validation behavior:
+- `requestBody` is treated as raw text
+- if `Content-Type: application/json` is present in headers, the API validates that the request body is valid JSON before saving
+- switching the monitor back to `GET` or `HEAD` clears the saved request body
+
+Practical recommendations:
+- set `Content-Type` explicitly whenever the upstream endpoint expects JSON or form data
+- use response assertions together with request bodies so the monitor proves application behavior, not only transport reachability
+- when the upstream expects a strict JSON contract, prefer `JSON path equals` or `JSON path contains` over a plain substring check
+
+Troubleshooting:
+- if a body-capable endpoint returns `400`, compare the monitor payload with a known-good `curl` request first
+- verify that the assigned remote agent has refreshed its jobs after a monitor edit; restarting `uptime-agent.service` forces a clean bootstrap
+- if the monitor uses `application/json`, check for invalid JSON in either `Custom Headers` or `Request Body`
+
 ## Login Abuse Signals
 
 The API now emits stable security log markers for login abuse handling:

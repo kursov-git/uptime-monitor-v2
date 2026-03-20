@@ -802,6 +802,16 @@ These tasks extend the strategic roadmap beyond the current `Now` block.
 - [ ] T061 Add contract and persistence tests for the new check types
 - [ ] T062 Update architecture and runbook docs for the expanded check matrix
 
+Strategic priority inside this epic:
+1. `T055` TCP checks
+2. `T056` DNS checks
+3. `T057` gRPC health or unary probe support
+
+Strategic note from competitor review:
+- do not expand check types just to match Uptime Kuma breadth
+- prefer the narrow sequence above unless there is a concrete use case
+- real-browser or synthetic browser checks belong later, after the product proves clear value from the simpler check types first
+
 ### Epic E: Execution Policies And Multi-Region Monitoring
 
 - [ ] T063 Add agent grouping or region model
@@ -821,6 +831,11 @@ These tasks extend the strategic roadmap beyond the current `Now` block.
 - [ ] T074 Expose service-level state in public payloads when enabled
 - [ ] T075 Add tests for rollup semantics and service rendering
 - [ ] T076 Update docs for the service abstraction and rollout impact
+
+Strategic note:
+- this is the preferred path for a future `service view`
+- keep the first phase light: grouping, rollups, and drill-down
+- do not let it turn into a heavy incident/process layer before the grouped view itself proves useful
 
 ### Epic I: Incident Management And Communication
 
@@ -892,6 +907,22 @@ Reason:
 
 Reason:
 - valuable throughout, but easiest to stabilize after the higher-level product model becomes clearer
+
+## Competitive Filter
+
+Recent comparison against Uptime Kuma reinforces this strategic rule:
+- do not compete on generic breadth where Uptime Kuma is already strong
+- prefer strategic work that strengthens the repository's own differentiators:
+  - remote-agent execution
+  - future execution policies
+  - service rollups
+  - lean operator clarity
+
+Implication for roadmap interpretation:
+- `TCP` and `DNS` are still worth building
+- lightweight `service view` is still worth building
+- `Public Status Pages V2` should remain narrower than a full attempt to match Kuma's public-surface breadth
+- real-browser checks are a valid long-term strategic idea, but not an immediate roadmap promotion
 
 ## Later
 

@@ -3,6 +3,38 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-03-19
+
+### Synthetic request body rollout
+
+Host:
+- `onedashmsk`
+
+Related agent hosts:
+- `cloudruvm1`
+- `ruvdskzn`
+
+Changes:
+- deployed monitor-level raw `requestBody` support for ordinary synthetic HTTP/HTTPS checks
+- extended control-plane CRUD, validation, builtin worker, remote-agent jobs, and shared checker contract
+- enabled JSON validation when monitors declare `Content-Type: application/json`
+- updated the live `https://stat.alutech24.com/api/send` monitor to use a JSON payload plus JSON-path response assertion
+
+Backups taken before rollout:
+- `/var/lib/docker/volumes/uptime-monitor_db-data/_data/backups/uptime-20260319T124117Z-request-body.db`
+- `/var/lib/docker/volumes/uptime-monitor_db-data/_data/backups/uptime-20260319T124756Z-request-body-retry.db`
+
+Operational result:
+- body-capable monitors can now send raw request payloads instead of method-only probes
+- the `stat.alutech24.com/api/send` monitor moved from repeated `400` responses to successful `200` checks after payload rollout and agent job refresh
+- both remote agent hosts were rebuilt so their local checker contract matches the control plane
+
+Verification:
+- `Monitor.requestBody` exists in the production SQLite schema
+- `uptime-server-api` returned to `healthy`
+- direct `performCheck(...)` on `cloudruvm1` returned `200`
+- latest production `CheckResult` rows for `https://stat.alutech24.com/api/send` show `isUp=1`, `statusCode=200`
+
 ## 2026-03-13
 
 ### SSL expiry monitoring rollout

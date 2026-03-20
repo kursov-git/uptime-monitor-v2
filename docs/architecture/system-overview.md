@@ -69,6 +69,7 @@ Shared HTTP check engine used by:
 
 Current extra responsibility:
 - collect HTTPS certificate metadata when SSL expiry monitoring is enabled on a monitor
+- execute configured synthetic HTTP checks including raw request bodies for body-capable methods
 
 #### `packages/shared`
 Shared TypeScript types and constants used by:
@@ -130,6 +131,14 @@ Important relationships:
 - `Monitor.agentId` is nullable
   - `null` means builtin worker
   - non-null means assigned to a remote agent
+- `Monitor` also carries synthetic request configuration for ordinary HTTP/HTTPS checks:
+  - `method`
+  - `headers`
+  - `requestBody`
+  - `expectedStatus`
+  - `expectedBody`
+  - `bodyAssertionType`
+  - `bodyAssertionPath`
 - `Monitor` also carries optional SSL expiry monitoring config:
   - `sslExpiryEnabled`
   - `sslExpiryThresholdDays`
@@ -165,7 +174,7 @@ Important relationships:
 
 1. Server starts with builtin worker enabled.
 2. `CheckWorker` schedules active monitors with `agentId = null`.
-3. Each check uses `@uptime-monitor/checker`.
+3. Each check uses `@uptime-monitor/checker` with the monitor's configured method, headers, and raw `requestBody` when the method allows a body.
 4. For HTTPS monitors with SSL expiry enabled, the checker also extracts certificate expiry metadata.
 5. Results are stored in `CheckResult`.
 6. Flapping and notification logic runs from server-side services.
@@ -178,7 +187,7 @@ Important relationships:
 3. Operator deploys that token to a real host manually.
 4. Agent starts and calls `GET /api/agent/jobs`.
 5. Agent opens `GET /api/agent/stream` for live updates.
-6. Agent executes assigned checks via `@uptime-monitor/checker`.
+6. Agent executes assigned checks via `@uptime-monitor/checker`, including configured method, headers, and raw `requestBody` for body-capable methods.
 7. For HTTPS monitors with SSL expiry enabled, the agent includes certificate expiry metadata in the result payload.
 8. Agent batches results to `POST /api/agent/results`.
 9. Agent sends liveness to `POST /api/agent/heartbeat`.
@@ -194,6 +203,18 @@ Important relationships:
 5. Notification logic compares `sslDaysRemaining` to `Monitor.sslExpiryThresholdDays`.
 6. When the threshold is crossed, the monitor stays `UP` if the endpoint still passes, but an SSL warning notification is emitted.
 7. After certificate renewal, the warning clears and a recovery notification is emitted.
+
+### Synthetic Request Body Flow
+
+1. Operator configures an HTTP/HTTPS monitor with a body-capable method such as `POST`, `PUT`, or `PATCH`.
+2. Operator optionally sets:
+   - custom headers
+   - raw request body
+   - body assertion mode and value
+3. Validation treats the request body as a plain string and only performs JSON validation when headers explicitly declare `Content-Type: application/json`.
+4. Builtin worker or remote agent sends the request body exactly as configured; the checker does not JSON-stringify it a second time.
+5. `GET` and `HEAD` monitors do not carry request bodies and clear that field on save.
+6. Result evaluation continues to use the ordinary expected-status and body-assertion pipeline.
 
 ## Agent Protocol Details
 

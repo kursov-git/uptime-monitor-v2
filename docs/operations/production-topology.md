@@ -67,6 +67,11 @@ Current HTTPS monitor capabilities:
 - warning/recovery notifications for expiring certificates are active in the shared notification stack
 - current UI surfaces SSL summary in the authenticated dashboard only, not on the public status page
 
+Current synthetic HTTP monitor capabilities:
+- ordinary monitors can send raw request bodies for body-capable methods
+- request bodies are supported in both builtin worker and remote-agent execution paths
+- JSON payload validation is enforced at save time when monitor headers declare `Content-Type: application/json`
+
 ### Agent Host: `cloudruvm1`
 
 Operator alias:
@@ -88,6 +93,7 @@ Current runtime characteristics:
 - expected `MAIN_SERVER_URL=https://ping-agent.ru`
 - SSH port: `2332`
 - current runtime understands SSL expiry metadata collection for assigned HTTPS monitors
+- current runtime understands monitor request bodies for assigned body-capable HTTP checks
 
 ### Agent Host: `ruvdskzn`
 
@@ -110,6 +116,7 @@ Current runtime characteristics:
 - expected `MAIN_SERVER_URL=https://ping-agent.ru`
 - SSH port: `2332`
 - current runtime understands SSL expiry metadata collection for assigned HTTPS monitors
+- current runtime understands monitor request bodies for assigned body-capable HTTP checks
 
 ## Current Expected Agent Inventory
 

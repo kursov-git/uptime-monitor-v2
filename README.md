@@ -31,6 +31,7 @@ That means the repository is expected to preserve:
 
 - monitors HTTP/HTTPS endpoints
 - validates response status and optional body expectations
+- supports synthetic request configuration with method, custom headers, and raw request bodies for body-capable HTTP methods
 - warns about expiring HTTPS certificates with configurable thresholds
 - supports authenticated checks including multi-step flows
 - sends notifications through Telegram and Zulip
@@ -45,6 +46,7 @@ Implemented and working:
 - split backend runtime via `SERVER_ROLE`
 - agent registration, token rotation, revocation, deletion, and version tracking
 - agent job bootstrap, SSE updates, heartbeats, and batched result ingestion
+- raw request-body support for synthetic `POST`/`PUT`/`PATCH` monitor checks across builtin worker and remote agents
 - agent offline and recovery notifications through the shared notification stack
 - public status page with per-monitor exposure, 24h availability buckets, and a derived incident timeline
 - SSL expiry monitoring with UI surfacing and warning/recovery notifications
