@@ -89,7 +89,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     if (!monitor) {
         return (
             <div className="app-container page-container">
-                <div className="app-header">
+                <div className="dashboard-toolbar">
                     <button className="btn btn-secondary" onClick={onBack}>
                         ← Back
                     </button>
@@ -99,7 +99,6 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         );
     }
 
-    // Chart data — reverse so oldest is on left
     const chartData = [...chartResults].reverse().map((r) => ({
         time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         responseTime: r.responseTimeMs,
@@ -131,6 +130,28 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
     const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+    const latestStatus = !monitor.isActive
+        ? 'paused'
+        : monitor.flappingState?.isFlapping
+            ? 'flapping'
+            : monitor.lastCheck
+                ? (monitor.lastCheck.isUp ? 'up' : 'down')
+                : 'unknown';
+    const latestStatusLabel: Record<string, string> = {
+        up: '● Up',
+        down: '● Down',
+        paused: '⏸ Paused',
+        unknown: '○ Unknown',
+        flapping: '▲ Flapping',
+    };
+    const monitorTypeLabel = monitor.type === 'DNS'
+        ? `DNS ${monitor.dnsRecordType}`
+        : monitor.type === 'TCP'
+            ? 'TCP'
+            : monitor.method;
+    const latestCheckedAt = monitor.lastCheck
+        ? new Date(monitor.lastCheck.timestamp).toLocaleString()
+        : 'No checks yet';
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (!active || !payload?.[0]) return null;
@@ -147,14 +168,13 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     };
 
     return (
-        <div className="app-container page-container">
-            {/* Header */}
-            <div className="app-header">
-                <div>
-                    <h1>📊 {monitor.name}</h1>
-                    <div className="history-subtitle">{monitor.url}</div>
+        <div className="app-container page-container history-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Monitor History</h2>
+                    <p>Detailed response history, validation output, and recent notification delivery for a single monitor.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="history-toolbar-actions">
                     <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} />
                     <button className="btn btn-secondary" onClick={onBack}>
                         ← Back
@@ -162,37 +182,91 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 </div>
             </div>
 
-            {/* Stats Summary */}
-            <div className="history-summary">
-                <div className="history-summary-card">
-                    <div className="history-summary-label">Total Checks</div>
-                    <div className="history-summary-value">{total}</div>
+            <div className="history-hero">
+                <div className="history-hero-card">
+                    <div className="app-modal-kicker">Monitor Detail</div>
+                    <h1>{monitor.name}</h1>
+                    <div className="history-subtitle">{monitor.url}</div>
+                    <div className="monitor-meta-pills">
+                        {monitor.serviceName && (
+                            <div className="monitor-meta-pill service">
+                                <span>Service</span>
+                                <strong>{monitor.serviceName}</strong>
+                            </div>
+                        )}
+                        <div className="monitor-meta-pill">
+                            <span>Type</span>
+                            <strong>{monitorTypeLabel}</strong>
+                        </div>
+                        <div className="monitor-meta-pill">
+                            <span>Executor</span>
+                            <strong>{monitor.agentName || 'Builtin Worker'}</strong>
+                        </div>
+                        {monitor.isPublic && (
+                            <div className="monitor-meta-pill success">
+                                <span>Visibility</span>
+                                <strong>Public status</strong>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="history-summary-card">
-                    <div className="history-summary-label">Uptime</div>
-                    <div className="history-summary-value uptime">{uptimePercent}%</div>
+
+                <div className="history-status-card">
+                    <div className="history-status-panel">
+                        <div className="history-status-label">Current status</div>
+                        <span className={`status-badge ${latestStatus}`}>{latestStatusLabel[latestStatus]}</span>
+                    </div>
+                    <div className="history-status-meta">
+                        <div>
+                            <span>Checked</span>
+                            <strong>{latestCheckedAt}</strong>
+                        </div>
+                        <div>
+                            <span>Response</span>
+                            <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
+                        </div>
+                        <div>
+                            <span>HTTP code</span>
+                            <strong>{monitor.lastCheck?.statusCode ?? '—'}</strong>
+                        </div>
+                    </div>
+                    {sslSummary && (
+                        <div className={`monitor-ssl-summary ${sslSummary.warning ? 'warning' : 'ok'}`}>
+                            <strong>SSL</strong> {sslSummary.label}
+                        </div>
+                    )}
                 </div>
-                <div className="history-summary-card">
-                    <div className="history-summary-label">Avg Response</div>
-                    <div className="history-summary-value">{avgResponseTime}ms</div>
+            </div>
+
+            <div className="dashboard-summary-cards history-metric-grid">
+                <div className="dashboard-summary-card">
+                    <span>Total checks</span>
+                    <strong>{total}</strong>
                 </div>
-                <div className="history-summary-card">
-                    <div className="history-summary-label">Interval</div>
-                    <div className="history-summary-value">{monitor.intervalSeconds}s</div>
+                <div className="dashboard-summary-card">
+                    <span>Uptime</span>
+                    <strong className="history-summary-value uptime">{uptimePercent}%</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Avg response</span>
+                    <strong>{avgResponseTime}ms</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Interval</span>
+                    <strong>{monitor.intervalSeconds}s</strong>
                 </div>
                 {sslSummary && (
-                    <div className="history-summary-card">
-                        <div className="history-summary-label">SSL Expiry</div>
-                        <div className={`history-summary-value ${sslSummary.warning ? 'history-summary-warning' : ''}`}>
-                            {sslSummary.label}
-                        </div>
+                    <div className="dashboard-summary-card">
+                        <span>SSL expiry</span>
+                        <strong className={sslSummary.warning ? 'history-summary-warning' : ''}>{sslSummary.label}</strong>
                     </div>
                 )}
             </div>
 
-            {/* Response Time Chart */}
-            <div className="card history-chart-card">
-                <h3>Response Time</h3>
+            <div className="agents-section-card history-section-card">
+                <div className="section-header">
+                    <h2>Response Time</h2>
+                </div>
                 {sslSummary && (
                     <div className={`monitor-ssl-summary ${sslSummary.warning ? 'warning' : 'ok'}`} style={{ marginBottom: 16 }}>
                         {sslSummary.expiresAt && (
@@ -204,7 +278,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     </div>
                 )}
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={280}>
+                    <ResponsiveContainer width="100%" height={300}>
                         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="responseGrad" x1="0" y1="0" x2="0" y2="1">
@@ -212,19 +286,9 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                            <XAxis
-                                dataKey="time"
-                                stroke="#64748b"
-                                fontSize={11}
-                                tickLine={false}
-                            />
-                            <YAxis
-                                stroke="#64748b"
-                                fontSize={11}
-                                tickLine={false}
-                                tickFormatter={(v) => `${v}ms`}
-                            />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#d5e1ea" />
+                            <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}ms`} />
                             <Tooltip content={<CustomTooltip />} />
                             <Area
                                 type="monotone"
@@ -258,9 +322,10 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 )}
             </div>
 
-            {/* Results Table */}
-            <div className="card" style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 16 }}>Check Results</h3>
+            <div className="agents-section-card history-section-card">
+                <div className="section-header">
+                    <h2>Check Results</h2>
+                </div>
                 {loading ? (
                     <div className="empty-state" style={{ padding: '20px' }}>Loading...</div>
                 ) : results.length === 0 ? (
@@ -302,7 +367,6 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             </table>
                         </div>
 
-                        {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="pagination">
                                 <button
@@ -328,66 +392,58 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 )}
             </div>
 
-            {/* Recent Notifications */}
             {isAdmin && (
-            <div className="card" style={{ marginTop: 16 }}>
-                <div className="section-header" style={{ marginBottom: 16 }}>
-                    <h3>Recent Notifications</h3>
-                    <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/settings/history?monitorId=${monitorId}`)}>
-                        View Full Notification History →
-                    </button>
-                </div>
+                <div className="agents-section-card history-section-card">
+                    <div className="section-header" style={{ marginBottom: 16 }}>
+                        <h2>Recent Notifications</h2>
+                        <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/settings/history?monitorId=${monitorId}`)}>
+                            View Full Notification History →
+                        </button>
+                    </div>
 
-                {loading ? (
-                    <div className="empty-state" style={{ padding: '20px' }}>Loading...</div>
-                ) : recentNotifications.length === 0 ? (
-                    <div className="empty-state" style={{ padding: '20px' }}>
-                        <p>No notifications sent recently</p>
-                    </div>
-                ) : (
-                    <div className="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Channel</th>
-                                    <th>Status</th>
-                                    <th>Error</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentNotifications.map((n) => (
-                                    <tr key={n.id}>
-                                        <td className="history-timestamp">
-                                            {new Date(n.timestamp).toLocaleString()}
-                                        </td>
-                                        <td>
-                                            <span style={{
-                                                backgroundColor: n.channel === 'TELEGRAM' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(168, 85, 247, 0.2)',
-                                                color: n.channel === 'TELEGRAM' ? '#60a5fa' : '#c084fc',
-                                                padding: '2px 6px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600,
-                                            }}>
-                                                {n.channel}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
-                                                {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
-                                            </span>
-                                        </td>
-                                        <td className="history-error">
-                                            {n.error || '—'}
-                                        </td>
+                    {loading ? (
+                        <div className="empty-state" style={{ padding: '20px' }}>Loading...</div>
+                    ) : recentNotifications.length === 0 ? (
+                        <div className="empty-state" style={{ padding: '20px' }}>
+                            <p>No notifications sent recently</p>
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Channel</th>
+                                        <th>Status</th>
+                                        <th>Error</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+                                </thead>
+                                <tbody>
+                                    {recentNotifications.map((n) => (
+                                        <tr key={n.id}>
+                                            <td className="history-timestamp">
+                                                {new Date(n.timestamp).toLocaleString()}
+                                            </td>
+                                            <td>
+                                                <span className={`history-channel-badge ${n.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
+                                                    {n.channel}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
+                                                    {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
+                                                </span>
+                                            </td>
+                                            <td className="history-error">
+                                                {n.error || '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

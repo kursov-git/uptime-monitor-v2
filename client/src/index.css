@@ -2225,73 +2225,124 @@ tr:hover td {
 }
 
 /* Monitor History */
-.history-subtitle {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  font-family: 'Courier New', monospace;
-  margin-top: 4px;
-}
-
-.history-summary {
+.history-page {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 18px;
+}
+
+.history-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.history-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 18px;
+}
+
+.history-hero-card,
+.history-status-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.88);
+  border-radius: 28px;
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
+  padding: 24px;
+}
+
+.history-hero-card h1 {
+  margin: 0 0 8px;
+  color: #102036;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+
+.history-subtitle {
+  font-size: 0.9rem;
+  color: #63748a;
   margin-bottom: 16px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
-.history-summary-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+.history-status-card {
+  display: grid;
+  gap: 14px;
+}
+
+.history-status-panel {
   padding: 16px;
-  text-align: center;
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  background: #f8fbf9;
+  border: 1px solid #e0e9e2;
 }
 
-.history-summary-label {
-  font-size: 0.75rem;
+.history-status-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #789082;
+  margin-bottom: 10px;
+}
+
+.history-status-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-status-meta > div {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f8fbf9;
+  border: 1px solid #e4ece6;
+}
+
+.history-status-meta span {
+  display: block;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-  margin-bottom: 6px;
+  color: #789082;
+  margin-bottom: 8px;
 }
 
-.history-summary-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--color-text);
+.history-status-meta strong {
+  color: #173126;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .history-summary-warning {
-  color: var(--color-warning);
+  color: #a0630d;
 }
 
 .history-summary-value.uptime {
   color: var(--color-success);
 }
 
-.history-chart-card {
-  padding: 20px;
+.history-metric-grid .dashboard-summary-card strong {
+  color: #102036;
 }
 
-.history-chart-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--color-text-secondary);
+.history-section-card {
+  padding: 22px;
 }
 
 .history-tooltip {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d8e1ea;
+  border-radius: 16px;
   padding: 10px 14px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
 }
 
 .history-tooltip-time {
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: #63748a;
   margin-bottom: 4px;
 }
 
@@ -2310,28 +2361,55 @@ tr:hover td {
 .history-tooltip-value {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-text);
+  color: #102036;
   margin-top: 2px;
 }
 
 .history-timestamp {
   font-family: 'Courier New', monospace;
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: #506273;
 }
 
 .history-error {
   font-size: 0.8rem;
-  color: var(--color-danger);
+  color: #b3453d;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.history-channel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.history-channel-badge.telegram {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.history-channel-badge.zulip {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+
 @media (max-width: 768px) {
-  .history-summary {
-    grid-template-columns: repeat(2, 1fr);
+  .history-toolbar-actions {
+    width: 100%;
+  }
+
+  .history-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .history-status-meta {
+    grid-template-columns: 1fr;
   }
 }
 
