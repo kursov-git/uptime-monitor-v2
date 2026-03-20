@@ -28,8 +28,8 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
 
 
     const statusLabel: Record<string, string> = {
-        up: 'Operational',
-        down: 'Outage',
+        up: 'Up',
+        down: 'Down',
         paused: 'Paused',
         unknown: 'Unknown',
         flapping: 'Flapping',
@@ -100,19 +100,34 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                         {sslSummary}
                     </div>
                 )}
+                <div className="monitor-stats">
+                    <div className="stat">
+                        <div className="stat-label">Resp</div>
+                        <div className="stat-value">
+                            {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
+                        </div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Every</div>
+                        <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Timeout</div>
+                        <div className="stat-value">{monitor.timeoutSeconds}s</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat-label">Checked</div>
+                        <div className="stat-value">
+                            {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </div>
+                    </div>
+                </div>
 
             </div>
 
             <div className="monitor-card-side">
                 <div className="monitor-side-status">
-                    <span className={`status-badge ${status}`}>
-                        <span className={`status-semaphore ${status}`} aria-hidden="true">
-                            <span />
-                            <span />
-                            <span />
-                        </span>
-                        {statusLabel[status]}
-                    </span>
+                    <span className={`status-dot ${status}`} title={statusLabel[status]} aria-label={statusLabel[status]} />
                 </div>
                 <div className="monitor-actions monitor-control-group">
                     <button
@@ -154,28 +169,6 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                             </button>
                         </>
                     )}
-                </div>
-                <div className="monitor-stats monitor-stats-compact">
-                    <div className="stat">
-                        <div className="stat-label">Resp</div>
-                        <div className="stat-value">
-                            {lastCheck ? formatTime(lastCheck.responseTimeMs) : '—'}
-                        </div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Every</div>
-                        <div className="stat-value">{formatInterval(monitor.intervalSeconds)}</div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Timeout</div>
-                        <div className="stat-value">{monitor.timeoutSeconds}s</div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat-label">Checked</div>
-                        <div className="stat-value">
-                            {lastCheck ? new Date(lastCheck.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

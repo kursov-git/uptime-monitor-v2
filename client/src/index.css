@@ -363,7 +363,7 @@ body {
 .monitor-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  grid-template-columns: minmax(0, 1fr) 88px;
   gap: 10px;
   padding: 14px;
   background: linear-gradient(180deg, #ffffff, #fcfdfc);
@@ -396,10 +396,10 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-items: stretch;
-  justify-content: space-between;
-  padding-left: 12px;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 10px;
   border-left: 1px solid #e3ebe5;
 }
 
@@ -1396,14 +1396,16 @@ body {
 }
 
 .monitor-url {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   color: #63748a;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-bottom: 0;
   padding: 0;
   font-family: inherit;
   background: transparent;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .monitor-meta-pills {
@@ -1453,12 +1455,6 @@ body {
   padding-top: 2px;
 }
 
-.monitor-stats-compact {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding-top: 0;
-}
-
 .stat {
   text-align: left;
   padding: 10px 11px 9px;
@@ -1506,7 +1502,8 @@ body {
 
 .monitor-side-status {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
+  width: 100%;
 }
 
 .monitor-actions {
@@ -1530,13 +1527,14 @@ body {
 }
 
 .monitor-control-group {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border-radius: 16px;
   background: #f6faf7;
   border: 1px solid #dfe8e1;
+  width: 100%;
 }
 
 .monitor-control-group .btn {
@@ -1592,32 +1590,30 @@ body {
   color: #b7791f;
 }
 
-.status-semaphore {
-  display: inline-flex;
-  gap: 3px;
-  align-items: center;
-}
-
-.status-semaphore span {
-  width: 6px;
-  height: 6px;
+.status-dot {
+  width: 12px;
+  height: 12px;
   border-radius: 999px;
-  background: currentColor;
-  opacity: 0.24;
+  display: inline-block;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(16, 32, 54, 0.06);
 }
 
-.status-semaphore.up span:nth-child(1) {
-  opacity: 1;
+.status-dot.up {
+  background: #20b46d;
 }
 
-.status-semaphore.paused span:nth-child(2),
-.status-semaphore.flapping span:nth-child(2) {
-  opacity: 1;
+.status-dot.down {
+  background: #d9595f;
 }
 
-.status-semaphore.down span,
-.status-semaphore.unknown span:nth-child(3) {
-  opacity: 1;
+.status-dot.paused,
+.status-dot.unknown {
+  background: #93a597;
+}
+
+.status-dot.flapping {
+  background: #d9a63c;
 }
 
 /* Modal */
