@@ -252,230 +252,249 @@ sudo bash scripts/install-agent.sh`
     };
 
     return (
-        <div className="card">
-            <h2 style={{ marginBottom: 12 }}>Agents</h2>
-
-            <div className="warning-message" style={{ marginBottom: 12 }}>
-                This page registers agent credentials only. Deployment is still manual: put the token into the agent
-                environment, point it to the server URL, then restart the agent service.
+        <div className="agents-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Agents</h2>
+                    <p>Register runtimes, issue tokens, and watch fleet health from one control surface.</p>
+                </div>
             </div>
 
-            {error && <div className="error-message" style={{ marginBottom: 12 }}>{error}</div>}
-            {createdToken && (
-                <div className="warning-message" style={{ marginBottom: 12 }}>
-                    <strong>One-time registration token{registrationName ? ` for ${registrationName}` : ''}:</strong>
-                    <code style={{ display: 'block', marginTop: 8, wordBreak: 'break-all' }}>{createdToken}</code>
-                    <div style={{ marginTop: 12, fontSize: 14 }}>
-                        Next step: deploy or update the real agent process with this token and restart it.
-                    </div>
-                    <div
-                        style={{
-                            marginTop: 12,
-                            padding: 12,
-                            borderRadius: 8,
-                            background: 'rgba(15, 23, 42, 0.35)',
-                            color: 'inherit',
-                        }}
-                    >
-                        <div style={{ fontWeight: 700, marginBottom: 8 }}>Registration Checklist</div>
-                        <div style={{ display: 'grid', gap: 6, fontSize: 13 }}>
-                            <div>{issuedAgent ? '✓' : '•'} Registered in control plane</div>
-                            <div>{issuedAgent?.status === 'ONLINE' ? '✓' : '•'} Configured on host and service restarted {issuedAgent?.status === 'ONLINE' ? '(inferred from agent heartbeat)' : '(manual step pending)'}</div>
-                            <div>{issuedAgent?.status === 'ONLINE' ? '✓' : '•'} Agent connected and sending heartbeat {issuedAgent?.status === 'ONLINE' ? '(online now)' : '(waiting for first heartbeat)'}</div>
+            {error && <div className="error-message">{error}</div>}
+
+            <div className="dashboard-summary-cards">
+                <div className="dashboard-summary-card">
+                    <span>Registered</span>
+                    <strong data-testid="agent-summary-total">{agentSummary.total}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Online</span>
+                    <strong data-testid="agent-summary-online">{agentSummary.online}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Needs Attention</span>
+                    <strong data-testid="agent-summary-attention">{agentSummary.attention}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Outdated</span>
+                    <strong data-testid="agent-summary-outdated">{agentSummary.outdated}</strong>
+                </div>
+            </div>
+
+            <div className={`agents-top-grid ${createdToken ? 'with-issued' : ''}`}>
+                <section className="agents-section-card">
+                    <div className="agents-section-header">
+                        <div>
+                            <h3>Register Agent</h3>
+                            <p>Issue a one-time registration token, then configure the real host and restart its service.</p>
                         </div>
                     </div>
-                    <textarea
-                        readOnly
-                        value={envSnippet}
-                        rows={4}
-                        style={{
-                            width: '100%',
-                            marginTop: 8,
-                            resize: 'vertical',
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                        }}
-                    />
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => copySnippet(envSnippet, 'Copied env snippet')}>
-                            Copy Env Snippet
-                        </button>
-                        {copyMessage && (
-                            <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>{copyMessage}</span>
-                        )}
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                        Example: update `/etc/uptime-agent.env`, then `systemctl restart uptime-agent`.
+
+                    <div className="warning-message">
+                        This page issues agent credentials only. Deployment remains manual: put the token into the agent environment,
+                        point it to the server URL, then restart the agent service.
                     </div>
 
-                    <div style={{ marginTop: 16, fontWeight: 700 }}>Recommended: install script</div>
-                    <textarea
-                        readOnly
-                        value={installScriptSnippet}
-                        rows={7}
-                        style={{
-                            width: '100%',
-                            marginTop: 8,
-                            resize: 'vertical',
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                        }}
-                    />
-                    <div style={{ marginTop: 8 }}>
-                        <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => copySnippet(installScriptSnippet, 'Copied install command')}
-                        >
-                            Copy Install Command
-                        </button>
-                    </div>
+                    <form onSubmit={registerAgent} className="agents-register-form">
+                        <div className="form-group">
+                            <label>Agent Name</label>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Agent name (e.g. us-east-1)"
+                                required
+                            />
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Heartbeat sec</label>
+                                <input
+                                    type="number"
+                                    min={5}
+                                    max={600}
+                                    value={heartbeatIntervalSec}
+                                    onChange={(e) => setHeartbeatIntervalSec(parseInt(e.target.value, 10))}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Offline after sec</label>
+                                <input
+                                    type="number"
+                                    min={10}
+                                    max={3600}
+                                    value={offlineAfterSec}
+                                    onChange={(e) => setOfflineAfterSec(parseInt(e.target.value, 10))}
+                                />
+                            </div>
+                        </div>
+                        <div className="agents-register-actions">
+                            <button type="submit" className="btn btn-primary">Register Agent</button>
+                        </div>
+                    </form>
+                </section>
 
-                    <div style={{ marginTop: 16, fontWeight: 700 }}>Alternative: systemd + docker compose</div>
-                    <textarea
-                        readOnly
-                        value={systemdSnippet}
-                        rows={12}
-                        style={{
-                            width: '100%',
-                            marginTop: 8,
-                            resize: 'vertical',
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                        }}
-                    />
-                    <div style={{ marginTop: 8 }}>
-                        <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => copySnippet(systemdSnippet, 'Copied systemd snippet')}
-                        >
-                            Copy Systemd Snippet
-                        </button>
-                    </div>
+                {createdToken && (
+                    <section className="agents-section-card agents-issued-panel">
+                        <div className="agents-section-header">
+                            <div>
+                                <h3>Issued Token</h3>
+                                <p>One-time registration material{registrationName ? ` for ${registrationName}` : ''}.</p>
+                            </div>
+                        </div>
 
-                    <div style={{ marginTop: 16, fontWeight: 700 }}>Alternative: plain docker run</div>
-                    <textarea
-                        readOnly
-                        value={dockerRunSnippet}
-                        rows={14}
-                        style={{
-                            width: '100%',
-                            marginTop: 8,
-                            resize: 'vertical',
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                        }}
-                    />
-                    <div style={{ marginTop: 8 }}>
-                        <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => copySnippet(dockerRunSnippet, 'Copied docker run snippet')}
-                        >
-                            Copy Docker Run
-                        </button>
-                    </div>
-                </div>
-            )}
+                        <div className="agents-issued-token">
+                            <strong>Registration token</strong>
+                            <code>{createdToken}</code>
+                            <p>Next step: deploy or update the real agent process with this token and restart it.</p>
+                        </div>
 
-            <form onSubmit={registerAgent} style={{ marginBottom: 16, display: 'grid', gap: 8 }}>
-                <div style={{ fontWeight: 600 }}>Register Agent</div>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Agent name (e.g. us-east-1)"
-                    required
-                />
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Heartbeat sec</label>
-                        <input
-                            type="number"
-                            min={5}
-                            max={600}
-                            value={heartbeatIntervalSec}
-                            onChange={(e) => setHeartbeatIntervalSec(parseInt(e.target.value, 10))}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>Offline after sec</label>
-                        <input
-                            type="number"
-                            min={10}
-                            max={3600}
-                            value={offlineAfterSec}
-                            onChange={(e) => setOfflineAfterSec(parseInt(e.target.value, 10))}
-                        />
-                    </div>
-                </div>
-                <div>
-                    <button type="submit" className="btn btn-primary">Register Agent</button>
-                </div>
-            </form>
+                        <div className="agents-checklist">
+                            <div className="agents-checklist-title">Registration Checklist</div>
+                            <div className="agents-checklist-items">
+                                <div>{issuedAgent ? '✓' : '•'} Registered in control plane</div>
+                                <div>{issuedAgent?.status === 'ONLINE' ? '✓' : '•'} Configured on host and service restarted {issuedAgent?.status === 'ONLINE' ? '(inferred from heartbeat)' : '(manual step pending)'}</div>
+                                <div>{issuedAgent?.status === 'ONLINE' ? '✓' : '•'} Agent connected and sending heartbeat {issuedAgent?.status === 'ONLINE' ? '(online now)' : '(waiting for first heartbeat)'}</div>
+                            </div>
+                        </div>
+
+                        <div className="agents-snippet-block">
+                            <div className="agents-snippet-title">Env snippet</div>
+                            <textarea readOnly value={envSnippet} rows={4} className="agents-snippet-textarea" />
+                            <div className="agents-copy-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => copySnippet(envSnippet, 'Copied env snippet')}>
+                                    Copy Env Snippet
+                                </button>
+                                {copyMessage && <span>{copyMessage}</span>}
+                            </div>
+                            <div className="agents-snippet-help">
+                                Example: update `/etc/uptime-agent.env`, then `systemctl restart uptime-agent`.
+                            </div>
+                        </div>
+
+                        <div className="agents-snippet-block">
+                            <div className="agents-snippet-title">Recommended: install script</div>
+                            <textarea readOnly value={installScriptSnippet} rows={7} className="agents-snippet-textarea" />
+                            <div className="agents-copy-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => copySnippet(installScriptSnippet, 'Copied install command')}>
+                                    Copy Install Command
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="agents-snippet-block">
+                            <div className="agents-snippet-title">Alternative: systemd + docker compose</div>
+                            <textarea readOnly value={systemdSnippet} rows={12} className="agents-snippet-textarea" />
+                            <div className="agents-copy-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => copySnippet(systemdSnippet, 'Copied systemd snippet')}>
+                                    Copy Systemd Snippet
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="agents-snippet-block">
+                            <div className="agents-snippet-title">Alternative: plain docker run</div>
+                            <textarea readOnly value={dockerRunSnippet} rows={14} className="agents-snippet-textarea" />
+                            <div className="agents-copy-row">
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => copySnippet(dockerRunSnippet, 'Copied docker run snippet')}>
+                                    Copy Docker Run
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                )}
+            </div>
 
             {loading ? (
                 <div className="empty-state"><h3>Loading registered agents...</h3></div>
             ) : agents.length === 0 ? (
                 <div className="empty-state"><h3>No registered agents yet</h3></div>
             ) : (
-                <div style={{ display: 'grid', gap: 12 }}>
-                    <div className="history-summary" style={{ marginBottom: 4 }}>
-                        <div className="history-summary-card">
-                            <div className="history-summary-label">Registered</div>
-                            <div className="history-summary-value" data-testid="agent-summary-total">{agentSummary.total}</div>
-                        </div>
-                        <div className="history-summary-card">
-                            <div className="history-summary-label">Online</div>
-                            <div className="history-summary-value uptime" data-testid="agent-summary-online">{agentSummary.online}</div>
-                        </div>
-                        <div className="history-summary-card">
-                            <div className="history-summary-label">Needs Attention</div>
-                            <div className="history-summary-value" data-testid="agent-summary-attention" style={{ color: 'var(--color-warning)' }}>{agentSummary.attention}</div>
-                        </div>
-                        <div className="history-summary-card">
-                            <div className="history-summary-label">Outdated</div>
-                            <div className="history-summary-value" data-testid="agent-summary-outdated" style={{ color: '#f59e0b' }}>{agentSummary.outdated}</div>
-                        </div>
-                    </div>
+                <div className="agents-list">
                     {sortedAgents.map((agent) => {
                         const flags = getAgentAttentionFlags(agent);
                         const monitorsAssigned = agent._count?.monitors ?? 0;
                         return (
-                        <div className="card" key={agent.id}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                                <div>
-                                    <div style={{ fontWeight: 700 }}>{agent.name}</div>
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>ID: {agent.id}</div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, marginBottom: 8 }}>
-                                        <span className={`status-badge ${flags.isOnline ? 'up' : 'down'}`}>
-                                            {flags.isOnline ? 'ONLINE' : agent.status}
-                                        </span>
-                                        {flags.isOutdated && (
-                                            <span className="status-badge flapping">Update needed</span>
-                                        )}
-                                        {flags.isRevoked && (
-                                            <span className="status-badge down">Access revoked</span>
-                                        )}
+                            <article className={`card agent-card ${flags.needsAttention ? 'needs-attention' : ''}`} key={agent.id}>
+                                <div className="agent-card-main">
+                                    <div className="agent-card-header">
+                                        <div className="agent-card-title">
+                                            <h3>{agent.name}</h3>
+                                            <p>ID: {agent.id}</p>
+                                        </div>
+                                        <div className="agent-card-badges">
+                                            <span className={`status-badge ${flags.isOnline ? 'up' : 'down'}`}>
+                                                {flags.isOnline ? 'ONLINE' : agent.status}
+                                            </span>
+                                            {flags.isOutdated && (
+                                                <span className="status-badge flapping">Update needed</span>
+                                            )}
+                                            {flags.isRevoked && (
+                                                <span className="status-badge down">Access revoked</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Last heartbeat: {new Date(agent.lastSeen).toLocaleString()}
+
+                                    <div className="agent-card-meta">
+                                        <div className="agent-meta-item">
+                                            <span>Last heartbeat</span>
+                                            <strong>{new Date(agent.lastSeen).toLocaleString()}</strong>
+                                        </div>
+                                        <div className="agent-meta-item">
+                                            <span>IP</span>
+                                            <strong>{agent.lastSeenIp || 'Unknown IP'}</strong>
+                                        </div>
+                                        <div className="agent-meta-item">
+                                            <span>Geo</span>
+                                            <strong>{formatAgentLocation(agent)}</strong>
+                                        </div>
+                                        <div className="agent-meta-item">
+                                            <span>Agent version</span>
+                                            <strong className={flags.isOutdated ? 'agent-meta-warning' : undefined}>{getAgentVersionLabel(agent.agentVersion)}</strong>
+                                        </div>
+                                        <div className="agent-meta-item">
+                                            <span>Assigned monitors</span>
+                                            <strong>{monitorsAssigned}</strong>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        IP: <strong>{agent.lastSeenIp || 'Unknown IP'}</strong>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Geo: <strong>{formatAgentLocation(agent)}</strong>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: flags.isOutdated ? '#f59e0b' : 'var(--color-text-secondary)' }}>
-                                        Agent version: <strong>{getAgentVersionLabel(agent.agentVersion)}</strong>
-                                    </div>
-                                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                                        Assigned monitors: {monitorsAssigned}
+
+                                    <div className="agent-settings-panel">
+                                        <div className="agent-settings-title">Runtime thresholds</div>
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Heartbeat sec</label>
+                                                <input
+                                                    type="number"
+                                                    min={5}
+                                                    max={600}
+                                                    value={agent.heartbeatIntervalSec}
+                                                    onChange={(e) => {
+                                                        const v = parseInt(e.target.value, 10);
+                                                        setAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, heartbeatIntervalSec: v } : a));
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Offline after sec</label>
+                                                <input
+                                                    type="number"
+                                                    min={10}
+                                                    max={3600}
+                                                    value={agent.offlineAfterSec}
+                                                    onChange={(e) => {
+                                                        const v = parseInt(e.target.value, 10);
+                                                        setAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, offlineAfterSec: v } : a));
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <button className="btn btn-primary btn-sm" onClick={() => updateAgent(agent)}>
+                                            Save Settings
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: 8 }}>
+
+                                <div className="agent-card-side">
                                     <button className="btn btn-secondary btn-sm" onClick={() => rotateToken(agent.id)}>Rotate Agent Token</button>
                                     <button className="btn btn-danger btn-sm" onClick={() => revokeAgent(agent.id)}>Revoke Access</button>
                                     <button
@@ -487,40 +506,7 @@ sudo bash scripts/install-agent.sh`
                                         Delete Agent
                                     </button>
                                 </div>
-                            </div>
-
-                            <div className="form-row" style={{ marginTop: 10 }}>
-                                <div className="form-group">
-                                    <label>Heartbeat sec</label>
-                                    <input
-                                        type="number"
-                                        min={5}
-                                        max={600}
-                                        value={agent.heartbeatIntervalSec}
-                                        onChange={(e) => {
-                                            const v = parseInt(e.target.value, 10);
-                                            setAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, heartbeatIntervalSec: v } : a));
-                                        }}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Offline after sec</label>
-                                    <input
-                                        type="number"
-                                        min={10}
-                                        max={3600}
-                                        value={agent.offlineAfterSec}
-                                        onChange={(e) => {
-                                            const v = parseInt(e.target.value, 10);
-                                            setAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, offlineAfterSec: v } : a));
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                            <button className="btn btn-primary btn-sm" onClick={() => updateAgent(agent)}>
-                                Save Settings
-                            </button>
-                        </div>
+                            </article>
                         );
                     })}
                 </div>
