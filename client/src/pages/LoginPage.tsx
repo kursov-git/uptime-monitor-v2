@@ -23,49 +23,73 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="login-container">
-            <div className="card login-card">
-                <h1 data-testid="login-title">Ping Agent</h1>
-                <p className="login-subtitle">Sign in to your dashboard</p>
-
-                {error && <div className="error-message">{error}</div>}
-
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Username</label>
-                        <input
-                            id="username"
-                            type="text"
-                            value={username}
-                            onChange={e => setUsername(e.target.value)}
-                            placeholder="admin"
-                            required
-                            autoFocus
-                        />
+        <div className="login-shell">
+            <div className="login-shell-grid">
+                <section className="login-hero-card">
+                    <div className="public-status-kicker">Ping Agent</div>
+                    <h1 data-testid="login-title">Calm operator access for uptime and agent health.</h1>
+                    <p className="login-subtitle">
+                        Sign in to manage monitors, review agent activity, inspect history, and operate the control plane from one place.
+                    </p>
+                    <div className="login-meta-grid">
+                        <div className="login-meta-card">
+                            <span>Monitoring</span>
+                            <strong>HTTP, TCP, DNS, SSL</strong>
+                        </div>
+                        <div className="login-meta-card">
+                            <span>Execution</span>
+                            <strong>Builtin worker + remote agents</strong>
+                        </div>
+                        <div className="login-meta-card">
+                            <span>Public surface</span>
+                            <strong>Readable status page and drill-down</strong>
+                        </div>
                     </div>
+                </section>
 
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            required
-                        />
-                    </div>
+                <section className="login-form-card">
+                    <div className="app-modal-kicker">Operator Sign In</div>
+                    <h2>Ping Agent</h2>
+                    <p className="login-form-subtitle">Use your operator credentials to continue.</p>
 
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-                        disabled={loading}
-                        data-testid="login-submit"
-                    >
-                        {loading ? 'Signing in...' : 'Sign In'}
-                    </button>
-                </form>
+                    {error && <div className="error-message">{error}</div>}
+
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label>Username</label>
+                            <input
+                                id="username"
+                                type="text"
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
+                                placeholder="admin"
+                                required
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>Password</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="btn btn-primary login-submit-button"
+                            disabled={loading}
+                            data-testid="login-submit"
+                        >
+                            {loading ? 'Signing in...' : 'Sign In'}
+                        </button>
+                    </form>
+                </section>
             </div>
         </div>
     );

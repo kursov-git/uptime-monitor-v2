@@ -45,24 +45,54 @@ export default function NotificationHistoryPage() {
         fetchData();
     }, [fetchData]);
 
+    const successCount = history.filter(entry => entry.status === 'SUCCESS').length;
+    const failureCount = history.filter(entry => entry.status === 'FAILED').length;
+    const telegramCount = history.filter(entry => entry.channel === 'TELEGRAM').length;
+    const zulipCount = history.filter(entry => entry.channel === 'ZULIP').length;
+
     return (
-        <div>
-            <div className="app-header" style={{ marginTop: 24, padding: 0 }}>
-                <div>
-                    <h1>📬 Notification History</h1>
-                    {monitorId && monitors[monitorId] && (
-                        <div className="history-subtitle">Filtered by monitor: {monitors[monitorId]}</div>
-                    )}
+        <div className="app-container page-container admin-page">
+            <div className="dashboard-toolbar">
+                <div className="dashboard-toolbar-copy">
+                    <h2>Notification History</h2>
+                    <p>
+                        Delivery audit for outbound alerts across Telegram and Zulip.
+                        {monitorId && monitors[monitorId] ? ` Filtered to ${monitors[monitorId]}.` : ''}
+                    </p>
                 </div>
-                <button className="btn btn-secondary" onClick={() => monitorId ? navigate(`/monitor/${monitorId}`) : navigate('/settings')}>
-                    ← Back
-                </button>
+                <div className="admin-toolbar-actions">
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => monitorId ? navigate(`/monitors/${monitorId}/history`) : navigate('/settings')}
+                    >
+                        ← Back
+                    </button>
+                </div>
             </div>
 
-            <div className="card">
+            <div className="dashboard-summary-cards">
+                <div className="dashboard-summary-card">
+                    <span>Total records</span>
+                    <strong>{total}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Successful</span>
+                    <strong className="admin-summary-value success">{successCount}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Failed</span>
+                    <strong>{failureCount}</strong>
+                </div>
+                <div className="dashboard-summary-card">
+                    <span>Channels in view</span>
+                    <strong>{telegramCount > 0 && zulipCount > 0 ? '2' : telegramCount > 0 || zulipCount > 0 ? '1' : '0'}</strong>
+                </div>
+            </div>
+
+            <div className="agents-section-card">
                 <div className="section-header">
-                    <h2>History Log</h2>
-                    <span className="pagination-info">Total records: {total}</span>
+                    <h2>Delivery Log</h2>
+                    <span className="pagination-info">Page {page} of {totalPages}</span>
                 </div>
 
                 <div className="table-container">
@@ -92,25 +122,20 @@ export default function NotificationHistoryPage() {
                             ) : (
                                 history.map(entry => (
                                     <tr key={entry.id}>
-                                        <td style={{ whiteSpace: 'nowrap' }} className="history-timestamp">
+                                        <td className="history-timestamp">
                                             {new Date(entry.timestamp).toLocaleString()}
                                         </td>
                                         <td>
                                             {entry.monitorId ? (
-                                                <strong>{monitors[entry.monitorId] || 'Deleted Monitor'}</strong>
+                                                <div className="admin-entity-primary">
+                                                    <strong>{monitors[entry.monitorId] || 'Deleted Monitor'}</strong>
+                                                </div>
                                             ) : (
-                                                <span className="history-subtitle">Test Auth</span>
+                                                <span className="admin-table-muted">Test Auth</span>
                                             )}
                                         </td>
                                         <td>
-                                            <span style={{
-                                                backgroundColor: entry.channel === 'TELEGRAM' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(168, 85, 247, 0.2)',
-                                                color: entry.channel === 'TELEGRAM' ? '#60a5fa' : '#c084fc',
-                                                padding: '2px 6px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600,
-                                            }}>
+                                            <span className={`history-channel-badge ${entry.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
                                                 {entry.channel}
                                             </span>
                                         </td>
@@ -125,7 +150,7 @@ export default function NotificationHistoryPage() {
                                                     {entry.error}
                                                 </div>
                                             ) : (
-                                                <span className="history-subtitle">-</span>
+                                                <span className="admin-table-muted">—</span>
                                             )}
                                         </td>
                                     </tr>

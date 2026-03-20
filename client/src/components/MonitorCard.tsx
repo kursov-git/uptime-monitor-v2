@@ -69,6 +69,9 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                         <div className="monitor-name">{monitor.name}</div>
                         <div className="monitor-url">{monitor.url}</div>
                     </div>
+                    <div className="monitor-card-inline-status">
+                        <span className={`status-badge ${status}`}>{statusLabel[status]}</span>
+                    </div>
                 </div>
                 <div className="monitor-meta-pills">
                     {monitor.serviceName && (

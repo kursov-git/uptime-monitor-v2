@@ -69,10 +69,13 @@ export default function DashboardPage({
     const overallSummary = monitors.reduce((acc, monitor) => {
         const status = getMonitorStatus(monitor);
         if (status === 'down' || status === 'flapping') acc.attention += 1;
+        if (status === 'up') acc.up += 1;
+        if (status === 'paused') acc.paused += 1;
+        if (status === 'unknown') acc.unknown += 1;
         if (monitor.isPublic) acc.publicCount += 1;
         if (monitor.sslExpiryEnabled) acc.sslEnabled += 1;
         return acc;
-    }, { attention: 0, publicCount: 0, sslEnabled: 0 });
+    }, { attention: 0, up: 0, paused: 0, unknown: 0, publicCount: 0, sslEnabled: 0 });
 
     const handleCreate = async (data: MonitorFormData) => {
         await onCreateMonitor(data);
@@ -95,13 +98,20 @@ export default function DashboardPage({
             <div className="dashboard-toolbar">
                 <div className="dashboard-toolbar-copy">
                     <h2>Monitors</h2>
-                    <p>Focused cards with clearer actions, grouped by service.</p>
+                    <p>Focused cards with clearer actions, grouped by service and tuned for quick operator scanning.</p>
                 </div>
-                {isAdmin && (
-                    <button className="btn btn-primary" onClick={() => setShowForm(true)} data-testid="new-monitor-button">
-                        ＋ New Monitor
-                    </button>
-                )}
+                <div className="admin-toolbar-actions">
+                    {monitors.length > 0 && (
+                        <span className="monitor-toolbar-hint">
+                            {serviceSections.length} {serviceSections.length === 1 ? 'service section' : 'service sections'}
+                        </span>
+                    )}
+                    {isAdmin && (
+                        <button className="btn btn-primary" onClick={() => setShowForm(true)} data-testid="new-monitor-button">
+                            ＋ New Monitor
+                        </button>
+                    )}
+                </div>
             </div>
 
             {monitors.length > 0 && (
@@ -113,6 +123,10 @@ export default function DashboardPage({
                     <div className="dashboard-summary-card">
                         <span>Need attention</span>
                         <strong>{overallSummary.attention}</strong>
+                    </div>
+                    <div className="dashboard-summary-card">
+                        <span>Healthy</span>
+                        <strong className="admin-summary-value success">{overallSummary.up}</strong>
                     </div>
                     <div className="dashboard-summary-card">
                         <span>Public checks</span>
@@ -131,19 +145,21 @@ export default function DashboardPage({
                     <h3>Loading monitors...</h3>
                 </div>
             ) : monitors.length === 0 ? (
-                <div className="empty-state">
-                    <h3>No monitors yet</h3>
-                    <p>Create your first monitor to start tracking uptime.</p>
-                    {isAdmin && (
-                        <button
-                            className="btn btn-primary"
-                            style={{ marginTop: 16 }}
-                            onClick={() => setShowForm(true)}
-                            data-testid="create-monitor-empty-button"
-                        >
-                            ＋ Create Monitor
-                        </button>
-                    )}
+                <div className="agents-section-card monitor-empty-state-card">
+                    <div className="empty-state">
+                        <h3>No monitors yet</h3>
+                        <p>Create your first monitor to start tracking uptime, validation, SSL expiry, and service-level status.</p>
+                        {isAdmin && (
+                            <button
+                                className="btn btn-primary"
+                                style={{ marginTop: 16 }}
+                                onClick={() => setShowForm(true)}
+                                data-testid="create-monitor-empty-button"
+                            >
+                                ＋ Create Monitor
+                            </button>
+                        )}
+                    </div>
                 </div>
             ) : (
                 <div className="monitor-service-sections">
