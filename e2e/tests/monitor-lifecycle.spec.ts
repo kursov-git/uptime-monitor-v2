@@ -21,10 +21,12 @@ test.describe('Monitor Lifecycle', () => {
         await expect(card).toBeVisible({ timeout: 10000 });
 
         await card.locator('button[title="Pause"]').click();
-        await expect(card.getByText('PAUSED')).toBeVisible({ timeout: 10000 });
+        await expect(card.locator('.status-dot.paused')).toBeVisible({ timeout: 10000 });
+        await expect(card.locator('button[title="Resume"]')).toBeVisible({ timeout: 10000 });
 
         await card.locator('button[title="Resume"]').click();
-        await expect(card.getByText('PAUSED')).toHaveCount(0);
+        await expect(card.locator('.status-dot.paused')).toHaveCount(0);
+        await expect(card.locator('button[title="Pause"]')).toBeVisible({ timeout: 10000 });
 
         page.once('dialog', (dialog) => dialog.accept());
         await card.locator('button[title="Delete"]').click();
