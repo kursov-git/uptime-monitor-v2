@@ -353,37 +353,34 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     </div>
                 ) : (
                     <>
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Status</th>
-                                        <th>Response</th>
-                                        <th>HTTP Code</th>
-                                        <th>Error</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {results.map((r) => (
-                                        <tr key={r.id}>
-                                            <td className="history-timestamp">
-                                                {new Date(r.timestamp).toLocaleString()}
-                                            </td>
-                                            <td>
-                                                <span className={`status-badge ${r.isUp ? 'up' : 'down'}`}>
-                                                    {r.isUp ? '● UP' : '● DOWN'}
-                                                </span>
-                                            </td>
-                                            <td>{r.responseTimeMs}ms</td>
-                                            <td>{r.statusCode ?? '—'}</td>
-                                            <td className="history-error">
-                                                {r.error || '—'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="history-results-list">
+                            {results.map((r) => (
+                                <article key={r.id} className="history-row-card">
+                                    <div className="history-row-main">
+                                        <div className="history-timestamp">
+                                            {new Date(r.timestamp).toLocaleString()}
+                                        </div>
+                                        <div className="history-row-statusline">
+                                            <span className={`status-badge ${r.isUp ? 'up' : 'down'}`}>
+                                                {r.isUp ? '● UP' : '● DOWN'}
+                                            </span>
+                                            <span className="history-row-status-copy">
+                                                {r.error || 'Healthy response'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="history-row-metrics">
+                                        <div className="history-row-metric">
+                                            <span>Response</span>
+                                            <strong>{r.responseTimeMs}ms</strong>
+                                        </div>
+                                        <div className="history-row-metric">
+                                            <span>HTTP code</span>
+                                            <strong>{r.statusCode ?? '—'}</strong>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
                         </div>
 
                         {totalPages > 1 && (
@@ -427,39 +424,30 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             <p>No notifications sent recently</p>
                         </div>
                     ) : (
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Channel</th>
-                                        <th>Status</th>
-                                        <th>Error</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentNotifications.map((n) => (
-                                        <tr key={n.id}>
-                                            <td className="history-timestamp">
-                                                {new Date(n.timestamp).toLocaleString()}
-                                            </td>
-                                            <td>
-                                                <span className={`history-channel-badge ${n.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
-                                                    {n.channel}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
-                                                    {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
-                                                </span>
-                                            </td>
-                                            <td className="history-error">
-                                                {n.error || '—'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="history-results-list">
+                            {recentNotifications.map((n) => (
+                                <article key={n.id} className="history-row-card notification">
+                                    <div className="history-row-main">
+                                        <div className="history-timestamp">
+                                            {new Date(n.timestamp).toLocaleString()}
+                                        </div>
+                                        <div className="history-row-statusline">
+                                            <span className={`history-channel-badge ${n.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
+                                                {n.channel}
+                                            </span>
+                                            <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
+                                                {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="history-row-metrics notification">
+                                        <div className="history-row-metric wide">
+                                            <span>Delivery</span>
+                                            <strong>{n.error || 'Delivered successfully'}</strong>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
                         </div>
                     )}
                 </div>
