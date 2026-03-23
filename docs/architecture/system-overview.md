@@ -276,6 +276,14 @@ Behavior:
 - can request `RESYNC_JOBS`
 - used for near-real-time job updates
 
+### Compatibility rule
+- formal protocol negotiation is not currently implemented beyond `agentVersion`
+- agent protocol changes are additive-only by default
+- when agent payload semantics change, route validation, shared types, and
+  contract tests must move together
+- breaking protocol changes require an explicit compatibility note and rollout
+  plan
+
 ## Security Model
 
 ### User auth

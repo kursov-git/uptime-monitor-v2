@@ -75,6 +75,54 @@ exports[`API Contract > validates /health/runtime response shape 1`] = `
 }
 `;
 
+exports[`API Contract > validates agent protocol contracts 1`] = `
+{
+  "heartbeat": {
+    "commands": [
+      "NONE",
+    ],
+    "heartbeatIntervalSec": 17,
+    "now": "<iso-date>",
+  },
+  "jobs": {
+    "heartbeatIntervalSec": 17,
+    "jobs": [
+      {
+        "authMethod": "NONE",
+        "authPayloadEncrypted": null,
+        "authPayloadIv": null,
+        "authPayloadTag": null,
+        "authTokenRegex": null,
+        "authUrl": null,
+        "bodyAssertionPath": "ok",
+        "bodyAssertionType": "JSON_PATH_EQUALS",
+        "dnsRecordType": "A",
+        "expectedBody": "{"ok":true}",
+        "expectedStatus": 202,
+        "headers": "{"Content-Type":"application/json"}",
+        "intervalSeconds": 30,
+        "keyVersion": 1,
+        "method": "POST",
+        "monitorId": "<uuid>",
+        "requestBody": "{"ping":"pong"}",
+        "sslExpiryEnabled": true,
+        "sslExpiryThresholdDays": 21,
+        "timeoutMs": 15000,
+        "type": "HTTP",
+        "url": "https://example.com/agent-contract",
+        "version": 1774253507574,
+      },
+    ],
+    "serverTime": "<iso-date>",
+  },
+  "results": {
+    "acceptedCount": 1,
+    "duplicateCount": 0,
+    "failed": [],
+  },
+}
+`;
+
 exports[`API Contract > validates auth login and /me contracts 1`] = `
 {
   "login": {

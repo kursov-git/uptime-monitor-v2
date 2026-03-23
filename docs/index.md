@@ -24,6 +24,7 @@ Current source-of-truth documents:
 - `docs/architecture/harness-documentation-model.md`
 - `docs/architecture/harness-documentation-template.md`
 - `docs/architecture/system-overview.md`
+- `docs/architecture/agent-protocol-compatibility.md`
 - `docs/architecture/ui-design-system.md`
 
 Use this section for:

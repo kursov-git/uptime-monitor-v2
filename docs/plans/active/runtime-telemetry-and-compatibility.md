@@ -51,6 +51,10 @@ Define a strict default rule for the agent contract:
 This is a docs + contract-discipline task, not a full version-negotiation
 project.
 
+Status:
+- implemented in `docs/architecture/agent-protocol-compatibility.md`
+- backed by explicit contract coverage for `jobs`, `results`, and `heartbeat`
+
 ### 3. SQLite / Retention Pressure Review
 
 Review the current write pressure around:

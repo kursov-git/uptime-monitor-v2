@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { z } from 'zod';
 import { FastifyInstance } from 'fastify';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { initApp } from '../index';
 import prisma from '../lib/prisma';
+import { hashAgentToken } from '../services/agentAuth';
 
 const isoDate = z.string().datetime();
 const uuid = z.string().uuid();
@@ -117,6 +119,51 @@ const publicStatusDrilldownSchema = z.object({
     })),
 });
 
+const agentJobsResponseSchema = z.object({
+    serverTime: isoDate,
+    heartbeatIntervalSec: z.number(),
+    jobs: z.array(z.object({
+        monitorId: uuid,
+        type: z.enum(['HTTP', 'TCP', 'DNS']),
+        url: z.string(),
+        dnsRecordType: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']),
+        method: z.string(),
+        intervalSeconds: z.number(),
+        timeoutMs: z.number(),
+        expectedStatus: z.number(),
+        expectedBody: z.string().nullable(),
+        requestBody: z.string().nullable(),
+        bodyAssertionType: z.enum(['NONE', 'AUTO', 'CONTAINS', 'REGEX', 'JSON_PATH_EQUALS', 'JSON_PATH_CONTAINS']),
+        bodyAssertionPath: z.string().nullable(),
+        headers: z.string().nullable(),
+        authMethod: z.string(),
+        authUrl: z.string().nullable(),
+        authPayloadEncrypted: z.string().nullable(),
+        authTokenRegex: z.string().nullable(),
+        sslExpiryEnabled: z.boolean(),
+        sslExpiryThresholdDays: z.number().int(),
+        authPayloadIv: z.null(),
+        authPayloadTag: z.null(),
+        keyVersion: z.number().int(),
+        version: z.number(),
+    })),
+});
+
+const agentResultsResponseSchema = z.object({
+    acceptedCount: z.number(),
+    duplicateCount: z.number(),
+    failed: z.array(z.object({
+        idempotencyKey: z.string(),
+        reason: z.string(),
+    })),
+});
+
+const agentHeartbeatResponseSchema = z.object({
+    now: isoDate,
+    heartbeatIntervalSec: z.number(),
+    commands: z.array(z.string()),
+});
+
 function normalizeForSnapshot<T extends Record<string, any>>(input: T): T {
     return JSON.parse(JSON.stringify(input, (_, value) => {
         if (typeof value === 'string') {
@@ -169,6 +216,19 @@ async function createAdminToken() {
         role: admin.role,
         sessionVersion: admin.sessionVersion,
     });
+}
+
+async function createAgentToken(name: string, heartbeatIntervalSec = 20) {
+    const token = `${name}-token-${crypto.randomUUID()}`;
+    const agent = await prisma.agent.create({
+        data: {
+            name,
+            tokenHash: hashAgentToken(token),
+            heartbeatIntervalSec,
+        },
+    });
+
+    return { agent, token };
 }
 
 describe('API Contract', () => {
@@ -367,6 +427,88 @@ describe('API Contract', () => {
             monitor: monitorsBody[0],
             monitorDetail: monitorBody,
             stats: { ...statsBody, results: statsBody.results.map(r => ({ ...r, timestamp: r.timestamp.toISOString() })) },
+        })).toMatchSnapshot();
+    });
+
+    it('validates agent protocol contracts', async () => {
+        const { agent, token } = await createAgentToken('contract-agent', 17);
+
+        const assignedMonitor = await prisma.monitor.create({
+            data: {
+                name: 'Agent Contract Monitor',
+                serviceName: 'Authentication',
+                url: 'https://example.com/agent-contract',
+                type: 'HTTP',
+                method: 'POST',
+                intervalSeconds: 30,
+                timeoutSeconds: 15,
+                expectedStatus: 202,
+                expectedBody: '{"ok":true}',
+                requestBody: '{"ping":"pong"}',
+                bodyAssertionType: 'JSON_PATH_EQUALS',
+                bodyAssertionPath: 'ok',
+                headers: '{"Content-Type":"application/json"}',
+                authMethod: 'NONE',
+                authUrl: null,
+                authPayload: null,
+                authTokenRegex: null,
+                sslExpiryEnabled: true,
+                sslExpiryThresholdDays: 21,
+                agentId: agent.id,
+            },
+        });
+
+        const jobsRes = await app.inject({
+            method: 'GET',
+            url: '/api/agent/jobs',
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        expect(jobsRes.statusCode).toBe(200);
+        const jobsBody = agentJobsResponseSchema.parse(JSON.parse(jobsRes.body));
+
+        const resultsRes = await app.inject({
+            method: 'POST',
+            url: '/api/agent/results',
+            headers: { Authorization: `Bearer ${token}` },
+            payload: {
+                results: [{
+                    idempotencyKey: 'agent-contract-result-001',
+                    monitorId: assignedMonitor.id,
+                    checkedAt: '2026-03-23T08:10:00.000Z',
+                    isUp: true,
+                    responseTimeMs: 118,
+                    statusCode: 202,
+                    meta: {
+                        ssl: {
+                            expiresAt: '2026-06-10T12:00:00.000Z',
+                            daysRemaining: 89,
+                            issuer: 'Let\'s Encrypt E7',
+                            subject: 'example.com',
+                        },
+                    },
+                }],
+            },
+        });
+        expect(resultsRes.statusCode).toBe(200);
+        const resultsBody = agentResultsResponseSchema.parse(JSON.parse(resultsRes.body));
+
+        const heartbeatRes = await app.inject({
+            method: 'POST',
+            url: '/api/agent/heartbeat',
+            headers: { Authorization: `Bearer ${token}` },
+            payload: {
+                agentVersion: '1.0.0',
+                queueSize: 1,
+                inFlightChecks: 0,
+            },
+        });
+        expect(heartbeatRes.statusCode).toBe(200);
+        const heartbeatBody = agentHeartbeatResponseSchema.parse(JSON.parse(heartbeatRes.body));
+
+        expect(normalizeForSnapshot({
+            jobs: jobsBody,
+            results: resultsBody,
+            heartbeat: heartbeatBody,
         })).toMatchSnapshot();
     });
 
