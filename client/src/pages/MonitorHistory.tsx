@@ -218,6 +218,28 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             </div>
                         )}
                     </div>
+
+                    <div className="history-summary-wrap">
+                        <div className="history-summary-title">Summary</div>
+                        <div className="dashboard-summary-cards history-metric-grid">
+                            <div className="dashboard-summary-card">
+                                <span>Total checks</span>
+                                <strong>{total}</strong>
+                            </div>
+                            <div className="dashboard-summary-card">
+                                <span>Uptime</span>
+                                <strong className="history-summary-value uptime">{uptimePercent}%</strong>
+                            </div>
+                            <div className="dashboard-summary-card">
+                                <span>Avg response</span>
+                                <strong>{avgResponseTime}ms</strong>
+                            </div>
+                            <div className="dashboard-summary-card">
+                                <span>Interval</span>
+                                <strong>{monitor.intervalSeconds}s</strong>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="history-status-card">
@@ -240,52 +262,40 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                         </div>
                     </div>
                     {sslSummary && (
-                        <div className={`monitor-ssl-summary ${sslSummary.warning ? 'warning' : 'ok'}`}>
-                            <strong>SSL</strong> {sslSummary.label}
+                        <div className={`history-ssl-card ${sslSummary.warning ? 'warning' : 'ok'}`}>
+                            <div className="history-ssl-header">
+                                <div className="history-status-label">SSL</div>
+                                <strong>{sslSummary.label}</strong>
+                            </div>
+                            <div className="history-ssl-meta">
+                                {sslSummary.expiresAt && (
+                                    <div>
+                                        <span>Expires</span>
+                                        <strong>{new Date(sslSummary.expiresAt).toLocaleString()}</strong>
+                                    </div>
+                                )}
+                                {sslSummary.issuer && (
+                                    <div>
+                                        <span>Issuer</span>
+                                        <strong>{sslSummary.issuer}</strong>
+                                    </div>
+                                )}
+                                {sslSummary.subject && (
+                                    <div>
+                                        <span>Subject</span>
+                                        <strong>{sslSummary.subject}</strong>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
-            </div>
-
-            <div className="dashboard-summary-cards history-metric-grid">
-                <div className="dashboard-summary-card">
-                    <span>Total checks</span>
-                    <strong>{total}</strong>
-                </div>
-                <div className="dashboard-summary-card">
-                    <span>Uptime</span>
-                    <strong className="history-summary-value uptime">{uptimePercent}%</strong>
-                </div>
-                <div className="dashboard-summary-card">
-                    <span>Avg response</span>
-                    <strong>{avgResponseTime}ms</strong>
-                </div>
-                <div className="dashboard-summary-card">
-                    <span>Interval</span>
-                    <strong>{monitor.intervalSeconds}s</strong>
-                </div>
-                {sslSummary && (
-                    <div className="dashboard-summary-card">
-                        <span>SSL expiry</span>
-                        <strong className={sslSummary.warning ? 'history-summary-warning' : ''}>{sslSummary.label}</strong>
-                    </div>
-                )}
             </div>
 
             <div className="agents-section-card history-section-card">
                 <div className="section-header">
                     <h2>Response Time</h2>
                 </div>
-                {sslSummary && (
-                    <div className={`monitor-ssl-summary ${sslSummary.warning ? 'warning' : 'ok'}`} style={{ marginBottom: 16 }}>
-                        {sslSummary.expiresAt && (
-                            <span>Expires: <strong>{new Date(sslSummary.expiresAt).toLocaleString()}</strong></span>
-                        )}
-                        {sslSummary.expiresAt && sslSummary.issuer && <span> · </span>}
-                        {sslSummary.issuer && <span>Issuer: <strong>{sslSummary.issuer}</strong></span>}
-                        {sslSummary.subject && <span> · Subject: <strong>{sslSummary.subject}</strong></span>}
-                    </div>
-                )}
                 {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

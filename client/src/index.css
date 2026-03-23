@@ -2643,6 +2643,23 @@ tr:hover td {
   letter-spacing: -0.04em;
 }
 
+.history-summary-wrap {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px dashed #d3e2da;
+  background: linear-gradient(180deg, #fbfefd, #f6faf8);
+}
+
+.history-summary-title {
+  margin-bottom: 12px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #789082;
+  font-weight: 700;
+}
+
 .history-subtitle {
   font-size: 0.9rem;
   color: #63748a;
@@ -2700,6 +2717,64 @@ tr:hover td {
   overflow-wrap: anywhere;
 }
 
+.history-ssl-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+}
+
+.history-ssl-card.ok {
+  background: #edf8f1;
+  border-color: #d0ead9;
+}
+
+.history-ssl-card.warning {
+  background: #fff4df;
+  border-color: #f1ddb1;
+}
+
+.history-ssl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.history-ssl-header .history-status-label {
+  margin-bottom: 0;
+}
+
+.history-ssl-header strong {
+  color: #173126;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.history-ssl-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.history-ssl-meta > div {
+  display: grid;
+  gap: 2px;
+}
+
+.history-ssl-meta span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #789082;
+}
+
+.history-ssl-meta strong {
+  color: #173126;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .history-summary-warning {
   color: #a0630d;
 }
@@ -2710,6 +2785,16 @@ tr:hover td {
 
 .history-metric-grid .dashboard-summary-card strong {
   color: #102036;
+}
+
+.history-metric-grid {
+  gap: 12px;
+}
+
+.history-summary-wrap .dashboard-summary-card {
+  min-height: 92px;
+  padding: 16px;
+  border-radius: 18px;
 }
 
 .history-section-card {
@@ -2790,6 +2875,10 @@ tr:hover td {
 
   .history-hero {
     grid-template-columns: 1fr;
+  }
+
+  .history-summary-wrap .history-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .history-status-meta {
