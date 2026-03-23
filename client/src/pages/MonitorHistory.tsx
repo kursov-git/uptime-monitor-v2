@@ -19,6 +19,18 @@ interface StatsResponse {
 
 const PAGE_SIZE = 50;
 
+function summarizeCheckError(error: string | null | undefined): string {
+    if (!error) return 'Healthy response';
+
+    const normalized = error.toLowerCase();
+    if (normalized.includes('handshake failure')) return 'TLS handshake failed';
+    if (normalized.includes('protocol version')) return 'TLS protocol mismatch';
+    if (normalized.includes('certificate')) return 'Certificate validation failed';
+    if (normalized.includes('eproto')) return 'TLS connection failed';
+
+    return error;
+}
+
 export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const { isAdmin } = useAuth();
     const { id: monitorId } = useParams();
@@ -117,6 +129,9 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         )
     ) || null;
     const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
+    const latestSslFailure = latestResult?.error && /ssl|tls|certificate|eproto/i.test(latestResult.error)
+        ? latestResult.error
+        : null;
     const sslSummary = monitor.sslExpiryEnabled
         ? latestSslResult?.sslDaysRemaining !== null && latestSslResult?.sslDaysRemaining !== undefined
             ? {
@@ -127,14 +142,27 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 issuer: latestSslResult.sslIssuer,
                 subject: latestSslResult.sslSubject,
                 warning: latestSslResult.sslDaysRemaining <= sslThresholdDays,
+                note: null,
             }
-            : {
-                label: 'Pending first HTTPS check',
-                expiresAt: null,
-                issuer: null,
-                subject: null,
-                warning: false,
-            }
+            : latestSslFailure
+                ? {
+                    label: 'TLS handshake failed',
+                    expiresAt: null,
+                    issuer: null,
+                    subject: null,
+                    warning: true,
+                    note: 'Certificate details were not collected because the HTTPS handshake failed.',
+                    rawError: latestSslFailure,
+                }
+                : {
+                    label: 'Pending first HTTPS check',
+                    expiresAt: null,
+                    issuer: null,
+                    subject: null,
+                    warning: false,
+                    note: 'Certificate details will appear after the first successful HTTPS check.',
+                    rawError: null,
+                }
         : null;
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -286,6 +314,12 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                         <strong>{sslSummary.subject}</strong>
                                     </div>
                                 )}
+                                {sslSummary.note && (
+                                    <div className="history-ssl-note" title={sslSummary.rawError || sslSummary.note}>
+                                        <span>SSL status</span>
+                                        <strong>{sslSummary.note}</strong>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -364,8 +398,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                             <span className={`status-badge ${r.isUp ? 'up' : 'down'}`}>
                                                 {r.isUp ? '● UP' : '● DOWN'}
                                             </span>
-                                            <span className="history-row-status-copy">
-                                                {r.error || 'Healthy response'}
+                                            <span className="history-row-status-copy" title={r.error || 'Healthy response'}>
+                                                {summarizeCheckError(r.error)}
                                             </span>
                                         </div>
                                     </div>

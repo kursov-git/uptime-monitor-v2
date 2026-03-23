@@ -221,4 +221,91 @@ describe('MonitorHistory', () => {
         expect(screen.getAllByText('23 days left').length).toBeGreaterThan(0);
         expect(screen.queryByText('Pending first HTTPS check')).not.toBeInTheDocument();
     });
+
+    it('shows TLS handshake failure instead of pending SSL state when https checks fail before ssl metadata is collected', async () => {
+        vi.spyOn(monitorsApi, 'get')
+            .mockResolvedValueOnce({
+                data: {
+                    id: 'monitor-1',
+                    name: 'Auth BY',
+                    url: 'https://auth.example.by',
+                    method: 'GET',
+                    type: 'HTTP',
+                    serviceName: 'Auth',
+                    isPublic: false,
+                    intervalSeconds: 60,
+                    sslExpiryEnabled: true,
+                    sslExpiryThresholdDays: 14,
+                    agentName: 'cloudruvm1',
+                    isActive: true,
+                    flappingState: null,
+                    lastCheck: null,
+                },
+            } as any)
+            .mockResolvedValueOnce({
+                data: {
+                    results: [
+                        {
+                            id: 'result-1',
+                            monitorId: 'monitor-1',
+                            isUp: false,
+                            responseTimeMs: 8439,
+                            statusCode: null,
+                            error: 'write EPROTO 48A28787A57C0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure',
+                            timestamp: '2026-03-23T12:38:14.000Z',
+                            sslDaysRemaining: null,
+                            sslExpiresAt: null,
+                            sslIssuer: null,
+                            sslSubject: null,
+                        },
+                    ],
+                    total: 1,
+                    limit: 50,
+                    offset: 0,
+                    overallUptimePercent: '0.0',
+                    overallAvgResponseMs: 8439,
+                },
+            } as any)
+            .mockResolvedValueOnce({
+                data: {
+                    results: [
+                        {
+                            id: 'result-1',
+                            monitorId: 'monitor-1',
+                            isUp: false,
+                            responseTimeMs: 8439,
+                            statusCode: null,
+                            error: 'write EPROTO 48A28787A57C0000:error:0A000410:SSL routines:ssl3_read_bytes:sslv3 alert handshake failure',
+                            timestamp: '2026-03-23T12:38:14.000Z',
+                            sslDaysRemaining: null,
+                            sslExpiresAt: null,
+                            sslIssuer: null,
+                            sslSubject: null,
+                        },
+                    ],
+                    total: 1,
+                    limit: 1000,
+                    offset: 0,
+                },
+            } as any);
+
+        vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+            data: { history: [] },
+        } as any);
+
+        render(
+            <MemoryRouter initialEntries={['/monitors/monitor-1/history']}>
+                <Routes>
+                    <Route path="/monitors/:id/history" element={<MonitorHistory onBack={vi.fn()} />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getAllByText('TLS handshake failed').length).toBeGreaterThan(0);
+        });
+
+        expect(screen.queryByText('Pending first HTTPS check')).not.toBeInTheDocument();
+        expect(screen.getByText('Certificate details were not collected because the HTTPS handshake failed.')).toBeInTheDocument();
+    });
 });
