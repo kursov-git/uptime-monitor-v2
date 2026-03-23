@@ -2883,12 +2883,18 @@ tr:hover td {
 .history-ledger-detail {
   font-size: 0.83rem;
   color: #71867b;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .notification-ledger-detail {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
 }
 
 .history-row-card {
