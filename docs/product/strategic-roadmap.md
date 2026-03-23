@@ -787,6 +787,29 @@ Out of scope for the first strategic phase:
 - SDK zoo in many languages
 - large plugin platform
 
+### 7. Lightweight Runtime Observability History
+
+Goal:
+- preserve short-term internal control-plane history without introducing a full metrics platform
+
+Why:
+- live `/health/runtime` is useful for current state, but does not answer "what happened recently"
+- operators eventually benefit from seeing short history for retention churn, SSE reconnect bursts, and background-loop anomalies
+- this adds observability value without turning the product into a generic monitoring stack
+
+Strategic scope:
+- recent retention run history
+- recent worker-loop summaries
+- recent agent/browser SSE churn events
+- recent agent-offline-monitor run history
+- compact recent-events payload surfaced through internal runtime diagnostics
+
+Out of scope for the first strategic phase:
+- Prometheus or OpenTelemetry stack adoption
+- long-term time-series storage
+- dashboards and graphing suites
+- per-request API metrics across the whole product
+
 ## Next: Numbered Strategic Backlog
 
 These tasks extend the strategic roadmap beyond the current `Now` block.
@@ -865,6 +888,14 @@ Strategic note:
 - [ ] T094 Add tests for integration contracts and payload stability
 - [ ] T095 Document stable integration guarantees and non-guarantees
 
+### Epic O: Lightweight Runtime Observability History
+
+- [ ] T096 Define a compact recent-events model for internal runtime telemetry
+- [ ] T097 Add recent retention and agent-offline-monitor run history to runtime diagnostics
+- [ ] T098 Add recent worker-loop and SSE churn history to runtime diagnostics
+- [ ] T099 Add tests for recent-history bounds, reset behavior, and payload shape
+- [ ] T100 Document what runtime history is and is not intended to replace
+
 ## Strategic Sequencing Recommendation
 
 Recommended order after the current `Now` block:
@@ -907,6 +938,13 @@ Reason:
 
 Reason:
 - valuable throughout, but easiest to stabilize after the higher-level product model becomes clearer
+
+### Sequence G
+- Lightweight Runtime Observability History
+
+Reason:
+- useful once the product has more moving pieces and more than one operator occasionally needs recent internal context
+- should stay deliberately lighter than a full metrics stack and can land after the higher-value product layers above
 
 ## Competitive Filter
 
