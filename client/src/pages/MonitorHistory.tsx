@@ -31,6 +31,11 @@ function summarizeCheckError(error: string | null | undefined): string {
     return error;
 }
 
+function detailCheckError(error: string | null | undefined): string {
+    if (!error) return 'Healthy response';
+    return error;
+}
+
 export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const { isAdmin } = useAuth();
     const { id: monitorId } = useParams();
@@ -387,31 +392,36 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     </div>
                 ) : (
                     <>
-                        <div className="history-results-list">
+                        <div className="history-results-list history-ledger">
+                            <div className="history-ledger-head" aria-hidden="true">
+                                <span>Timestamp</span>
+                                <span>Status</span>
+                                <span>Response</span>
+                                <span>Code</span>
+                                <span>Result</span>
+                                <span>Detail</span>
+                            </div>
                             {results.map((r) => (
-                                <article key={r.id} className="history-row-card">
-                                    <div className="history-row-main">
-                                        <div className="history-timestamp">
-                                            {new Date(r.timestamp).toLocaleString()}
-                                        </div>
-                                        <div className="history-row-statusline">
-                                            <span className={`status-badge ${r.isUp ? 'up' : 'down'}`}>
-                                                {r.isUp ? '● UP' : '● DOWN'}
-                                            </span>
-                                            <span className="history-row-status-copy" title={r.error || 'Healthy response'}>
-                                                {summarizeCheckError(r.error)}
-                                            </span>
-                                        </div>
+                                <article key={r.id} className="history-ledger-row">
+                                    <div className="history-ledger-time">
+                                        {new Date(r.timestamp).toLocaleString()}
                                     </div>
-                                    <div className="history-row-metrics">
-                                        <div className="history-row-metric">
-                                            <span>Response</span>
-                                            <strong>{r.responseTimeMs}ms</strong>
-                                        </div>
-                                        <div className="history-row-metric">
-                                            <span>HTTP code</span>
-                                            <strong>{r.statusCode ?? '—'}</strong>
-                                        </div>
+                                    <div className="history-ledger-status">
+                                        <span className={`status-badge ${r.isUp ? 'up' : 'down'}`}>
+                                            {r.isUp ? '● UP' : '● DOWN'}
+                                        </span>
+                                    </div>
+                                    <div className="history-ledger-value">
+                                        {r.responseTimeMs}ms
+                                    </div>
+                                    <div className="history-ledger-value">
+                                        {r.statusCode ?? '—'}
+                                    </div>
+                                    <div className="history-ledger-summary" title={r.error || 'Healthy response'}>
+                                        {summarizeCheckError(r.error)}
+                                    </div>
+                                    <div className="history-ledger-detail" title={detailCheckError(r.error)}>
+                                        {detailCheckError(r.error)}
                                     </div>
                                 </article>
                             ))}

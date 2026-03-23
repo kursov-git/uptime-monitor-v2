@@ -2810,6 +2810,72 @@ tr:hover td {
   gap: 12px;
 }
 
+.history-ledger {
+  gap: 8px;
+}
+
+.history-ledger-head,
+.history-ledger-row {
+  display: grid;
+  grid-template-columns: 150px 98px 108px 76px minmax(180px, 0.72fr) minmax(0, 1.4fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.history-ledger-head {
+  padding: 0 8px 6px;
+  color: #809287;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.history-ledger-row {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #f9fcfa;
+  border: 1px solid #e2ebe5;
+}
+
+.history-ledger-time {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #506273;
+  white-space: nowrap;
+}
+
+.history-ledger-status,
+.history-ledger-value {
+  min-width: 0;
+}
+
+.history-ledger-value {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #173126;
+  white-space: nowrap;
+}
+
+.history-ledger-summary,
+.history-ledger-detail {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-ledger-summary {
+  font-size: 0.95rem;
+  font-weight: 620;
+  color: #173126;
+}
+
+.history-ledger-detail {
+  font-size: 0.83rem;
+  color: #71867b;
+}
+
 .history-row-card {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
@@ -2976,6 +3042,24 @@ tr:hover td {
 
   .history-row-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .history-ledger-head {
+    display: none;
+  }
+
+  .history-ledger-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .history-ledger-time,
+  .history-ledger-value,
+  .history-ledger-summary,
+  .history-ledger-detail {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
   }
 }
 
