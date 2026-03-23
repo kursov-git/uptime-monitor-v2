@@ -140,18 +140,20 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                     {isAdmin && (
                         <>
                             <button
-                                className={`btn btn-icon btn-sm ${monitor.isPublic ? 'btn-success' : 'btn-secondary'}`}
+                                className={`btn btn-sm monitor-state-chip ${monitor.isPublic ? 'is-on public' : 'is-off public'}`}
                                 onClick={() => onTogglePublic(monitor.id, !monitor.isPublic)}
                                 title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
                             >
-                                🌐
+                                <span className="monitor-state-chip-icon">🌐</span>
+                                <span className="monitor-state-chip-label">{monitor.isPublic ? 'Public' : 'Private'}</span>
                             </button>
                             <button
-                                className="btn btn-icon btn-sm btn-secondary"
+                                className={`btn btn-sm monitor-state-chip ${monitor.isActive ? 'is-on execution' : 'is-off execution'}`}
                                 onClick={() => onToggle(monitor.id)}
                                 title={monitor.isActive ? 'Pause' : 'Resume'}
                             >
-                                {monitor.isActive ? '⏸' : '▶️'}
+                                <span className="monitor-state-chip-icon">{monitor.isActive ? '▶' : '⏸'}</span>
+                                <span className="monitor-state-chip-label">{monitor.isActive ? 'Live' : 'Paused'}</span>
                             </button>
                             <button
                                 className="btn btn-icon btn-sm btn-secondary"

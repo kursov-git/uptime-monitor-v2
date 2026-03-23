@@ -1547,6 +1547,56 @@ body {
   box-shadow: none;
 }
 
+.monitor-control-group .monitor-state-chip {
+  min-height: 54px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+.monitor-state-chip-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.monitor-state-chip-label {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.monitor-state-chip.is-on.public {
+  background: linear-gradient(180deg, rgba(29, 155, 240, 0.14), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(29, 155, 240, 0.52);
+  color: #1d9bf0;
+  box-shadow: inset 3px 0 0 rgba(29, 155, 240, 0.72);
+}
+
+.monitor-state-chip.is-off.public {
+  background: #f6faf7;
+  border: 1px solid #d8e2db;
+  color: #94a39a;
+}
+
+.monitor-state-chip.is-on.execution {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.14), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(34, 197, 94, 0.46);
+  color: #15803d;
+  box-shadow: inset 3px 0 0 rgba(34, 197, 94, 0.72);
+}
+
+.monitor-state-chip.is-off.execution {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.14), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(245, 158, 11, 0.46);
+  color: #b45309;
+  box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.68);
+}
+
 .monitor-control-group .btn-danger {
   background: #fff6f5;
   border: 1px solid #f0d5d1;
