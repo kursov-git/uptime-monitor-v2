@@ -7,6 +7,34 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-03-20
 
+## 2026-03-23
+
+### Runtime telemetry pass
+
+Host:
+- `onedashmsk`
+
+Changes:
+- extended internal `/health/runtime` with lightweight operational telemetry instead of introducing a separate metrics stack
+- added in-memory browser SSE and agent SSE counters:
+  - current clients
+  - accepted/rejected/disconnected totals
+  - failed writes
+  - recent heartbeat/broadcast or publish timestamps
+- added recent execution metadata for background roles:
+  - worker latest refresh/check status
+  - retention latest run/deleted-count status
+  - agent-offline monitor latest run/offline-marking status
+- documented the new runtime-health payload as part of normal diagnostics
+
+Operational result:
+- the operator can now inspect control-plane activity from `/health/runtime` instead of relying only on logs
+- the split-runtime control plane remains lean while exposing enough context to investigate reconnect churn or stale background loops
+
+Verification:
+- `server` contract tests passed with updated `/health/runtime` shape
+- `server build` passed
+
 ### Design System v1 rollout close-out
 
 Host:

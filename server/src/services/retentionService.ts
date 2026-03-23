@@ -6,6 +6,13 @@ const retentionLogger = logger.child({ component: 'retention-service' });
 export class RetentionService {
     private prisma: PrismaClient;
     private interval: NodeJS.Timeout | null = null;
+    private lastRunAt: string | null = null;
+    private lastDurationMs: number | null = null;
+    private lastRetentionDays: number | null = null;
+    private lastDeletedCheckResults = 0;
+    private lastDeletedAuditLogs = 0;
+    private lastDeletedNotificationHistory = 0;
+    private lastError: string | null = null;
 
     constructor(prisma: PrismaClient) {
         this.prisma = prisma;
@@ -29,14 +36,23 @@ export class RetentionService {
     getStatus() {
         return {
             running: this.interval !== null,
+            lastRunAt: this.lastRunAt,
+            lastDurationMs: this.lastDurationMs,
+            lastRetentionDays: this.lastRetentionDays,
+            lastDeletedCheckResults: this.lastDeletedCheckResults,
+            lastDeletedAuditLogs: this.lastDeletedAuditLogs,
+            lastDeletedNotificationHistory: this.lastDeletedNotificationHistory,
+            lastError: this.lastError,
         };
     }
 
     private async cleanup() {
+        const startedAt = Date.now();
         try {
             // Get retention days from settings
             const settings = await this.prisma.notificationSettings.findFirst();
             const retentionDays = settings?.retentionDays || 30;
+            this.lastRetentionDays = retentionDays;
 
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
@@ -50,6 +66,7 @@ export class RetentionService {
             if (result.count > 0) {
                 retentionLogger.info({ deletedCount: result.count, retentionDays }, 'Deleted old check results');
             }
+            this.lastDeletedCheckResults = result.count;
 
             // Clean old audit logs (same retention period)
             const auditResult = await this.prisma.auditLog.deleteMany({
@@ -61,6 +78,7 @@ export class RetentionService {
             if (auditResult.count > 0) {
                 retentionLogger.info({ deletedCount: auditResult.count, retentionDays }, 'Deleted old audit logs');
             }
+            this.lastDeletedAuditLogs = auditResult.count;
 
             // Clean old notification history (same retention period)
             const notifResult = await this.prisma.notificationHistory.deleteMany({
@@ -72,8 +90,15 @@ export class RetentionService {
             if (notifResult.count > 0) {
                 retentionLogger.info({ deletedCount: notifResult.count, retentionDays }, 'Deleted old notification history');
             }
+            this.lastDeletedNotificationHistory = notifResult.count;
+            this.lastRunAt = new Date().toISOString();
+            this.lastDurationMs = Date.now() - startedAt;
+            this.lastError = null;
 
         } catch (err) {
+            this.lastRunAt = new Date().toISOString();
+            this.lastDurationMs = Date.now() - startedAt;
+            this.lastError = err instanceof Error ? err.message : String(err);
             retentionLogger.error({ err }, 'Retention cleanup error');
         }
     }

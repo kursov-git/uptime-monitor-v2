@@ -327,6 +327,12 @@ Returns:
 - active server role
 - runtime feature flags
 - status of worker, retention, and agent-offline-monitor services inside the current process
+- lightweight runtime telemetry for:
+  - browser SSE connections
+  - agent SSE connections
+  - recent worker scheduling/check activity
+  - recent retention cleanup activity
+  - recent agent-offline monitor activity
 
 In split runtime mode, the API process reports background roles as not running in that process. That is expected.
 External role health should be checked with compose or systemd status.

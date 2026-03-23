@@ -13,6 +13,10 @@ export class AgentOfflineMonitorService {
     private timer: NodeJS.Timeout | null = null;
     private telegramNotifier = new TelegramNotifier();
     private zulipNotifier = new ZulipNotifier();
+    private lastRunAt: string | null = null;
+    private lastDurationMs: number | null = null;
+    private lastMarkedOfflineCount = 0;
+    private lastError: string | null = null;
 
     start(intervalMs = DEFAULT_INTERVAL_MS) {
         if (this.timer) return;
@@ -32,44 +36,66 @@ export class AgentOfflineMonitorService {
     getStatus() {
         return {
             running: this.timer !== null,
+            lastRunAt: this.lastRunAt,
+            lastDurationMs: this.lastDurationMs,
+            lastMarkedOfflineCount: this.lastMarkedOfflineCount,
+            lastError: this.lastError,
         };
     }
 
     async tick(now = new Date()): Promise<number> {
-        const agents = await prisma.agent.findMany({
-            where: {
-                status: 'ONLINE',
-                revokedAt: null,
-            },
-            select: {
-                id: true,
-                name: true,
-                lastSeen: true,
-                offlineAfterSec: true,
-                _count: {
-                    select: {
-                        monitors: true,
+        const startedAt = Date.now();
+        try {
+            const agents = await prisma.agent.findMany({
+                where: {
+                    status: 'ONLINE',
+                    revokedAt: null,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    lastSeen: true,
+                    offlineAfterSec: true,
+                    _count: {
+                        select: {
+                            monitors: true,
+                        },
                     },
                 },
-            },
-        });
+            });
 
-        const toOffline = agents.filter(
-            (agent) => now.getTime() - agent.lastSeen.getTime() > agent.offlineAfterSec * 1000
-        );
+            const toOffline = agents.filter(
+                (agent) => now.getTime() - agent.lastSeen.getTime() > agent.offlineAfterSec * 1000
+            );
 
-        if (toOffline.length === 0) return 0;
+            if (toOffline.length === 0) {
+                this.lastRunAt = new Date().toISOString();
+                this.lastDurationMs = Date.now() - startedAt;
+                this.lastMarkedOfflineCount = 0;
+                this.lastError = null;
+                return 0;
+            }
 
-        const res = await prisma.agent.updateMany({
-            where: { id: { in: toOffline.map((agent) => agent.id) } },
-            data: { status: 'OFFLINE' },
-        });
-        if (res.count > 0) {
-            await logAction('AGENT_OFFLINE', null, { agentIds: toOffline.map((agent) => agent.id) });
-            await this.sendOfflineNotifications(toOffline);
+            const res = await prisma.agent.updateMany({
+                where: { id: { in: toOffline.map((agent) => agent.id) } },
+                data: { status: 'OFFLINE' },
+            });
+            if (res.count > 0) {
+                await logAction('AGENT_OFFLINE', null, { agentIds: toOffline.map((agent) => agent.id) });
+                await this.sendOfflineNotifications(toOffline);
+            }
+
+            this.lastRunAt = new Date().toISOString();
+            this.lastDurationMs = Date.now() - startedAt;
+            this.lastMarkedOfflineCount = res.count;
+            this.lastError = null;
+            return res.count;
+        } catch (err) {
+            this.lastRunAt = new Date().toISOString();
+            this.lastDurationMs = Date.now() - startedAt;
+            this.lastError = err instanceof Error ? err.message : String(err);
+            throw err;
         }
-
-        return res.count;
     }
 
     private async sendOfflineNotifications(

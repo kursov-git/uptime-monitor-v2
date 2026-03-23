@@ -56,6 +56,11 @@ docker compose -f docker-compose.split.yml exec -T server \
 Interpretation:
 - `serverRole` shows the active role of the API container
 - background service states in `/health/runtime` are per-process
+- `/health/runtime` now also includes lightweight in-memory telemetry:
+  - browser SSE and agent SSE connection counters
+  - latest worker refresh/check metadata
+  - latest retention cleanup metadata
+  - latest agent-offline monitor metadata
 - in split runtime mode, the API process will correctly report worker/retention/offline-monitor as not running in that process
 - use compose status to verify those dedicated services separately
 

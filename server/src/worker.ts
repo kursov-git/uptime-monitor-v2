@@ -14,6 +14,13 @@ export class CheckWorker {
     private syncInterval: NodeJS.Timeout | null = null;
     private flappingService: FlappingService;
     private running = false;
+    private lastRefreshAt: string | null = null;
+    private lastRefreshDurationMs: number | null = null;
+    private lastRefreshError: string | null = null;
+    private lastCheckCompletedAt: string | null = null;
+    private lastCheckMonitorId: string | null = null;
+    private lastCheckMonitorName: string | null = null;
+    private lastCheckError: string | null = null;
 
     constructor(prisma: PrismaClient) {
         this.prisma = prisma;
@@ -60,6 +67,13 @@ export class CheckWorker {
             running: this.running,
             scheduledMonitors: this.timers.size,
             syncLoopActive: this.syncInterval !== null,
+            lastRefreshAt: this.lastRefreshAt,
+            lastRefreshDurationMs: this.lastRefreshDurationMs,
+            lastRefreshError: this.lastRefreshError,
+            lastCheckCompletedAt: this.lastCheckCompletedAt,
+            lastCheckMonitorId: this.lastCheckMonitorId,
+            lastCheckMonitorName: this.lastCheckMonitorName,
+            lastCheckError: this.lastCheckError,
         };
     }
 
@@ -95,6 +109,7 @@ export class CheckWorker {
     private async refreshSchedule() {
         if (!this.running) return;
 
+        const startedAt = Date.now();
         try {
             const activeMonitors = await this.prisma.monitor.findMany({
                 where: { isActive: true, agentId: null },
@@ -116,7 +131,13 @@ export class CheckWorker {
                     this.scheduleMonitor(monitor);
                 }
             }
+            this.lastRefreshAt = new Date().toISOString();
+            this.lastRefreshDurationMs = Date.now() - startedAt;
+            this.lastRefreshError = null;
         } catch (err) {
+            this.lastRefreshAt = new Date().toISOString();
+            this.lastRefreshDurationMs = Date.now() - startedAt;
+            this.lastRefreshError = err instanceof Error ? err.message : String(err);
             workerLogger.error({ err }, 'Error refreshing worker schedule');
         }
     }
@@ -186,7 +207,16 @@ export class CheckWorker {
                 sseService.broadcast('monitor_update', updatedMonitor);
             }
 
+            this.lastCheckCompletedAt = new Date().toISOString();
+            this.lastCheckMonitorId = monitor.id;
+            this.lastCheckMonitorName = monitor.name;
+            this.lastCheckError = result.error ?? null;
+
         } catch (err) {
+            this.lastCheckCompletedAt = new Date().toISOString();
+            this.lastCheckMonitorId = monitor.id;
+            this.lastCheckMonitorName = monitor.name;
+            this.lastCheckError = err instanceof Error ? err.message : String(err);
             workerLogger.error({ err, monitorId: monitor.id, monitorName: monitor.name }, 'Error saving check result');
         }
     }

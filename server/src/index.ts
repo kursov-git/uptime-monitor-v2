@@ -22,6 +22,8 @@ import { createFastifyLoggerOptions, logger } from './lib/logger';
 import { serverEnv } from './lib/env';
 import { backfillLegacyApiKeys } from './services/apiKeys';
 import { SESSION_JWT_EXPIRES_IN } from './lib/auth';
+import { sseService } from './services/sse';
+import { agentSseService } from './services/agentSse';
 
 const env = serverEnv;
 
@@ -72,6 +74,10 @@ fastify.get('/health/runtime', async () => {
             worker: worker.getStatus(),
             retention: retentionService.getStatus(),
             agentOfflineMonitor: agentOfflineMonitorService.getStatus(),
+        },
+        streams: {
+            browserSse: sseService.getStatus(),
+            agentSse: agentSseService.getStatus(),
         },
     };
 });

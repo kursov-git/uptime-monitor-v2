@@ -84,7 +84,7 @@ Rules:
 - move completed plans to `completed/` or delete them once absorbed into durable docs
 
 Current active plans:
-- none at the moment
+- `docs/plans/active/runtime-telemetry-and-compatibility.md`
 
 Current completed plans:
 - `docs/plans/completed/design-system-v1.md`

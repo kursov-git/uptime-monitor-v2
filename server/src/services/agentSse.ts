@@ -21,6 +21,12 @@ class AgentSSEService {
     private heartbeatTimer: NodeJS.Timeout | null = null;
     private events: AgentEvent[] = [];
     private cursor = 0;
+    private totalAccepted = 0;
+    private totalRejected = 0;
+    private totalDisconnected = 0;
+    private failedWrites = 0;
+    private lastHeartbeatAt: string | null = null;
+    private lastPublishedAt: string | null = null;
 
     constructor() {
         this.startHeartbeat();
@@ -28,13 +34,17 @@ class AgentSSEService {
 
     addClient(client: FastifyReply, agentId: string): boolean {
         if (this.clients.size >= MAX_SSE_CLIENTS) {
+            this.totalRejected += 1;
             return false;
         }
 
         const wrapper: AgentClient = { reply: client, agentId };
         this.clients.add(wrapper);
+        this.totalAccepted += 1;
         client.raw.on('close', () => {
-            this.clients.delete(wrapper);
+            if (this.clients.delete(wrapper)) {
+                this.totalDisconnected += 1;
+            }
         });
 
         return true;
@@ -43,7 +53,9 @@ class AgentSSEService {
     removeClient(reply: FastifyReply) {
         for (const c of this.clients) {
             if (c.reply === reply) {
-                this.clients.delete(c);
+                if (this.clients.delete(c)) {
+                    this.totalDisconnected += 1;
+                }
                 break;
             }
         }
@@ -57,6 +69,7 @@ class AgentSSEService {
             data,
             createdAt: Date.now(),
         };
+        this.lastPublishedAt = new Date(payload.createdAt).toISOString();
 
         this.events.push(payload);
         if (this.events.length > MAX_EVENT_LOG) {
@@ -103,17 +116,22 @@ class AgentSSEService {
         try {
             reply.raw.write(`id: ${evt.id}\nevent: ${evt.event}\ndata: ${JSON.stringify(evt.data)}\n\n`);
         } catch {
+            this.failedWrites += 1;
             this.removeClient(reply);
         }
     }
 
     private startHeartbeat() {
         this.heartbeatTimer = setInterval(() => {
+            this.lastHeartbeatAt = new Date().toISOString();
             for (const client of this.clients) {
                 try {
                     client.reply.raw.write(':heartbeat\n\n');
                 } catch {
-                    this.clients.delete(client);
+                    this.failedWrites += 1;
+                    if (this.clients.delete(client)) {
+                        this.totalDisconnected += 1;
+                    }
                 }
             }
         }, HEARTBEAT_INTERVAL_MS);
@@ -124,6 +142,21 @@ class AgentSSEService {
             clearInterval(this.heartbeatTimer);
             this.heartbeatTimer = null;
         }
+    }
+
+    getStatus() {
+        return {
+            currentClients: this.clients.size,
+            maxClients: MAX_SSE_CLIENTS,
+            totalAccepted: this.totalAccepted,
+            totalRejected: this.totalRejected,
+            totalDisconnected: this.totalDisconnected,
+            failedWrites: this.failedWrites,
+            eventLogSize: this.events.length,
+            lastEventId: this.cursor,
+            lastHeartbeatAt: this.lastHeartbeatAt,
+            lastPublishedAt: this.lastPublishedAt,
+        };
     }
 }
 
