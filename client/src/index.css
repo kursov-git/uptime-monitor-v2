@@ -2814,12 +2814,21 @@ tr:hover td {
   gap: 8px;
 }
 
+.notification-ledger {
+  gap: 8px;
+}
+
 .history-ledger-head,
 .history-ledger-row {
   display: grid;
   grid-template-columns: 150px 98px 108px 76px minmax(180px, 0.72fr) minmax(0, 1.4fr);
   gap: 14px;
   align-items: center;
+}
+
+.notification-ledger-head,
+.notification-ledger-row {
+  grid-template-columns: 150px 108px 118px minmax(0, 1fr);
 }
 
 .history-ledger-head {
@@ -2874,6 +2883,12 @@ tr:hover td {
 .history-ledger-detail {
   font-size: 0.83rem;
   color: #71867b;
+}
+
+.notification-ledger-detail {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .history-row-card {
@@ -3051,6 +3066,10 @@ tr:hover td {
   .history-ledger-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .notification-ledger-row {
+    grid-template-columns: 1fr;
   }
 
   .history-ledger-time,

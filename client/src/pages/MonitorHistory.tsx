@@ -468,27 +468,30 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             <p>No notifications sent recently</p>
                         </div>
                     ) : (
-                        <div className="history-results-list">
+                        <div className="history-results-list history-ledger notification-ledger">
+                            <div className="history-ledger-head notification-ledger-head" aria-hidden="true">
+                                <span>Timestamp</span>
+                                <span>Channel</span>
+                                <span>Status</span>
+                                <span>Delivery</span>
+                            </div>
                             {recentNotifications.map((n) => (
-                                <article key={n.id} className="history-row-card notification">
-                                    <div className="history-row-main">
-                                        <div className="history-timestamp">
-                                            {new Date(n.timestamp).toLocaleString()}
-                                        </div>
-                                        <div className="history-row-statusline">
-                                            <span className={`history-channel-badge ${n.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
-                                                {n.channel}
-                                            </span>
-                                            <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
-                                                {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
-                                            </span>
-                                        </div>
+                                <article key={n.id} className="history-ledger-row notification-ledger-row">
+                                    <div className="history-ledger-time">
+                                        {new Date(n.timestamp).toLocaleString()}
                                     </div>
-                                    <div className="history-row-metrics notification">
-                                        <div className="history-row-metric wide">
-                                            <span>Delivery</span>
-                                            <strong>{n.error || 'Delivered successfully'}</strong>
-                                        </div>
+                                    <div className="history-ledger-status">
+                                        <span className={`history-channel-badge ${n.channel === 'TELEGRAM' ? 'telegram' : 'zulip'}`}>
+                                            {n.channel}
+                                        </span>
+                                    </div>
+                                    <div className="history-ledger-status">
+                                        <span className={`status-badge ${n.status === 'SUCCESS' ? 'up' : 'down'}`}>
+                                            {n.status === 'SUCCESS' ? '✓ SUCCESS' : '✕ FAILED'}
+                                        </span>
+                                    </div>
+                                    <div className="history-ledger-detail notification-ledger-detail" title={n.error || 'Delivered successfully'}>
+                                        {n.error || 'Delivered successfully'}
                                     </div>
                                 </article>
                             ))}
