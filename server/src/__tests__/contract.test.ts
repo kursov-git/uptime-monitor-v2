@@ -286,6 +286,14 @@ describe('API Contract', () => {
         expect(monitorsRes.statusCode).toBe(200);
         const monitorsBody = z.array(monitorSchema).parse(JSON.parse(monitorsRes.body));
 
+        const monitorRes = await app.inject({
+            method: 'GET',
+            url: `/api/monitors/${monitor.id}`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        expect(monitorRes.statusCode).toBe(200);
+        const monitorBody = monitorSchema.parse(JSON.parse(monitorRes.body));
+
         const statsRes = await app.inject({
             method: 'GET',
             url: `/api/monitors/${monitor.id}/stats?limit=10&offset=0`,
@@ -315,6 +323,7 @@ describe('API Contract', () => {
 
         expect(normalizeForSnapshot({
             monitor: monitorsBody[0],
+            monitorDetail: monitorBody,
             stats: { ...statsBody, results: statsBody.results.map(r => ({ ...r, timestamp: r.timestamp.toISOString() })) },
         })).toMatchSnapshot();
     });

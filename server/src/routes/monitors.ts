@@ -221,6 +221,8 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 ...monitor,
                 agentName: monitor.agent?.name || null,
                 requestBody: monitor.requestBody ?? null,
+                lastCheck: monitor.checkResults[0] || null,
+                checkResults: undefined,
                 flappingState: state ? {
                     isFlapping,
                     consecutiveFailures: state.consecutiveFailures,

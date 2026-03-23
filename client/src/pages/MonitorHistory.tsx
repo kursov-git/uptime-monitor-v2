@@ -107,17 +107,26 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
+    const latestResult = results[0] || chartResults[0] || monitor.lastCheck || null;
+    const latestSslResult = [results[0], chartResults[0], monitor.lastCheck].find((result) =>
+        result && (
+            result.sslDaysRemaining !== null && result.sslDaysRemaining !== undefined
+            || result.sslExpiresAt
+            || result.sslIssuer
+            || result.sslSubject
+        )
+    ) || null;
     const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
     const sslSummary = monitor.sslExpiryEnabled
-        ? monitor.lastCheck?.sslDaysRemaining !== null && monitor.lastCheck?.sslDaysRemaining !== undefined
+        ? latestSslResult?.sslDaysRemaining !== null && latestSslResult?.sslDaysRemaining !== undefined
             ? {
-                label: monitor.lastCheck.sslDaysRemaining <= 0
+                label: latestSslResult.sslDaysRemaining <= 0
                     ? 'Expired'
-                    : `${monitor.lastCheck.sslDaysRemaining} day${monitor.lastCheck.sslDaysRemaining === 1 ? '' : 's'} left`,
-                expiresAt: monitor.lastCheck.sslExpiresAt,
-                issuer: monitor.lastCheck.sslIssuer,
-                subject: monitor.lastCheck.sslSubject,
-                warning: monitor.lastCheck.sslDaysRemaining <= sslThresholdDays,
+                    : `${latestSslResult.sslDaysRemaining} day${latestSslResult.sslDaysRemaining === 1 ? '' : 's'} left`,
+                expiresAt: latestSslResult.sslExpiresAt,
+                issuer: latestSslResult.sslIssuer,
+                subject: latestSslResult.sslSubject,
+                warning: latestSslResult.sslDaysRemaining <= sslThresholdDays,
             }
             : {
                 label: 'Pending first HTTPS check',
@@ -134,8 +143,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         ? 'paused'
         : monitor.flappingState?.isFlapping
             ? 'flapping'
-            : monitor.lastCheck
-                ? (monitor.lastCheck.isUp ? 'up' : 'down')
+            : latestResult
+                ? (latestResult.isUp ? 'up' : 'down')
                 : 'unknown';
     const latestStatusLabel: Record<string, string> = {
         up: '● Up',
@@ -149,8 +158,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         : monitor.type === 'TCP'
             ? 'TCP'
             : monitor.method;
-    const latestCheckedAt = monitor.lastCheck
-        ? new Date(monitor.lastCheck.timestamp).toLocaleString()
+    const latestCheckedAt = latestResult
+        ? new Date(latestResult.timestamp).toLocaleString()
         : 'No checks yet';
 
     const CustomTooltip = ({ active, payload }: any) => {
@@ -223,11 +232,11 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                         </div>
                         <div>
                             <span>Response</span>
-                            <strong>{monitor.lastCheck ? `${monitor.lastCheck.responseTimeMs}ms` : '—'}</strong>
+                            <strong>{latestResult ? `${latestResult.responseTimeMs}ms` : '—'}</strong>
                         </div>
                         <div>
                             <span>HTTP code</span>
-                            <strong>{monitor.lastCheck?.statusCode ?? '—'}</strong>
+                            <strong>{latestResult?.statusCode ?? '—'}</strong>
                         </div>
                     </div>
                     {sslSummary && (

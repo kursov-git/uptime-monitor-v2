@@ -55,11 +55,16 @@ describe('MonitorHistory', () => {
                     results: [
                         {
                             id: 'result-1',
+                            monitorId: 'monitor-1',
                             isUp: true,
                             responseTimeMs: 184,
                             statusCode: 200,
                             error: null,
                             timestamp: '2026-03-20T11:40:00.000Z',
+                            sslDaysRemaining: 23,
+                            sslExpiresAt: '2026-04-12T00:00:00.000Z',
+                            sslIssuer: 'Example CA',
+                            sslSubject: 'auth.example.com',
                         },
                     ],
                     total: 1,
@@ -74,11 +79,16 @@ describe('MonitorHistory', () => {
                     results: [
                         {
                             id: 'result-1',
+                            monitorId: 'monitor-1',
                             isUp: true,
                             responseTimeMs: 184,
                             statusCode: 200,
                             error: null,
                             timestamp: '2026-03-20T11:40:00.000Z',
+                            sslDaysRemaining: 23,
+                            sslExpiresAt: '2026-04-12T00:00:00.000Z',
+                            sslIssuer: 'Example CA',
+                            sslSubject: 'auth.example.com',
                         },
                     ],
                     total: 1,
@@ -121,5 +131,94 @@ describe('MonitorHistory', () => {
         expect(screen.getByText('Recent Notifications')).toBeInTheDocument();
         expect(screen.getByText('Authentication')).toBeInTheDocument();
         expect(screen.getAllByText('23 days left').length).toBeGreaterThan(0);
+    });
+
+    it('uses latest fetched stats when monitor detail lastCheck is missing', async () => {
+        vi.spyOn(monitorsApi, 'get')
+            .mockResolvedValueOnce({
+                data: {
+                    id: 'monitor-1',
+                    name: 'Auth API',
+                    url: 'https://auth.example.com/health',
+                    method: 'GET',
+                    type: 'HTTP',
+                    serviceName: 'Authentication',
+                    isPublic: true,
+                    intervalSeconds: 60,
+                    sslExpiryEnabled: true,
+                    sslExpiryThresholdDays: 14,
+                    agentName: 'cloudruvm1',
+                    isActive: true,
+                    flappingState: null,
+                    lastCheck: null,
+                },
+            } as any)
+            .mockResolvedValueOnce({
+                data: {
+                    results: [
+                        {
+                            id: 'result-1',
+                            monitorId: 'monitor-1',
+                            isUp: true,
+                            responseTimeMs: 184,
+                            statusCode: 200,
+                            error: null,
+                            timestamp: '2026-03-20T11:40:00.000Z',
+                            sslDaysRemaining: 23,
+                            sslExpiresAt: '2026-04-12T00:00:00.000Z',
+                            sslIssuer: 'Example CA',
+                            sslSubject: 'auth.example.com',
+                        },
+                    ],
+                    total: 1,
+                    limit: 50,
+                    offset: 0,
+                    overallUptimePercent: '99.95',
+                    overallAvgResponseMs: 184,
+                },
+            } as any)
+            .mockResolvedValueOnce({
+                data: {
+                    results: [
+                        {
+                            id: 'result-1',
+                            monitorId: 'monitor-1',
+                            isUp: true,
+                            responseTimeMs: 184,
+                            statusCode: 200,
+                            error: null,
+                            timestamp: '2026-03-20T11:40:00.000Z',
+                            sslDaysRemaining: 23,
+                            sslExpiresAt: '2026-04-12T00:00:00.000Z',
+                            sslIssuer: 'Example CA',
+                            sslSubject: 'auth.example.com',
+                        },
+                    ],
+                    total: 1,
+                    limit: 1000,
+                    offset: 0,
+                },
+            } as any);
+
+        vi.spyOn(apiClient, 'get').mockResolvedValueOnce({
+            data: { history: [] },
+        } as any);
+
+        render(
+            <MemoryRouter initialEntries={['/monitors/monitor-1/history']}>
+                <Routes>
+                    <Route path="/monitors/:id/history" element={<MonitorHistory onBack={vi.fn()} />} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Current status')).toBeInTheDocument();
+        });
+
+        expect(screen.getByText('● Up')).toBeInTheDocument();
+        expect(screen.getAllByText('184ms').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('23 days left').length).toBeGreaterThan(0);
+        expect(screen.queryByText('Pending first HTTPS check')).not.toBeInTheDocument();
     });
 });
