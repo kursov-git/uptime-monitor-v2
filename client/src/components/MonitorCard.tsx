@@ -145,7 +145,6 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
                             >
                                 <span className="monitor-state-chip-icon">🌐</span>
-                                <span className="monitor-state-chip-label">{monitor.isPublic ? 'Public' : 'Private'}</span>
                             </button>
                             <button
                                 className={`btn btn-sm monitor-state-chip ${monitor.isActive ? 'is-on execution' : 'is-off execution'}`}
@@ -153,7 +152,6 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 title={monitor.isActive ? 'Pause' : 'Resume'}
                             >
                                 <span className="monitor-state-chip-icon">{monitor.isActive ? '▶' : '⏸'}</span>
-                                <span className="monitor-state-chip-label">{monitor.isActive ? 'Live' : 'Paused'}</span>
                             </button>
                             <button
                                 className="btn btn-icon btn-sm btn-secondary"
