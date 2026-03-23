@@ -275,6 +275,15 @@ Behavior:
 - supports `Last-Event-ID`
 - can request `RESYNC_JOBS`
 - used for near-real-time job updates
+- edge proxying is intentionally SSE-specific:
+  - `proxy_buffering off`
+  - `proxy_cache off`
+  - longer read/send timeouts
+  - `X-Accel-Buffering: no`
+- route handlers emit `Cache-Control: no-cache, no-transform` and
+  `X-Accel-Buffering: no`
+- agent reconnect uses bounded backoff with jitter instead of a fixed tight
+  reconnect loop
 
 ### Compatibility rule
 - formal protocol negotiation is not currently implemented beyond `agentVersion`
@@ -339,12 +348,18 @@ Returns:
   - browser SSE connections
   - agent SSE connections
   - recent worker scheduling/check activity
-- recent retention cleanup activity
+  - recent retention cleanup activity
   - recent agent-offline monitor activity
 
 Retention telemetry now also includes:
 - batch count for the latest cleanup run
 - bounded SQLite lock retry count for the latest cleanup run
+
+SSE telemetry now also includes:
+- latest accept/reject/disconnect timestamps
+- agent replay request counts
+- agent replayed event counts
+- agent stale replay counts
 
 In split runtime mode, the API process reports background roles as not running in that process. That is expected.
 External role health should be checked with compose or systemd status.

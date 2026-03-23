@@ -26,4 +26,16 @@ describe('edge config', () => {
         expect(healthSection).toContain('include /etc/nginx/snippets/runtime-health-allowlist.conf;');
         expect(runtimeSection).toContain('include /etc/nginx/snippets/runtime-health-allowlist.conf;');
     });
+
+    it.each(nginxTemplates)('hardens SSE proxying in %s', (templatePath) => {
+        const template = fs.readFileSync(templatePath, 'utf8');
+
+        expect(template).toContain('location = /api/agent/stream {');
+        expect(template).toContain('location = /api/monitors/stream {');
+        expect(template).toContain('proxy_buffering off;');
+        expect(template).toContain('proxy_cache off;');
+        expect(template).toContain('proxy_read_timeout 1h;');
+        expect(template).toContain('proxy_send_timeout 1h;');
+        expect(template).toContain('add_header X-Accel-Buffering "no" always;');
+    });
 });

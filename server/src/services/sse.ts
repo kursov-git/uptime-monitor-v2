@@ -10,6 +10,9 @@ class SSEService {
     private totalRejected = 0;
     private totalDisconnected = 0;
     private failedWrites = 0;
+    private lastAcceptedAt: string | null = null;
+    private lastRejectedAt: string | null = null;
+    private lastDisconnectedAt: string | null = null;
     private lastHeartbeatAt: string | null = null;
     private lastBroadcastAt: string | null = null;
 
@@ -20,15 +23,18 @@ class SSEService {
     addClient(client: FastifyReply): boolean {
         if (this.clients.size >= MAX_SSE_CLIENTS) {
             this.totalRejected += 1;
+            this.lastRejectedAt = new Date().toISOString();
             return false;
         }
 
         this.clients.add(client);
         this.totalAccepted += 1;
+        this.lastAcceptedAt = new Date().toISOString();
 
         client.raw.on('close', () => {
             if (this.clients.delete(client)) {
                 this.totalDisconnected += 1;
+                this.lastDisconnectedAt = new Date().toISOString();
             }
         });
 
@@ -45,6 +51,7 @@ class SSEService {
                 this.failedWrites += 1;
                 if (this.clients.delete(client)) {
                     this.totalDisconnected += 1;
+                    this.lastDisconnectedAt = new Date().toISOString();
                 }
             }
         }
@@ -60,6 +67,7 @@ class SSEService {
                     this.failedWrites += 1;
                     if (this.clients.delete(client)) {
                         this.totalDisconnected += 1;
+                        this.lastDisconnectedAt = new Date().toISOString();
                     }
                 }
             }
@@ -85,6 +93,9 @@ class SSEService {
             totalRejected: this.totalRejected,
             totalDisconnected: this.totalDisconnected,
             failedWrites: this.failedWrites,
+            lastAcceptedAt: this.lastAcceptedAt,
+            lastRejectedAt: this.lastRejectedAt,
+            lastDisconnectedAt: this.lastDisconnectedAt,
             lastHeartbeatAt: this.lastHeartbeatAt,
             lastBroadcastAt: this.lastBroadcastAt,
         };

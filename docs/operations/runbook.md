@@ -58,6 +58,7 @@ Interpretation:
 - background service states in `/health/runtime` are per-process
 - `/health/runtime` now also includes lightweight in-memory telemetry:
   - browser SSE and agent SSE connection counters
+  - agent replay and stale-replay counters
   - latest worker refresh/check metadata
   - latest retention cleanup metadata, including batch count and SQLite lock retries
   - latest agent-offline monitor metadata
@@ -72,6 +73,13 @@ SQLite note:
   - `foreign_keys=ON`
 - retention cleanup now runs in smaller batches with bounded retry on temporary
   `SQLITE_BUSY` lock collisions
+- SSE paths are proxied separately from ordinary `/api/` traffic with:
+  - `proxy_buffering off`
+  - `proxy_cache off`
+  - longer read/send timeouts
+  - `X-Accel-Buffering: no`
+- if `agentSse.staleReplayRequests` starts climbing, treat it as reconnect-churn
+  evidence and inspect recent agent/network logs
 
 ### Compose health snapshot
 

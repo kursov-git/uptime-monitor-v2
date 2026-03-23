@@ -54,6 +54,8 @@ const AGENT_BUFFER_MAX = agentEnv.bufferMax;
 const AGENT_RESULT_MAX_BATCH = agentEnv.resultMaxBatch;
 const AGENT_MAX_CONCURRENCY = agentEnv.maxConcurrency;
 const ALLOW_PRIVATE_MONITOR_TARGETS = agentEnv.allowPrivateMonitorTargets;
+const SSE_RECONNECT_BASE_DELAY_MS = 2_000;
+const SSE_RECONNECT_MAX_DELAY_MS = 30_000;
 
 class AgentRuntime {
     private jobs = new Map<string, AgentJob>();
@@ -66,6 +68,7 @@ class AgentRuntime {
     private heartbeatIntervalSec = 30;
     private heartbeatTimer: NodeJS.Timeout | null = null;
     private lastEventId = 0;
+    private sseReconnectAttempts = 0;
 
     async start() {
         await this.bootstrapJobs();
@@ -269,11 +272,26 @@ class AgentRuntime {
         while (!this.stopped) {
             try {
                 await this.consumeSse();
+                this.sseReconnectAttempts = 0;
             } catch (err) {
-                console.warn('SSE connection lost, reconnecting...', err instanceof Error ? err.message : err);
-                await sleep(2000);
+                this.sseReconnectAttempts += 1;
+                const delayMs = this.getSseReconnectDelayMs(this.sseReconnectAttempts);
+                console.warn(
+                    `SSE connection lost, reconnecting in ${delayMs}ms (attempt=${this.sseReconnectAttempts})...`,
+                    err instanceof Error ? err.message : err
+                );
+                await sleep(delayMs);
             }
         }
+    }
+
+    private getSseReconnectDelayMs(attempt: number): number {
+        const exponential = Math.min(
+            SSE_RECONNECT_BASE_DELAY_MS * (2 ** Math.max(0, attempt - 1)),
+            SSE_RECONNECT_MAX_DELAY_MS,
+        );
+        const jitter = Math.floor(Math.random() * 500);
+        return Math.min(exponential + jitter, SSE_RECONNECT_MAX_DELAY_MS);
     }
 
     private async consumeSse() {

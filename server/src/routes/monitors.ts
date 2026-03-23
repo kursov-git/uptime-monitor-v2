@@ -132,12 +132,14 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         preHandler: [authenticateSseJWT],
     }, async (request, reply) => {
         reply.raw.setHeader('Content-Type', 'text/event-stream');
-        reply.raw.setHeader('Cache-Control', 'no-cache');
+        reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
         reply.raw.setHeader('Connection', 'keep-alive');
+        reply.raw.setHeader('X-Accel-Buffering', 'no');
         reply.raw.flushHeaders();
 
         const added = sseService.addClient(reply);
         if (!added) {
+            reply.header('Retry-After', '5');
             return reply.status(503).send({ error: 'Too many SSE connections' });
         }
 

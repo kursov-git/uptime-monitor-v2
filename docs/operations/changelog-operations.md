@@ -62,6 +62,36 @@ Verification:
 - `server` contract tests passed with the extended retention status shape
 - `server build` passed
 
+### SSE hardening pass
+
+Host:
+- `onedashmsk`
+
+Changes:
+- added SSE-specific nginx proxy handling for:
+  - `/api/monitors/stream`
+  - `/api/agent/stream`
+- disabled proxy buffering and cache for SSE paths
+- extended SSE proxy timeouts for long-lived connections
+- added route-level SSE headers:
+  - `Cache-Control: no-cache, no-transform`
+  - `X-Accel-Buffering: no`
+- changed agent reconnect behavior from fixed delay to bounded backoff with jitter
+- extended runtime telemetry with SSE churn indicators:
+  - latest accept/reject/disconnect timestamps
+  - replay request counts
+  - stale replay counts
+
+Operational result:
+- long-lived SSE connections should be less vulnerable to proxy buffering and timeout surprises
+- reconnect storms are easier to identify from `/health/runtime`
+- remote agents no longer retry SSE in a tight fixed loop during transient failures
+
+Verification:
+- `edge-config` tests passed with explicit SSE proxy expectations
+- `server` contract tests passed with extended SSE runtime telemetry shape
+- `server` build and `agent` build passed
+
 ### Design System v1 rollout close-out
 
 Host:

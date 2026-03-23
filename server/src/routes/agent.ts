@@ -126,12 +126,14 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             : 0;
 
         reply.raw.setHeader('Content-Type', 'text/event-stream');
-        reply.raw.setHeader('Cache-Control', 'no-cache');
+        reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
         reply.raw.setHeader('Connection', 'keep-alive');
+        reply.raw.setHeader('X-Accel-Buffering', 'no');
         reply.raw.flushHeaders();
 
         const added = agentSseService.addClient(reply, agent.id);
         if (!added) {
+            reply.header('Retry-After', '5');
             return reply.status(503).send({ error: 'Too many SSE connections' });
         }
 
