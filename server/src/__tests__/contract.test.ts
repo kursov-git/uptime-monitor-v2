@@ -280,6 +280,8 @@ describe('API Contract', () => {
                     lastDeletedCheckResults: z.number(),
                     lastDeletedAuditLogs: z.number(),
                     lastDeletedNotificationHistory: z.number(),
+                    lastDeleteBatchCount: z.number(),
+                    lastBusyRetryCount: z.number(),
                     lastError: z.string().nullable(),
                 }),
                 agentOfflineMonitor: z.object({

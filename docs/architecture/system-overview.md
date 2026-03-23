@@ -339,8 +339,12 @@ Returns:
   - browser SSE connections
   - agent SSE connections
   - recent worker scheduling/check activity
-  - recent retention cleanup activity
+- recent retention cleanup activity
   - recent agent-offline monitor activity
+
+Retention telemetry now also includes:
+- batch count for the latest cleanup run
+- bounded SQLite lock retry count for the latest cleanup run
 
 In split runtime mode, the API process reports background roles as not running in that process. That is expected.
 External role health should be checked with compose or systemd status.
@@ -377,6 +381,13 @@ Current production reality on agent hosts:
 ## Known Architectural Constraints
 
 - SQLite remains the production DB
+- each server process applies SQLite session pragmas on startup:
+  - `journal_mode=WAL`
+  - `synchronous=NORMAL`
+  - `busy_timeout=5000`
+  - `foreign_keys=ON`
+- retention cleanup is intentionally throttled into smaller delete batches with
+  bounded retry on `SQLITE_BUSY`
 - no Postgres migration path implemented yet
 - no full metrics stack yet
 - no persistent on-disk queue for agent results

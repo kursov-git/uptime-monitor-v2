@@ -59,10 +59,19 @@ Interpretation:
 - `/health/runtime` now also includes lightweight in-memory telemetry:
   - browser SSE and agent SSE connection counters
   - latest worker refresh/check metadata
-  - latest retention cleanup metadata
+  - latest retention cleanup metadata, including batch count and SQLite lock retries
   - latest agent-offline monitor metadata
 - in split runtime mode, the API process will correctly report worker/retention/offline-monitor as not running in that process
 - use compose status to verify those dedicated services separately
+
+SQLite note:
+- server processes now apply SQLite session pragmas on startup:
+  - `journal_mode=WAL`
+  - `synchronous=NORMAL`
+  - `busy_timeout=5000`
+  - `foreign_keys=ON`
+- retention cleanup now runs in smaller batches with bounded retry on temporary
+  `SQLITE_BUSY` lock collisions
 
 ### Compose health snapshot
 

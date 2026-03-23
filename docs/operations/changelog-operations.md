@@ -35,6 +35,33 @@ Verification:
 - `server` contract tests passed with updated `/health/runtime` shape
 - `server build` passed
 
+### SQLite retention pressure mitigation
+
+Host:
+- `onedashmsk`
+
+Changes:
+- reviewed the split-runtime SQLite write pattern with focus on retention cleanup
+- added process-level SQLite session pragmas:
+  - `journal_mode=WAL`
+  - `synchronous=NORMAL`
+  - `busy_timeout=5000`
+  - `foreign_keys=ON`
+- changed retention cleanup from one large per-table delete to smaller batched deletes
+- added bounded retry/backoff on short-lived `SQLITE_BUSY` lock collisions
+- extended retention runtime status with:
+  - latest delete batch count
+  - latest SQLite busy-retry count
+
+Operational result:
+- the control plane remains on SQLite but now yields more gracefully during retention cleanup
+- lock contention during retention should be easier to survive and easier to diagnose from `/health/runtime`
+
+Verification:
+- `server` retention tests passed with batched cleanup and busy-retry coverage
+- `server` contract tests passed with the extended retention status shape
+- `server build` passed
+
 ### Design System v1 rollout close-out
 
 Host:

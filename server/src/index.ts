@@ -3,7 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import prisma from './lib/prisma';
+import prisma, { ensurePrismaSqliteTuned } from './lib/prisma';
 import { CheckWorker } from './worker';
 import { RetentionService } from './services/retentionService';
 import { AgentOfflineMonitorService } from './services/agentOfflineMonitor';
@@ -147,6 +147,7 @@ async function start() {
             logger.warn('Using default JWT secret. This is not suitable for production.');
         }
         validateEncryptionConfig();
+        await ensurePrismaSqliteTuned();
         fastify.log.info({ serverRole: env.serverRole }, 'Starting runtime');
 
         if (env.serverRole === 'all' || env.serverRole === 'api') {

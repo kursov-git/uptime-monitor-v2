@@ -70,6 +70,18 @@ It should not automatically trigger:
 - PostgreSQL migration
 - queue/broker introduction
 
+Status:
+- reviewed against the current split-runtime SQLite write paths
+- mitigated with process-level SQLite session pragmas:
+  - `journal_mode=WAL`
+  - `synchronous=NORMAL`
+  - `busy_timeout=5000`
+  - `foreign_keys=ON`
+- retention cleanup now deletes in smaller batches instead of one large
+  `deleteMany` per table
+- retention cleanup now retries short-lived `SQLITE_BUSY` lock collisions with
+  bounded backoff and exposes batch/retry counters in `/health/runtime`
+
 ## Execution Order
 
 1. Lightweight runtime telemetry
