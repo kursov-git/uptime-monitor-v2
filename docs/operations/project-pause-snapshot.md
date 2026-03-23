@@ -99,7 +99,6 @@ Agent runtime model:
 - SSH is expected on port `2332`
 - `client`-only rollout should not recreate `uptime-server-api`
 - control-plane DB is still SQLite
-- `deploy.sh` remains legacy and is not the preferred production path
 - Tailscale for admin access is still a preferred future path, but not yet enabled
 - `AGENT_ALLOWLIST` is still available but not yet enforced in production
 - latest pause-time control-plane DB backup:

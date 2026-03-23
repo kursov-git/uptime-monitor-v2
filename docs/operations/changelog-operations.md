@@ -9,6 +9,23 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-03-23
 
+### Deployment zoo hygiene pass
+
+Repository:
+- `uptime-monitor-v2`
+
+Changes:
+- removed the legacy root-level `deploy.sh` script so the repository no longer advertises an outdated single-process deployment path
+- moved the old root `CODE_REVIEW.md` into `docs/historical/code-review-2026-03-11.md`
+- updated agent-facing and operator-facing docs so current deployment truth points only to:
+  - `docker-compose.split.yml`
+  - `docs/operations/production-topology.md`
+  - `docs/operations/runbook.md`
+
+Operational result:
+- future operators and AI agents now have one clear deployment story instead of a mixed live/legacy surface
+- older technical critique remains available as history without competing with current operational guidance
+
 ### Runtime telemetry pass
 
 Host:

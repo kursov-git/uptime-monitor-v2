@@ -328,8 +328,6 @@ It covers:
 - agent troubleshooting
 - recovery workflow
 
-## Legacy Script Warning
-
-`deploy.sh` still exists, but it should be treated as a legacy helper.
-It is not the preferred current production procedure for the split control plane.
-Review it before using it on any real host.
+Current deployment and recovery procedures live in:
+- `docs/operations/production-topology.md`
+- `docs/operations/runbook.md`

@@ -1,3 +1,25 @@
+# Historical Code Review
+
+Last updated: 2026-03-11
+
+This file is retained only as historical context from an earlier repository state.
+It is not a current source of truth for production topology or deployment.
+
+At the time of writing, this review captured the project before:
+- the agent deployment model was fully standardized on docker compose + systemd
+- the split-runtime control plane became the explicit canonical production path
+- later runtime telemetry, SSE hardening, and SQLite-pressure mitigation work landed
+
+Keep this file only for historical comparison.
+Use the current operational docs instead:
+- `AGENTS.md`
+- `README.md`
+- `docs/index.md`
+- `docs/operations/production-topology.md`
+- `docs/operations/runbook.md`
+
+---
+
 # Code Review
 
 Last updated: 2026-03-11

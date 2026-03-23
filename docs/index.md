@@ -100,6 +100,7 @@ Current contents:
 - `docs/historical/v2-rollback-runbook.md`
 - `docs/historical/v2-canary-signoff.md`
 - `docs/historical/v2-issues-seed.md`
+- `docs/historical/code-review-2026-03-11.md`
 
 Use this section only for:
 - historical context

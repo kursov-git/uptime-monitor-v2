@@ -65,7 +65,7 @@ Read documents in this order.
 11. `docs/operations/agent-deployment-kit.md`
 12. `docs/product/lean-roadmap.md`
 13. `docs/product/strategic-roadmap.md`
-14. `CODE_REVIEW.md`
+14. `docs/historical/code-review-2026-03-11.md` only if you need earlier technical critique context
 
 Historical or template documents are not the primary source of truth:
 - `docs/historical/v2-task-tracker.md`
@@ -73,6 +73,7 @@ Historical or template documents are not the primary source of truth:
 - `docs/historical/v2-rollback-runbook.md`
 - `docs/historical/v2-canary-signoff.md`
 - `docs/historical/v2-issues-seed.md`
+- `docs/historical/code-review-2026-03-11.md`
 
 Use them only for historical context, not for current operational decisions.
 
@@ -82,10 +83,8 @@ Use them only for historical context, not for current operational decisions.
 .
 ├── AGENTS.md
 ├── README.md
-├── CODE_REVIEW.md
 ├── docker-compose.yml                  # legacy single-process compose
 ├── docker-compose.split.yml            # current recommended control-plane compose
-├── deploy.sh                           # legacy deploy script, not the current preferred prod path
 ├── docs/
 │   ├── index.md
 │   ├── architecture/
@@ -103,7 +102,8 @@ Use them only for historical context, not for current operational decisions.
 │   │   ├── lean-roadmap.md
 │   │   └── strategic-roadmap.md
 │   ├── historical/
-│   │   └── v2-*.md                     # historical rollout/planning templates
+│   │   ├── v2-*.md                     # historical rollout/planning templates
+│   │   └── code-review-2026-03-11.md   # historical technical assessment, not current truth
 │   └── plans/
 │       ├── active/
 │       └── completed/                  # includes completed design-system rollout record
@@ -187,8 +187,6 @@ When making changes, follow this sequence.
 
 ### Never do these blindly
 
-- Do not use `deploy.sh` as the default production path without reviewing it.
-  Reason: it is a legacy script oriented around single-process compose and broad container stops.
 - Do not assume port `22` is available on production hosts.
   Use `2332`.
 - Do not delete an agent that still has assigned monitors.
@@ -312,7 +310,6 @@ These are real remaining gaps, not hypothetical ones.
 - no full metrics/observability stack yet
 - no Postgres deployment path yet
 - remote agent deployment now uses one canonical docker/systemd repository kit, though individual hosts can still differ in infrastructure provider and network shape
-- `deploy.sh` is still present and useful for history, but should be treated as legacy
 
 ## Documentation Maintenance Rules
 
@@ -331,7 +328,7 @@ When you change any of these, update docs in the same work unit.
 Minimum docs update set by change type:
 - API/runtime change: `AGENTS.md`, `README.md`, `docs/architecture/system-overview.md`
 - ops/deploy change: `AGENTS.md`, `docs/operations/production-topology.md`, `docs/operations/runbook.md`
-- roadmap/status change: `docs/product/strategic-roadmap.md`, possibly `CODE_REVIEW.md`
+- roadmap/status change: `docs/product/strategic-roadmap.md`
 
 ## If You Are Unsure
 

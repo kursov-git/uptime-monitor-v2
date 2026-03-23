@@ -1044,6 +1044,5 @@ Agent:
 
 ## Legacy Warnings
 
-- `deploy.sh` is not the canonical current production procedure
 - do not assume a live agent host uses registry-image mode; production currently uses `local-build`
 - do not assume port `22`; use `2332`

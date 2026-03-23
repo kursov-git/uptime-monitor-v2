@@ -220,7 +220,6 @@ Before updating dockerized agents, create tar backups of:
 
 - keep SSH on `2332`
 - keep the control plane in split runtime unless explicitly rolling back
-- do not use `deploy.sh` as the default production procedure
 - use `docker compose -f docker-compose.split.yml up -d --build client` for UI/nginx-only rollouts; it should not recreate `uptime-server-api`
 - do not delete agents with assigned monitors
 - keep DB backups before control-plane rollouts
