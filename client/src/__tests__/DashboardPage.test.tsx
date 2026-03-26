@@ -1,6 +1,6 @@
 /// <reference types="@testing-library/jest-dom" />
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import DashboardPage from '../pages/DashboardPage';
 import type { Monitor } from '../api';
 
@@ -73,5 +73,33 @@ describe('DashboardPage', () => {
         expect(screen.getByRole('heading', { name: 'Standalone Monitors' })).toBeInTheDocument();
         expect(screen.getByText('2 monitors')).toBeInTheDocument();
         expect(screen.getAllByText('1 monitor').length).toBe(2);
+    });
+
+    it('requires exact monitor name before deleting', async () => {
+        const deleteMonitor = vi.fn().mockResolvedValue(undefined);
+        const promptSpy = vi.spyOn(window, 'prompt')
+            .mockReturnValueOnce('wrong')
+            .mockReturnValueOnce('Monitor');
+
+        const monitor = createMonitor({ name: 'Monitor' });
+
+        render(
+            <DashboardPage
+                monitors={[monitor]}
+                loading={false}
+                onCreateMonitor={vi.fn()}
+                onUpdateMonitor={vi.fn()}
+                onDeleteMonitor={deleteMonitor}
+                onToggleMonitor={vi.fn()}
+                onTogglePublicVisibility={vi.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByTitle('Delete'));
+        expect(deleteMonitor).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByTitle('Delete'));
+        expect(promptSpy).toHaveBeenLastCalledWith('Type "Monitor" to permanently delete this monitor.');
+        expect(deleteMonitor).toHaveBeenCalledWith(monitor.id);
     });
 });

@@ -109,7 +109,14 @@ export default function DashboardPage({
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure?')) return;
+        const monitor = monitors.find((item) => item.id === id);
+        if (!monitor) return;
+
+        const confirmation = window.prompt(
+            `Type "${monitor.name}" to permanently delete this monitor.`
+        );
+
+        if (confirmation !== monitor.name) return;
         await onDeleteMonitor(id);
     };
 
