@@ -123,7 +123,7 @@ exports[`API Contract > validates agent protocol contracts 1`] = `
         "timeoutMs": 15000,
         "type": "HTTP",
         "url": "https://example.com/agent-contract",
-        "version": 1774255786598,
+        "version": "<version>",
       },
     ],
     "serverTime": "<iso-date>",

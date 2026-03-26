@@ -1,13 +1,34 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function waitForAuthSurface(page: Page) {
+    const loginSubmit = page.getByTestId('login-submit');
+    const appTitle = page.getByTestId('app-title');
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+        if (await loginSubmit.isVisible().catch(() => false)) return 'login';
+        if (await appTitle.isVisible().catch(() => false)) return 'app';
+        await page.waitForTimeout(500);
+    }
+
+    throw new Error('Timed out waiting for login form or app shell');
+}
+
+async function ensureLoggedIn(page: Page) {
+    await page.goto('/');
+
+    const surface = await waitForAuthSurface(page);
+    if (surface === 'login') {
+        await page.fill('#username', 'admin');
+        await page.fill('#password', 'admin123');
+        await page.getByTestId('login-submit').click();
+    }
+
+    await expect(page.getByTestId('app-title')).toBeVisible({ timeout: 10000 });
+}
 
 test.describe('Dashboard Navigation', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
-        await page.fill('input[type="text"]', 'admin');
-        await page.fill('input[type="password"]', 'admin123');
-        await page.getByTestId('login-submit').click();
-
-        await expect(page.getByTestId('app-title')).toBeVisible({ timeout: 10000 });
+        await ensureLoggedIn(page);
     });
 
     test('navigates to settings and back without page reload', async ({ page }) => {

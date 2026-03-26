@@ -165,7 +165,10 @@ const agentHeartbeatResponseSchema = z.object({
 });
 
 function normalizeForSnapshot<T extends Record<string, any>>(input: T): T {
-    return JSON.parse(JSON.stringify(input, (_, value) => {
+    return JSON.parse(JSON.stringify(input, (key, value) => {
+        if (key === 'version' && typeof value === 'number') {
+            return '<version>';
+        }
         if (typeof value === 'string') {
             if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
                 return '<uuid>';
