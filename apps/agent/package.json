@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "test": "npx vitest run test/*.test.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@types/node": "^22.19.15",
     "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.1"
   }
 }

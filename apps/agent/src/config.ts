@@ -34,4 +34,6 @@ export function readAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv 
     };
 }
 
-export const agentEnv = readAgentEnv();
+export function getAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv {
+    return readAgentEnv(source);
+}

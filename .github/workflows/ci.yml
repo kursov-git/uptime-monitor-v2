@@ -99,6 +99,9 @@ jobs:
           npm --prefix packages/shared run build
           npm --prefix packages/checker run build
 
+      - name: Agent Tests
+        run: npm --prefix apps/agent run test
+
       - name: Agent Build
         run: npm --prefix apps/agent run build
 

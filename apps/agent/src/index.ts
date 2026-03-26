@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { performCheck } from '@uptime-monitor/checker';
 import { CURRENT_AGENT_VERSION } from '@uptime-monitor/shared';
-import { agentEnv } from './config';
+import { readAgentEnv, type AgentEnv } from './config';
 
 type AgentJob = {
     monitorId: string;
@@ -47,17 +47,11 @@ type BufferedResult = {
     };
 };
 
-const MAIN_SERVER_URL = agentEnv.mainServerUrl;
-const AGENT_TOKEN = agentEnv.agentToken;
-const AGENT_HTTP_TIMEOUT_MS = agentEnv.httpTimeoutMs;
-const AGENT_BUFFER_MAX = agentEnv.bufferMax;
-const AGENT_RESULT_MAX_BATCH = agentEnv.resultMaxBatch;
-const AGENT_MAX_CONCURRENCY = agentEnv.maxConcurrency;
-const ALLOW_PRIVATE_MONITOR_TARGETS = agentEnv.allowPrivateMonitorTargets;
 const SSE_RECONNECT_BASE_DELAY_MS = 2_000;
 const SSE_RECONNECT_MAX_DELAY_MS = 30_000;
 
 class AgentRuntime {
+    private readonly config: AgentEnv;
     private jobs = new Map<string, AgentJob>();
     private timers = new Map<string, NodeJS.Timeout>();
     private queue: BufferedResult[] = [];
@@ -69,6 +63,10 @@ class AgentRuntime {
     private heartbeatTimer: NodeJS.Timeout | null = null;
     private lastEventId = 0;
     private sseReconnectAttempts = 0;
+
+    constructor(config: AgentEnv = readAgentEnv()) {
+        this.config = config;
+    }
 
     async start() {
         await this.bootstrapJobs();
@@ -150,8 +148,8 @@ class AgentRuntime {
     private async runCheck(monitorId: string) {
         const job = this.jobs.get(monitorId);
         if (!job) return;
-        if (this.inFlightChecks >= AGENT_MAX_CONCURRENCY) {
-            console.warn(`Concurrency cap reached (${AGENT_MAX_CONCURRENCY}), skipping cycle for ${monitorId}`);
+        if (this.inFlightChecks >= this.config.maxConcurrency) {
+            console.warn(`Concurrency cap reached (${this.config.maxConcurrency}), skipping cycle for ${monitorId}`);
             return;
         }
 
@@ -177,7 +175,7 @@ class AgentRuntime {
                 authTokenRegex: job.authTokenRegex || null,
                 sslExpiryEnabled: job.sslExpiryEnabled || false,
                 sslExpiryThresholdDays: job.sslExpiryThresholdDays || 14,
-                allowPrivateTargets: ALLOW_PRIVATE_MONITOR_TARGETS,
+                allowPrivateTargets: this.config.allowPrivateMonitorTargets,
             });
 
             this.enqueue({
@@ -208,7 +206,7 @@ class AgentRuntime {
 
     private enqueue(result: BufferedResult) {
         this.queue.push(result);
-        if (this.queue.length > AGENT_BUFFER_MAX) {
+        if (this.queue.length > this.config.bufferMax) {
             this.queue.shift();
             this.droppedResultsCounter += 1;
             console.warn(`Agent queue overflow: dropped oldest result (total dropped=${this.droppedResultsCounter})`);
@@ -221,7 +219,7 @@ class AgentRuntime {
 
         try {
             while (this.queue.length > 0) {
-                const batch = this.queue.slice(0, AGENT_RESULT_MAX_BATCH);
+                const batch = this.queue.slice(0, this.config.resultMaxBatch);
                 const res = await this.requestJson<{ acceptedCount: number; duplicateCount: number }>(
                     'POST',
                     '/api/agent/results',
@@ -286,24 +284,19 @@ class AgentRuntime {
     }
 
     private getSseReconnectDelayMs(attempt: number): number {
-        const exponential = Math.min(
-            SSE_RECONNECT_BASE_DELAY_MS * (2 ** Math.max(0, attempt - 1)),
-            SSE_RECONNECT_MAX_DELAY_MS,
-        );
-        const jitter = Math.floor(Math.random() * 500);
-        return Math.min(exponential + jitter, SSE_RECONNECT_MAX_DELAY_MS);
+        return calculateSseReconnectDelayMs(attempt);
     }
 
     private async consumeSse() {
         const headers: Record<string, string> = {
-            Authorization: `Bearer ${AGENT_TOKEN}`,
+            Authorization: `Bearer ${this.config.agentToken}`,
             Accept: 'text/event-stream',
         };
         if (this.lastEventId > 0) {
             headers['Last-Event-ID'] = String(this.lastEventId);
         }
 
-        const res = await fetch(`${MAIN_SERVER_URL}/api/agent/stream`, {
+        const res = await fetch(`${this.config.mainServerUrl}/api/agent/stream`, {
             method: 'GET',
             headers,
         });
@@ -333,52 +326,27 @@ class AgentRuntime {
     }
 
     private async handleSseEvent(raw: string) {
-        if (!raw || raw.startsWith(':')) return;
+        const parsed = parseSseEvent(raw);
+        if (!parsed) return;
 
-        let event = 'message';
-        let data = '';
-
-        for (const line of raw.split('\n')) {
-            if (line.startsWith('id:')) {
-                const parsed = Number.parseInt(line.slice(3).trim(), 10);
-                if (!Number.isNaN(parsed)) {
-                    this.lastEventId = parsed;
-                }
-            } else if (line.startsWith('event:')) {
-                event = line.slice(6).trim();
-            } else if (line.startsWith('data:')) {
-                data += line.slice(5).trim();
-            }
+        if (parsed.lastEventId !== null) {
+            this.lastEventId = parsed.lastEventId;
         }
 
-        if (!data) return;
-
-        let payload: any = null;
-        try {
-            payload = JSON.parse(data);
-        } catch {
-            return;
-        }
-
-        if (event === 'monitor.upsert' || event === 'monitor.delete') {
-            await this.bootstrapJobs();
-            return;
-        }
-
-        if (event === 'agent.command' && payload?.command === 'RESYNC_JOBS') {
+        if (shouldResyncJobsFromSseEvent(parsed.event, parsed.payload)) {
             await this.bootstrapJobs();
         }
     }
 
     private async requestJson<T>(method: string, path: string, body?: any): Promise<T> {
-        const res = await fetch(`${MAIN_SERVER_URL}${path}`, {
+        const res = await fetch(`${this.config.mainServerUrl}${path}`, {
             method,
             headers: {
-                Authorization: `Bearer ${AGENT_TOKEN}`,
+                Authorization: `Bearer ${this.config.agentToken}`,
                 'Content-Type': 'application/json',
             },
             body: body ? JSON.stringify(body) : undefined,
-            signal: AbortSignal.timeout(AGENT_HTTP_TIMEOUT_MS),
+            signal: AbortSignal.timeout(this.config.httpTimeoutMs),
         });
 
         const text = await res.text();
@@ -392,7 +360,76 @@ class AgentRuntime {
     }
 }
 
-function buildIdempotencyKey(monitorId: string): string {
+type ParsedSseEvent = {
+    lastEventId: number | null;
+    event: string;
+    payload: unknown | null;
+};
+
+export function calculateSseReconnectDelayMs(
+    attempt: number,
+    randomValue = Math.random(),
+): number {
+    const exponential = Math.min(
+        SSE_RECONNECT_BASE_DELAY_MS * (2 ** Math.max(0, attempt - 1)),
+        SSE_RECONNECT_MAX_DELAY_MS,
+    );
+    const jitter = Math.floor(Math.max(0, Math.min(1, randomValue)) * 500);
+    return Math.min(exponential + jitter, SSE_RECONNECT_MAX_DELAY_MS);
+}
+
+export function parseSseEvent(raw: string): ParsedSseEvent | null {
+    if (!raw || raw.startsWith(':')) return null;
+
+    let lastEventId: number | null = null;
+    let event = 'message';
+    let data = '';
+
+    for (const line of raw.split('\n')) {
+        if (line.startsWith('id:')) {
+            const parsed = Number.parseInt(line.slice(3).trim(), 10);
+            if (!Number.isNaN(parsed)) {
+                lastEventId = parsed;
+            }
+        } else if (line.startsWith('event:')) {
+            event = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+            data += line.slice(5).trim();
+        }
+    }
+
+    if (!data) {
+        return { lastEventId, event, payload: null };
+    }
+
+    try {
+        return {
+            lastEventId,
+            event,
+            payload: JSON.parse(data),
+        };
+    } catch {
+        return {
+            lastEventId,
+            event,
+            payload: null,
+        };
+    }
+}
+
+export function shouldResyncJobsFromSseEvent(event: string, payload: unknown): boolean {
+    if (event === 'monitor.upsert' || event === 'monitor.delete') {
+        return true;
+    }
+
+    return event === 'agent.command'
+        && typeof payload === 'object'
+        && payload !== null
+        && 'command' in payload
+        && payload.command === 'RESYNC_JOBS';
+}
+
+export function buildIdempotencyKey(monitorId: string): string {
     return `${monitorId}:${Date.now()}:${crypto.randomUUID()}`;
 }
 
@@ -409,7 +446,7 @@ function getKeyForVersion(version: number): Buffer | null {
     }
 }
 
-function decryptAgentPayload(ciphertext: string | null, keyVersion: number): string | null {
+export function decryptAgentPayload(ciphertext: string | null, keyVersion: number): string | null {
     if (!ciphertext) return null;
     if (!ciphertext.startsWith('enc:')) return ciphertext;
 
@@ -437,7 +474,13 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-new AgentRuntime().start().catch((err) => {
-    console.error('Failed to start agent runtime:', err);
-    process.exit(1);
-});
+export function startAgentRuntime() {
+    return new AgentRuntime().start();
+}
+
+if (require.main === module) {
+    startAgentRuntime().catch((err) => {
+        console.error('Failed to start agent runtime:', err);
+        process.exit(1);
+    });
+}
