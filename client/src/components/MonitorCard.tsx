@@ -68,9 +68,8 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
             aria-hidden="true"
             focusable="false"
         >
-            <rect width="256" height="256" rx="64" fill="currentColor" fillOpacity="0.12" />
-            <rect x="56" y="72" width="144" height="18" rx="9" fill="currentColor" fillOpacity="0.35" />
-            <rect x="83" y="90" width="90" height="108" rx="24" fill="currentColor" />
+            <rect x="56" y="72" width="144" height="18" rx="9" fill="#E9C6C0" />
+            <rect x="83" y="90" width="90" height="108" rx="24" fill="#D65A49" />
             <rect x="106" y="50" width="44" height="26" rx="13" fill="currentColor" />
             <path d="M107 117V171" stroke="white" strokeWidth="12" strokeLinecap="round" />
             <path d="M128 117V171" stroke="white" strokeWidth="12" strokeLinecap="round" />

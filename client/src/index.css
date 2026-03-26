@@ -1504,6 +1504,7 @@ body {
 .monitor-side-status {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
 }
 
@@ -1532,16 +1533,20 @@ body {
   grid-template-columns: 1fr;
   gap: 4px;
   width: auto;
+  justify-items: center;
+  align-items: center;
 }
 
 .monitor-control-group .btn {
   justify-content: center;
+  align-items: center;
   min-height: 36px;
   min-width: 36px;
   width: 36px;
   padding: 0;
   border-radius: 10px;
   box-shadow: none;
+  margin: 0 auto;
 }
 
 .monitor-control-group .monitor-state-chip {
@@ -1606,8 +1611,8 @@ body {
 }
 
 .monitor-trash-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 
