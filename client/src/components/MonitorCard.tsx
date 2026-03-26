@@ -161,7 +161,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 ✏️
                             </button>
                             <button
-                                className="btn btn-icon btn-sm btn-danger"
+                                className="btn btn-icon btn-sm btn-danger monitor-delete-action"
                                 onClick={() => onDelete(monitor.id)}
                                 title="Delete"
                             >

@@ -28,6 +28,7 @@ export default function DashboardPage({
     const navigate = useNavigate();
     const [showForm, setShowForm] = useState(false);
     const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null);
+    const [deleteCandidate, setDeleteCandidate] = useState<Monitor | null>(null);
 
     const getMonitorStatus = (monitor: Monitor) => {
         if (!monitor.isActive) return 'paused';
@@ -111,13 +112,13 @@ export default function DashboardPage({
     const handleDelete = async (id: string) => {
         const monitor = monitors.find((item) => item.id === id);
         if (!monitor) return;
+        setDeleteCandidate(monitor);
+    };
 
-        const confirmation = window.prompt(
-            `Type "${monitor.name}" to permanently delete this monitor.`
-        );
-
-        if (confirmation !== monitor.name) return;
-        await onDeleteMonitor(id);
+    const confirmDelete = async () => {
+        if (!deleteCandidate) return;
+        await onDeleteMonitor(deleteCandidate.id);
+        setDeleteCandidate(null);
     };
 
     return (
@@ -244,6 +245,32 @@ export default function DashboardPage({
                         setEditingMonitor(null);
                     }}
                 />
+            )}
+
+            {deleteCandidate && (
+                <div className="modal-overlay" onClick={() => setDeleteCandidate(null)}>
+                    <div className="modal modal-compact delete-monitor-modal" onClick={(event) => event.stopPropagation()}>
+                        <div className="app-modal-kicker danger">Danger Zone</div>
+                        <h2>Delete monitor?</h2>
+                        <p className="app-modal-subtitle">
+                            This permanently removes the monitor and its check history. This action cannot be undone.
+                        </p>
+
+                        <div className="delete-monitor-summary">
+                            <strong>{deleteCandidate.name}</strong>
+                            <span>{deleteCandidate.url}</span>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={() => setDeleteCandidate(null)}>
+                                Cancel
+                            </button>
+                            <button className="btn btn-danger" onClick={confirmDelete}>
+                                Delete Monitor
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

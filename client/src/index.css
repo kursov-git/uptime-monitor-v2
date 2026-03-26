@@ -1595,6 +1595,19 @@ body {
   color: #b3453d;
 }
 
+.monitor-control-group .monitor-delete-action {
+  min-height: 42px;
+  min-width: 42px;
+  background: #fff1ef;
+  border-color: #efc8c2;
+  color: #c24135;
+  font-size: 18px;
+}
+
+.monitor-control-group .monitor-delete-action:hover {
+  background: #fee2de;
+}
+
 .status-up { color: var(--color-success); }
 .status-down { color: var(--color-danger); }
 .status-paused { color: var(--color-paused); }
@@ -1794,6 +1807,10 @@ body {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.app-modal-kicker.danger {
+  color: #c24135;
 }
 
 .app-modal-subtitle {
@@ -2570,6 +2587,32 @@ tr:hover td {
 
 .modal-compact {
   max-width: 640px;
+}
+
+.delete-monitor-modal {
+  max-width: 460px;
+}
+
+.delete-monitor-summary {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #fff7f5;
+  border: 1px solid #f2d8d1;
+}
+
+.delete-monitor-summary strong {
+  display: block;
+  color: #102036;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+.delete-monitor-summary span {
+  display: block;
+  color: #63748a;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
 }
 
 .settings-section {

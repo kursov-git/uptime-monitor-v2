@@ -1,6 +1,6 @@
 /// <reference types="@testing-library/jest-dom" />
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import DashboardPage from '../pages/DashboardPage';
 import type { Monitor } from '../api';
 
@@ -75,12 +75,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('1 monitor').length).toBe(2);
     });
 
-    it('requires exact monitor name before deleting', async () => {
+    it('opens a confirmation modal before deleting', async () => {
         const deleteMonitor = vi.fn().mockResolvedValue(undefined);
-        const promptSpy = vi.spyOn(window, 'prompt')
-            .mockReturnValueOnce('wrong')
-            .mockReturnValueOnce('Monitor');
-
         const monitor = createMonitor({ name: 'Monitor' });
 
         render(
@@ -96,10 +92,12 @@ describe('DashboardPage', () => {
         );
 
         fireEvent.click(screen.getByTitle('Delete'));
+        expect(screen.getByText('Delete monitor?')).toBeInTheDocument();
+        expect(screen.getByText('This permanently removes the monitor and its check history. This action cannot be undone.')).toBeInTheDocument();
         expect(deleteMonitor).not.toHaveBeenCalled();
-
-        fireEvent.click(screen.getByTitle('Delete'));
-        expect(promptSpy).toHaveBeenLastCalledWith('Type "Monitor" to permanently delete this monitor.');
-        expect(deleteMonitor).toHaveBeenCalledWith(monitor.id);
+        fireEvent.click(screen.getByText('Delete Monitor'));
+        await waitFor(() => {
+            expect(deleteMonitor).toHaveBeenCalledWith(monitor.id);
+        });
     });
 });
