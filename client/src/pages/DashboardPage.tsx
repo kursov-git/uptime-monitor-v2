@@ -249,7 +249,7 @@ export default function DashboardPage({
 
             {deleteCandidate && (
                 <div className="modal-overlay" onClick={() => setDeleteCandidate(null)}>
-                    <div className="modal modal-compact delete-monitor-modal" onClick={(event) => event.stopPropagation()}>
+                    <div className="modal modal-compact delete-monitor-modal" onClick={(event) => event.stopPropagation()} data-testid="delete-monitor-modal">
                         <div className="app-modal-kicker danger">Danger Zone</div>
                         <h2>Delete monitor?</h2>
                         <p className="app-modal-subtitle">
@@ -262,10 +262,10 @@ export default function DashboardPage({
                         </div>
 
                         <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={() => setDeleteCandidate(null)}>
+                            <button className="btn btn-secondary" onClick={() => setDeleteCandidate(null)} data-testid="delete-monitor-cancel">
                                 Cancel
                             </button>
-                            <button className="btn btn-danger" onClick={confirmDelete}>
+                            <button className="btn btn-danger" onClick={confirmDelete} data-testid="delete-monitor-confirm">
                                 Delete Monitor
                             </button>
                         </div>

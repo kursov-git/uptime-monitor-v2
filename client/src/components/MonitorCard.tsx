@@ -78,7 +78,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
     );
 
     return (
-        <div className="card monitor-card">
+        <div className="card monitor-card" data-testid="monitor-card">
             <div className="monitor-card-main">
                 <div className="monitor-card-header">
                     <div className="monitor-card-title-block">
@@ -150,6 +150,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                         className="btn btn-icon btn-sm btn-secondary"
                         onClick={() => onHistory(monitor)}
                         title="History"
+                        data-testid="monitor-history-button"
                     >
                         📊
                     </button>
@@ -159,6 +160,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 className={`btn btn-sm monitor-state-chip ${monitor.isPublic ? 'is-on public' : 'is-off public'}`}
                                 onClick={() => onTogglePublic(monitor.id, !monitor.isPublic)}
                                 title={monitor.isPublic ? 'Remove from public status page' : 'Publish on public status page'}
+                                data-testid="monitor-public-toggle"
                             >
                                 <span className="monitor-state-chip-icon">🌐</span>
                             </button>
@@ -166,6 +168,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 className={`btn btn-sm monitor-state-chip ${monitor.isActive ? 'is-on execution' : 'is-off execution'}`}
                                 onClick={() => onToggle(monitor.id)}
                                 title={monitor.isActive ? 'Pause' : 'Resume'}
+                                data-testid="monitor-execution-toggle"
                             >
                                 <span className="monitor-state-chip-icon">{monitor.isActive ? '▶' : '⏸'}</span>
                             </button>
@@ -173,6 +176,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 className="btn btn-icon btn-sm btn-secondary"
                                 onClick={() => onEdit(monitor)}
                                 title="Edit"
+                                data-testid="monitor-edit-button"
                             >
                                 ✏️
                             </button>
@@ -180,6 +184,7 @@ export default function MonitorCard({ monitor, isAdmin, onEdit, onDelete, onTogg
                                 className="btn btn-icon btn-sm btn-danger monitor-delete-action"
                                 onClick={() => onDelete(monitor.id)}
                                 title="Delete"
+                                data-testid="monitor-delete-button"
                             >
                                 {trashIcon}
                             </button>

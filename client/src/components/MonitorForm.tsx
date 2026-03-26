@@ -269,6 +269,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                     <div className="form-group">
                                         <label>Name</label>
                                         <input
+                                            data-testid="monitor-name-input"
                                             type="text"
                                             value={formData.name}
                                             onChange={e => update('name', e.target.value)}
@@ -307,6 +308,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                     <div className="form-group">
                                         <label>{getTargetLabel()}</label>
                                         <input
+                                            data-testid="monitor-url-input"
                                             type="text"
                                             value={formData.url}
                                             onChange={e => update('url', e.target.value)}

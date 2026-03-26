@@ -35,8 +35,9 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: process.env.CI ? [
     {
-      name: 'chromium',
+      name: 'chromium-smoke',
       use: { ...devices['Desktop Chrome'] },
+      grep: /@smoke/,
     },
   ] : [
     {
