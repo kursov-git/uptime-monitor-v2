@@ -37,6 +37,11 @@ Recommended defaults:
 - `TRUST_PROXY=true` when the API sits behind the `client` nginx reverse proxy
 - explicit edge allowlists once trusted operator/agent source ranges are known
 
+Workspace-host safety note:
+- use `/home/skris/uptime-monitor-v2` as the only local checkout
+- do not keep or restart a second local compose runtime from `/root/uptime-monitor`
+- that stale path was retired after it accidentally exposed `80/tcp` and `443/tcp` on the workspace host
+
 ## Health Checks
 
 ### API liveness

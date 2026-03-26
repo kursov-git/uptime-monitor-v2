@@ -291,9 +291,20 @@ Backup taken before rollout:
 - `/data/backups/uptime-20260312T085930Z.db`
 
 Operational notes:
-- production compose working directory remains `/root/uptime-monitor`
+- at the time of this rollout the local control-plane compose working directory was `/root/uptime-monitor`
 - firewall already allowed `80/tcp` and `443/tcp`
 - a brief API reconnect window occurred during `server` recreate; services recovered after rollout
+
+### 2026-03-26
+
+#### Local runtime checkout retired on workspace host
+
+To prevent accidental local `80/tcp` and `443/tcp` exposure on the workspace host:
+
+- the stale non-git runtime checkout under `/root/uptime-monitor` was archived and removed
+- the only repository checkout on the workspace host is now `/home/skris/uptime-monitor-v2`
+- local work must happen from `/home/skris/uptime-monitor-v2`
+- the workspace host must not be treated as an approved local control-plane runtime without an explicit, reviewed deployment decision
 
 ## 2026-03-11
 

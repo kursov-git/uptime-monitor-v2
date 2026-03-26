@@ -153,6 +153,7 @@ Current production agents use:
 
 Current preferred workflow:
 1. update code locally
+   - use `/home/skris/uptime-monitor-v2` as the only workspace checkout on the operator host
 2. run local verification
 3. back up control-plane SQLite DB
 4. sync code to control-plane host
@@ -160,6 +161,10 @@ Current preferred workflow:
 6. verify `/health/runtime`
 7. verify compose service state
 8. verify agent heartbeat/results continue
+
+Operator-host note:
+- do not keep a second local control-plane runtime checkout under `/root/uptime-monitor`
+- that path was retired after an accidental local `80/443` exposure incident on the workspace host
 
 ## Agent Update Workflow On Current Hosts
 
