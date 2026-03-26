@@ -364,8 +364,8 @@ body {
 .monitor-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 58px;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
   padding: 14px;
   background: linear-gradient(180deg, #ffffff, #fcfdfc);
   border-color: #e3ebe5;
@@ -397,10 +397,10 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
   justify-content: flex-start;
-  padding-left: 8px;
+  padding-left: 6px;
   border-left: 1px solid #e3ebe5;
 }
 
@@ -1530,27 +1530,24 @@ body {
 .monitor-control-group {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 5px;
-  padding: 6px;
-  border-radius: 14px;
-  background: #f6faf7;
-  border: 1px solid #dfe8e1;
-  width: 100%;
+  gap: 4px;
+  width: auto;
 }
 
 .monitor-control-group .btn {
   justify-content: center;
-  min-height: 34px;
-  min-width: 34px;
+  min-height: 36px;
+  min-width: 36px;
+  width: 36px;
   padding: 0;
   border-radius: 10px;
   box-shadow: none;
 }
 
 .monitor-control-group .monitor-state-chip {
-  min-height: 38px;
-  min-width: 38px;
-  width: 38px;
+  min-height: 36px;
+  min-width: 36px;
+  width: 36px;
   padding: 0;
   border-radius: 10px;
   display: inline-flex;
@@ -1596,16 +1593,22 @@ body {
 }
 
 .monitor-control-group .monitor-delete-action {
-  min-height: 42px;
-  min-width: 42px;
+  min-height: 36px;
+  min-width: 36px;
+  width: 36px;
   background: #fff1ef;
   border-color: #efc8c2;
   color: #c24135;
-  font-size: 18px;
 }
 
 .monitor-control-group .monitor-delete-action:hover {
   background: #fee2de;
+}
+
+.monitor-trash-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .status-up { color: var(--color-success); }
@@ -2421,6 +2424,8 @@ tr:hover td {
     padding-top: 10px;
     border-left: 0;
     border-top: 1px solid #e3ebe5;
+    flex-direction: row;
+    justify-content: flex-end;
   }
 
   .monitor-stats {
