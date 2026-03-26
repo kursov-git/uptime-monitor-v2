@@ -100,4 +100,31 @@ describe('DashboardPage', () => {
             expect(deleteMonitor).toHaveBeenCalledWith(monitor.id);
         });
     });
+
+    it('cancels the delete modal without deleting the monitor', async () => {
+        const deleteMonitor = vi.fn().mockResolvedValue(undefined);
+        const monitor = createMonitor({ name: 'Monitor' });
+
+        render(
+            <DashboardPage
+                monitors={[monitor]}
+                loading={false}
+                onCreateMonitor={vi.fn()}
+                onUpdateMonitor={vi.fn()}
+                onDeleteMonitor={deleteMonitor}
+                onToggleMonitor={vi.fn()}
+                onTogglePublicVisibility={vi.fn()}
+            />
+        );
+
+        fireEvent.click(screen.getByTitle('Delete'));
+        expect(screen.getByText('Delete monitor?')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByTestId('delete-monitor-cancel'));
+
+        await waitFor(() => {
+            expect(screen.queryByText('Delete monitor?')).not.toBeInTheDocument();
+        });
+        expect(deleteMonitor).not.toHaveBeenCalled();
+    });
 });

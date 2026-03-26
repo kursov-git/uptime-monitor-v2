@@ -37,6 +37,9 @@ jobs:
           npm --prefix packages/shared run build
           npm --prefix packages/checker run build
 
+      - name: Checker Tests
+        run: npm --prefix packages/checker run test
+
       - name: Server Tests With Coverage
         run: npm --prefix server run test:integration
 

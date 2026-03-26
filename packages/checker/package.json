@@ -5,11 +5,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "test": "npx vitest run test/*.test.ts",
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.1"
   },
   "dependencies": {
     "axios": "^1.13.6",
