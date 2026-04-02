@@ -10,6 +10,51 @@ import { encrypt, decrypt } from '../lib/crypto';
 import { serverEnv } from '../lib/env';
 
 const MAX_MONITOR_STATS_LIMIT = 100000;
+const DEFAULT_CHART_SAMPLE_POINTS = 1800;
+
+type SampleableCheckResult = {
+    timestamp: Date;
+    responseTimeMs: number;
+    isUp: boolean;
+};
+
+function downsampleHistoryResults<T extends SampleableCheckResult>(results: T[], sampleTo: number): T[] {
+    if (!Number.isFinite(sampleTo) || sampleTo <= 0 || results.length <= sampleTo) {
+        return results;
+    }
+
+    const ascending = [...results].reverse();
+    const first = ascending[0];
+    const last = ascending[ascending.length - 1];
+    const middle = ascending.slice(1, -1);
+    const bucketCount = Math.max(1, Math.floor((sampleTo - 2) / 2));
+    const bucketSize = Math.max(1, Math.ceil(middle.length / bucketCount));
+    const sampled: T[] = [first];
+
+    for (let index = 0; index < middle.length; index += bucketSize) {
+        const bucket = middle.slice(index, index + bucketSize);
+        if (bucket.length === 0) continue;
+
+        const firstFailure = bucket.find((entry) => !entry.isUp) ?? null;
+        const peak = bucket.reduce((highest, entry) => (
+            entry.responseTimeMs >= highest.responseTimeMs ? entry : highest
+        ), bucket[0]);
+
+        const bucketPoints = [firstFailure, peak]
+            .filter((entry): entry is T => Boolean(entry))
+            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+            .filter((entry, entryIndex, allEntries) => entryIndex === 0 || entry !== allEntries[entryIndex - 1]);
+
+        sampled.push(...bucketPoints);
+    }
+
+    sampled.push(last);
+
+    return sampled
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+        .filter((entry, entryIndex, allEntries) => entryIndex === 0 || entry !== allEntries[entryIndex - 1])
+        .reverse();
+}
 
 export default async function monitorRoutes(fastify: FastifyInstance) {
     const normalizeMonitorType = (type: string | undefined) => String(type || 'HTTP').toUpperCase();
@@ -238,7 +283,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
     );
 
     // GET /api/monitors/:id/stats — monitor history
-    fastify.get<{ Params: { id: string }; Querystring: { limit?: string; offset?: string; from?: string; to?: string } }>(
+    fastify.get<{ Params: { id: string }; Querystring: { limit?: string; offset?: string; from?: string; to?: string; sampleTo?: string } }>(
         '/:id/stats',
         { preHandler: [authenticateJWT] },
         async (request, reply) => {
@@ -246,6 +291,9 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
 
             const limit = Math.min(parseInt(request.query.limit || '100', 10), MAX_MONITOR_STATS_LIMIT);
             const offset = parseInt(request.query.offset || '0', 10);
+            const sampleTo = request.query.sampleTo
+                ? Math.min(parseInt(request.query.sampleTo, 10), DEFAULT_CHART_SAMPLE_POINTS)
+                : null;
             const { from, to } = request.query;
 
             const whereClause: any = { monitorId: id };
@@ -277,7 +325,14 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
             const overallUptimePercent = total > 0 ? ((upCount / total) * 100).toFixed(1) : '—';
             const overallAvgResponseMs = avgRes._avg.responseTimeMs ? Math.round(avgRes._avg.responseTimeMs) : 0;
 
-            return { results, total, limit, offset, overallUptimePercent, overallAvgResponseMs };
+            return {
+                results: sampleTo ? downsampleHistoryResults(results, sampleTo) : results,
+                total,
+                limit,
+                offset,
+                overallUptimePercent,
+                overallAvgResponseMs,
+            };
         }
     );
 

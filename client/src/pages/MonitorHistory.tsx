@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { monitorsApi, apiClient, CheckResult, Monitor } from '../api';
 import type { NotificationHistoryEntry } from '@uptime-monitor/shared';
 import {
@@ -17,10 +17,22 @@ interface StatsResponse {
     overallAvgResponseMs?: number;
 }
 
-const PAGE_SIZE = 50;
+interface ChartPoint {
+    index: number;
+    time: string;
+    timeLabel: string;
+    timestampMs: number;
+    responseTime: number;
+    isUp: boolean;
+    statusCode: number | null;
+}
+
+const DEFAULT_PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 const DEFAULT_INTERVAL_SECONDS = 60;
 const MAX_CHART_POINTS = 100000;
+const MAX_RENDERED_CHART_POINTS = 1800;
 
 function estimateChartPointLimit(
     range: TimeRangeValue,
@@ -51,6 +63,43 @@ function formatChartTick(timestampMs: number, spanMs: number): string {
     }
 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function downsampleChartData(points: ChartPoint[], maxPoints: number): ChartPoint[] {
+    if (points.length <= maxPoints) {
+        return points;
+    }
+
+    const first = points[0];
+    const last = points[points.length - 1];
+    const middle = points.slice(1, -1);
+    const bucketCount = Math.max(1, Math.floor((maxPoints - 2) / 2));
+    const bucketSize = Math.max(1, Math.ceil(middle.length / bucketCount));
+    const sampled: ChartPoint[] = [first];
+
+    for (let index = 0; index < middle.length; index += bucketSize) {
+        const bucket = middle.slice(index, index + bucketSize);
+        if (bucket.length === 0) continue;
+
+        const firstFailure = bucket.find((point) => !point.isUp) ?? null;
+        const peak = bucket.reduce((highest, point) => (
+            point.responseTime >= highest.responseTime ? point : highest
+        ), bucket[0]);
+
+        const bucketPoints = [firstFailure, peak]
+            .filter((point): point is ChartPoint => point !== null)
+            .sort((a, b) => a.timestampMs - b.timestampMs)
+            .filter((point, pointIndex, allPoints) => pointIndex === 0 || point !== allPoints[pointIndex - 1]);
+
+        sampled.push(...bucketPoints);
+    }
+
+    sampled.push(last);
+
+    return sampled
+        .sort((a, b) => a.timestampMs - b.timestampMs)
+        .filter((point, pointIndex, allPoints) => pointIndex === 0 || point !== allPoints[pointIndex - 1])
+        .map((point, pointIndex) => ({ ...point, index: pointIndex }));
 }
 
 function getChartTickIntervalMs(spanMs: number): number {
@@ -131,12 +180,44 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const [recentNotifications, setRecentNotifications] = useState<NotificationHistoryEntry[]>([]);
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<TimeRangeValue>(DEFAULT_TIME_RANGE);
     const [chartSelection, setChartSelection] = useState<{ startIndex: number | null; endIndex: number | null }>({
         startIndex: null,
         endIndex: null,
     });
+    const deferredChartResults = useDeferredValue(chartResults);
+    const rawChartData = useMemo(() => {
+        const spanMs = deferredChartResults.length > 1
+            ? Math.abs(new Date(deferredChartResults[0].timestamp).getTime() - new Date(deferredChartResults[deferredChartResults.length - 1].timestamp).getTime())
+            : 0;
+
+        return [...deferredChartResults].reverse().map((r, index) => ({
+            index,
+            time: formatChartTick(new Date(r.timestamp).getTime(), spanMs),
+            timeLabel: new Date(r.timestamp).toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+            timestampMs: new Date(r.timestamp).getTime(),
+            responseTime: r.responseTimeMs,
+            isUp: r.isUp,
+            statusCode: r.statusCode,
+        }));
+    }, [deferredChartResults]);
+    const chartData = useMemo(() => downsampleChartData(rawChartData, MAX_RENDERED_CHART_POINTS), [rawChartData]);
+    const chartSpanMs = chartData.length > 1
+        ? chartData[chartData.length - 1].timestampMs - chartData[0].timestampMs
+        : 0;
+    const chartDataWithFormattedTicks = useMemo(() => chartData.map((point, index) => ({
+        ...point,
+        index,
+        time: formatChartTick(point.timestampMs, chartSpanMs),
+    })), [chartData, chartSpanMs]);
+    const chartTickIndexes = useMemo(() => buildChartTickIndexes(chartDataWithFormattedTicks, chartSpanMs), [chartDataWithFormattedTicks, chartSpanMs]);
 
     const fetchHistory = useCallback(async () => {
         if (!monitorId) return;
@@ -146,13 +227,14 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             const monitorRes = await monitorsApi.get<Monitor>(`/${monitorId}`);
             const chartLimit = estimateChartPointLimit(timeRange, monitorRes.data.intervalSeconds);
 
-            let statsUrl = `/${monitorId}/stats?limit=${PAGE_SIZE}&offset=${offset}`;
+            let statsUrl = `/${monitorId}/stats?limit=${pageSize}&offset=${offset}`;
             if (from) statsUrl += `&from=${from}`;
             if (to) statsUrl += `&to=${to}`;
 
             let chartUrl = `/${monitorId}/stats?limit=${chartLimit}&offset=0`;
             if (from) chartUrl += `&from=${from}`;
             if (to) chartUrl += `&to=${to}`;
+            chartUrl += `&sampleTo=${MAX_RENDERED_CHART_POINTS}`;
 
             const [statsRes, chartRes] = await Promise.all([
                 monitorsApi.get<StatsResponse>(statsUrl),
@@ -180,7 +262,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, monitorId, offset, timeRange]);
+    }, [isAdmin, monitorId, offset, pageSize, timeRange]);
 
     useEffect(() => {
         fetchHistory();
@@ -190,6 +272,11 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         setTimeRange(newRange);
         setOffset(0);
         setChartSelection({ startIndex: null, endIndex: null });
+    };
+
+    const handlePageSizeChange = (nextSize: number) => {
+        setPageSize(nextSize);
+        setOffset(0);
     };
 
     const handleResetZoom = () => {
@@ -211,27 +298,9 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         );
     }
 
-    const chartSpanMs = chartResults.length > 1
-        ? Math.abs(new Date(chartResults[0].timestamp).getTime() - new Date(chartResults[chartResults.length - 1].timestamp).getTime())
-        : 0;
-    const chartData = [...chartResults].reverse().map((r, index) => ({
-        index,
-        time: formatChartTick(new Date(r.timestamp).getTime(), chartSpanMs),
-        timeLabel: new Date(r.timestamp).toLocaleString([], {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        }),
-        timestampMs: new Date(r.timestamp).getTime(),
-        responseTime: r.responseTimeMs,
-        isUp: r.isUp,
-        statusCode: r.statusCode,
-    }));
     const hasChartSelection = chartSelection.startIndex !== null && chartSelection.endIndex !== null;
     const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
     const chartSelectionEnd = hasChartSelection ? Math.max(chartSelection.startIndex!, chartSelection.endIndex!) : null;
-    const chartTickIndexes = buildChartTickIndexes(chartData, chartSpanMs);
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
@@ -281,8 +350,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 }
         : null;
 
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-    const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+    const totalPages = Math.ceil(total / pageSize);
+    const currentPage = Math.floor(offset / pageSize) + 1;
     const isZoomedRange = typeof timeRange === 'object';
     const latestStatus = !monitor.isActive
         ? 'paused'
@@ -350,8 +419,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
         const minIndex = Math.min(chartSelection.startIndex, chartSelection.endIndex);
         const maxIndex = Math.max(chartSelection.startIndex, chartSelection.endIndex);
-        const fromPoint = chartData[minIndex];
-        const toPoint = chartData[maxIndex];
+        const fromPoint = chartDataWithFormattedTicks[minIndex];
+        const toPoint = chartDataWithFormattedTicks[maxIndex];
 
         if (!fromPoint || !toPoint) {
             setChartSelection({ startIndex: null, endIndex: null });
@@ -524,7 +593,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     <div className="history-chart-shell history-chart-zoomable">
                         <ResponsiveContainer width="100%" height={300}>
                         <AreaChart
-                            data={chartData}
+                            data={chartDataWithFormattedTicks}
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                             onMouseDown={handleChartMouseDown}
                             onMouseMove={handleChartMouseMove}
@@ -548,7 +617,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 tickFormatter={(value) => {
                                     const numericValue = Number(value);
                                     if (!Number.isFinite(numericValue)) return '';
-                                    return chartData[numericValue]?.time ?? '';
+                                    return chartDataWithFormattedTicks[numericValue]?.time ?? '';
                                 }}
                             />
                             <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}ms`} />
@@ -568,7 +637,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 stroke="#3b82f6"
                                 strokeWidth={2}
                                 fill="url(#responseGrad)"
-                                dot={(props: any) => {
+                                isAnimationActive={false}
+                                dot={chartDataWithFormattedTicks.length <= 1200 ? ((props: any) => {
                                     const { cx, cy, payload } = props;
                                     if (!payload.isUp) {
                                         return (
@@ -583,7 +653,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                         );
                                     }
                                     return <circle key={`dot-${cx}-${cy}`} r={0} />;
-                                }}
+                                }) : false}
                             />
                         </AreaChart>
                         </ResponsiveContainer>
@@ -642,27 +712,36 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             ))}
                         </div>
 
-                        {totalPages > 1 && (
-                            <div className="pagination">
-                                <button
-                                    className="btn btn-sm btn-secondary"
-                                    disabled={offset === 0}
-                                    onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                        <div className="pagination">
+                            <label className="pagination-size-control">
+                                <span>Rows</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={(event) => handlePageSizeChange(Number(event.target.value))}
                                 >
-                                    ← Prev
-                                </button>
-                                <span className="pagination-info">
-                                    Page {currentPage} of {totalPages}
-                                </span>
-                                <button
-                                    className="btn btn-sm btn-secondary"
-                                    disabled={offset + PAGE_SIZE >= total}
-                                    onClick={() => setOffset(offset + PAGE_SIZE)}
-                                >
-                                    Next →
-                                </button>
-                            </div>
-                        )}
+                                    {PAGE_SIZE_OPTIONS.map((option) => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <button
+                                className="btn btn-sm btn-secondary"
+                                disabled={offset === 0}
+                                onClick={() => setOffset(Math.max(0, offset - pageSize))}
+                            >
+                                ← Prev
+                            </button>
+                            <span className="pagination-info">
+                                Page {currentPage} of {Math.max(1, totalPages)}
+                            </span>
+                            <button
+                                className="btn btn-sm btn-secondary"
+                                disabled={offset + pageSize >= total}
+                                onClick={() => setOffset(offset + pageSize)}
+                            >
+                                Next →
+                            </button>
+                        </div>
                     </>
                 )}
             </div>

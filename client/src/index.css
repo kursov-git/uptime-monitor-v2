@@ -2694,6 +2694,7 @@ tr:hover td {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-top: 20px;
 }
@@ -2701,6 +2702,25 @@ tr:hover td {
 .pagination-info {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
+}
+
+.pagination-size-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pagination-size-control select {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 154, 141, 0.24);
+  background: rgba(248, 251, 249, 0.96);
+  color: var(--color-text);
+  font-size: 0.84rem;
 }
 
 /* Monitor History */

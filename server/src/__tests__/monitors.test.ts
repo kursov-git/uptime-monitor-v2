@@ -226,6 +226,41 @@ describe('Monitors API (Integration)', () => {
         expect(data.total).toBe(1205);
     });
 
+    it('should downsample chart history when sampleTo is provided', async () => {
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'Sampled History',
+                url: 'https://sampled-history.example.com',
+                method: 'GET',
+                intervalSeconds: 10,
+            },
+        });
+
+        const baseTime = new Date('2026-04-02T00:00:00.000Z').getTime();
+        await prisma.checkResult.createMany({
+            data: Array.from({ length: 2400 }, (_, index) => ({
+                monitorId: monitor.id,
+                isUp: index % 211 !== 0,
+                responseTimeMs: 150 + (index % 90),
+                statusCode: 200,
+                error: index % 211 === 0 ? 'Timeout' : null,
+                timestamp: new Date(baseTime + index * 10_000),
+            })),
+        });
+
+        const res = await app.inject({
+            method: 'GET',
+            url: `/api/monitors/${monitor.id}/stats?limit=5000&offset=0&sampleTo=300`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+        });
+
+        expect(res.statusCode).toBe(200);
+        const data = JSON.parse(res.body);
+        expect(data.total).toBe(2400);
+        expect(data.results.length).toBeLessThanOrEqual(300);
+        expect(data.results.length).toBeGreaterThan(50);
+    });
+
     it('should reject unauthenticated access', async () => {
         const res = await app.inject({
             method: 'GET',
