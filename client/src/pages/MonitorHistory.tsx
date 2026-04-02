@@ -19,6 +19,39 @@ interface StatsResponse {
 
 const PAGE_SIZE = 50;
 const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
+const DEFAULT_INTERVAL_SECONDS = 60;
+const MAX_CHART_POINTS = 12000;
+
+function estimateChartPointLimit(
+    range: TimeRangeValue,
+    intervalSeconds: number = DEFAULT_INTERVAL_SECONDS,
+): number {
+    const safeIntervalSeconds = Math.max(1, intervalSeconds || DEFAULT_INTERVAL_SECONDS);
+    const { from, to } = computeAbsoluteRange(range);
+
+    if (!from || !to || to <= from) {
+        return 1000;
+    }
+
+    const durationMs = to - from;
+    const expectedPoints = Math.ceil(durationMs / (safeIntervalSeconds * 1000)) + 4;
+
+    return Math.max(300, Math.min(MAX_CHART_POINTS, expectedPoints));
+}
+
+function formatChartTick(timestampMs: number, spanMs: number): string {
+    const date = new Date(timestampMs);
+
+    if (spanMs >= 3 * 24 * 60 * 60 * 1000) {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    if (spanMs >= 24 * 60 * 60 * 1000) {
+        return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 function getChartHoverIndex(state: any): number | null {
     const rawIndex = state?.activeTooltipIndex;
@@ -71,17 +104,18 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         try {
             setLoading(true);
             const { from, to } = computeAbsoluteRange(timeRange);
+            const monitorRes = await monitorsApi.get<Monitor>(`/${monitorId}`);
+            const chartLimit = estimateChartPointLimit(timeRange, monitorRes.data.intervalSeconds);
+
             let statsUrl = `/${monitorId}/stats?limit=${PAGE_SIZE}&offset=${offset}`;
             if (from) statsUrl += `&from=${from}`;
             if (to) statsUrl += `&to=${to}`;
 
-            let chartUrl = `/${monitorId}/stats?limit=1000&offset=0`;
+            let chartUrl = `/${monitorId}/stats?limit=${chartLimit}&offset=0`;
             if (from) chartUrl += `&from=${from}`;
             if (to) chartUrl += `&to=${to}`;
 
-            // Fetch monitor details as well since it's not passed as prop
-            const [monitorRes, statsRes, chartRes] = await Promise.all([
-                monitorsApi.get<Monitor>(`/${monitorId}`),
+            const [statsRes, chartRes] = await Promise.all([
                 monitorsApi.get<StatsResponse>(statsUrl),
                 monitorsApi.get<StatsResponse>(chartUrl),
             ]);
@@ -138,9 +172,12 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         );
     }
 
+    const chartSpanMs = chartResults.length > 1
+        ? Math.abs(new Date(chartResults[0].timestamp).getTime() - new Date(chartResults[chartResults.length - 1].timestamp).getTime())
+        : 0;
     const chartData = [...chartResults].reverse().map((r, index) => ({
         index,
-        time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: formatChartTick(new Date(r.timestamp).getTime(), chartSpanMs),
         timeLabel: new Date(r.timestamp).toLocaleString([], {
             month: 'short',
             day: 'numeric',
@@ -154,6 +191,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const hasChartSelection = chartSelection.startIndex !== null && chartSelection.endIndex !== null;
     const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
     const chartSelectionEnd = hasChartSelection ? Math.max(chartSelection.startIndex!, chartSelection.endIndex!) : null;
+    const xAxisTickStep = Math.max(1, Math.ceil(chartData.length / 8));
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
@@ -451,7 +489,13 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 stroke="#64748b"
                                 fontSize={11}
                                 tickLine={false}
-                                tickFormatter={(value) => chartData[value]?.time ?? ''}
+                                tickFormatter={(value) => {
+                                    const numericValue = Number(value);
+                                    if (!Number.isFinite(numericValue)) return '';
+                                    const isLast = numericValue === chartData.length - 1;
+                                    if (!isLast && numericValue % xAxisTickStep !== 0) return '';
+                                    return chartData[numericValue]?.time ?? '';
+                                }}
                             />
                             <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}ms`} />
                             <Tooltip content={<CustomTooltip />} />
