@@ -226,6 +226,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         timestampMs: new Date(r.timestamp).getTime(),
         responseTime: r.responseTimeMs,
         isUp: r.isUp,
+        statusCode: r.statusCode,
     }));
     const hasChartSelection = chartSelection.startIndex !== null && chartSelection.endIndex !== null;
     const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
@@ -312,10 +313,15 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         return (
             <div className="history-tooltip">
                 <div className="history-tooltip-time">{data.timeLabel}</div>
-                <div className={`history-tooltip-status ${data.isUp ? 'up' : 'down'}`}>
-                    {data.isUp ? '● UP' : '● DOWN'}
+                <div className="history-tooltip-grid">
+                    <div className={`history-tooltip-status ${data.isUp ? 'up' : 'down'}`}>
+                        {data.isUp ? '● UP' : '● DOWN'}
+                    </div>
+                    <div className="history-tooltip-value">{data.responseTime}ms</div>
+                    <div className="history-tooltip-meta">
+                        HTTP {data.statusCode ?? '—'}
+                    </div>
                 </div>
-                <div className="history-tooltip-value">{data.responseTime}ms</div>
             </div>
         );
     };
@@ -357,6 +363,15 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             to: new Date(toPoint.timestampMs),
             label: `${fromPoint.timeLabel} to ${toPoint.timeLabel}`,
         });
+    };
+
+    const handleChartDoubleClick = () => {
+        if (isZoomedRange) {
+            handleResetZoom();
+            return;
+        }
+
+        setChartSelection({ startIndex: null, endIndex: null });
     };
 
     return (
@@ -491,12 +506,11 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     <div>
                         <h2>Response Time</h2>
                         <p className="section-subtitle">
-                            Drag across the chart to zoom into an exact time window.
-                            {isZoomedRange ? ' The graph is currently showing a zoomed range.' : ''}
+                            Drag to zoom into an exact window. Double-click to reset.
                         </p>
                         {isZoomedRange && (
                             <div className="history-zoom-chip">
-                                Zoomed window: {resolveTimeRangeLabel(timeRange)}
+                                {resolveTimeRangeLabel(timeRange)}
                             </div>
                         )}
                     </div>
@@ -515,6 +529,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             onMouseDown={handleChartMouseDown}
                             onMouseMove={handleChartMouseMove}
                             onMouseUp={handleChartMouseUp}
+                            onDoubleClick={handleChartDoubleClick}
                         >
                             <defs>
                                 <linearGradient id="responseGrad" x1="0" y1="0" x2="0" y2="1">

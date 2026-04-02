@@ -2909,7 +2909,7 @@ tr:hover td {
 }
 
 .history-zoom-chip {
-  margin-top: 10px;
+  margin-top: 8px;
   display: inline-flex;
   align-items: center;
   min-height: 34px;
@@ -3093,14 +3093,21 @@ tr:hover td {
   background: rgba(255, 255, 255, 0.96);
   border: 1px solid #d8e1ea;
   border-radius: 16px;
-  padding: 10px 14px;
+  padding: 10px 12px;
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
 }
 
 .history-tooltip-time {
   font-size: 0.8rem;
   color: #63748a;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+
+.history-tooltip-grid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .history-tooltip-status.up {
@@ -3116,10 +3123,15 @@ tr:hover td {
 }
 
 .history-tooltip-value {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #102036;
-  margin-top: 2px;
+}
+
+.history-tooltip-meta {
+  font-size: 0.78rem;
+  color: #63748a;
+  white-space: nowrap;
 }
 
 .history-timestamp {
@@ -3159,10 +3171,18 @@ tr:hover td {
 @media (max-width: 768px) {
   .history-toolbar-actions {
     width: 100%;
+    gap: 10px;
   }
 
   .history-hero {
     grid-template-columns: 1fr;
+  }
+
+  .history-hero-card,
+  .history-status-card,
+  .history-section-card {
+    padding: 18px;
+    border-radius: 22px;
   }
 
   .history-summary-wrap .history-metric-grid {
@@ -3189,6 +3209,7 @@ tr:hover td {
   .history-ledger-row {
     grid-template-columns: 1fr;
     gap: 8px;
+    padding: 12px 14px;
   }
 
   .notification-ledger-row {
@@ -3202,6 +3223,20 @@ tr:hover td {
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
+  }
+
+  .history-zoom-chip {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    min-height: 38px;
+    padding: 8px 12px;
+    line-height: 1.35;
+  }
+
+  .history-tooltip-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
 

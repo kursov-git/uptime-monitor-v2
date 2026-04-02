@@ -29,6 +29,16 @@ function formatAbsoluteLabel(date: Date): string {
     return date.toISOString().replace('T', ' ').substring(0, 16);
 }
 
+function formatShortRangeLabel(from: Date, to: Date): string {
+    const sameDay = from.toDateString() === to.toDateString();
+
+    if (sameDay) {
+        return `${from.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${from.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → ${to.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    return `${from.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${from.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → ${to.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${to.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 export function formatDateTimeLocal(date: Date): string {
     const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return localDate.toISOString().slice(0, 16);
@@ -107,7 +117,7 @@ export const resolveTimeRangeLabel = (value: TimeRangeValue): string => {
         return found ? found.label : value;
     }
     if (value.label) return value.label;
-    return `${formatAbsoluteLabel(value.from)} to ${formatAbsoluteLabel(value.to)}`;
+    return formatShortRangeLabel(value.from, value.to);
 };
 
 export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | null; to: number | null } => {
