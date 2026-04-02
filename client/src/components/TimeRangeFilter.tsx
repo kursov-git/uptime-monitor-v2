@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Calendar, Search, Copy, Check } from 'lucide-react';
+import { Clock, Calendar, Search } from 'lucide-react';
 
 export type TimeRangeValue =
-    | string // quick range like 'now-5m'
-    | { from: Date; to: Date; label?: string }; // absolute range
+    | string
+    | { from: Date; to: Date; label?: string };
 
 interface TimeRangeFilterProps {
     value: TimeRangeValue;
     onChange: (value: TimeRangeValue) => void;
 }
+
+type RangeFieldMode = 'relative' | 'absolute';
 
 const QUICK_RANGES = [
     { value: 'now-5m', label: 'Last 5 minutes' },
@@ -23,16 +25,82 @@ const QUICK_RANGES = [
     { value: 'now-7d', label: 'Last 7 days' }
 ];
 
-// Helper to resolve range string to label
+const RELATIVE_RANGE_RE = /^now(?:-(\d+)([mhd]))?$/i;
+
+function formatAbsoluteLabel(date: Date): string {
+    return date.toISOString().replace('T', ' ').substring(0, 16);
+}
+
+export function formatDateTimeLocal(date: Date): string {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return localDate.toISOString().slice(0, 16);
+}
+
+export function parseRelativeTimeExpression(value: string, nowMs: number = Date.now()): Date | null {
+    const normalized = value.trim().toLowerCase();
+    const match = normalized.match(RELATIVE_RANGE_RE);
+    if (!match) return null;
+
+    if (!match[1] || !match[2]) {
+        return new Date(nowMs);
+    }
+
+    const amount = Number.parseInt(match[1], 10);
+    const unit = match[2];
+
+    let deltaMs = 0;
+    if (unit === 'm') deltaMs = amount * 60 * 1000;
+    if (unit === 'h') deltaMs = amount * 60 * 60 * 1000;
+    if (unit === 'd') deltaMs = amount * 24 * 60 * 60 * 1000;
+
+    if (!deltaMs) return null;
+
+    return new Date(nowMs - deltaMs);
+}
+
+export function parseAbsoluteTimeValue(value: string): Date | null {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+}
+
+export function resolveTimeInput(mode: RangeFieldMode, value: string, nowMs: number = Date.now()): Date | null {
+    if (mode === 'relative') {
+        return parseRelativeTimeExpression(value, nowMs);
+    }
+    return parseAbsoluteTimeValue(value);
+}
+
+function getFieldStateFromValue(value: TimeRangeValue): {
+    fromMode: RangeFieldMode;
+    toMode: RangeFieldMode;
+    fromInput: string;
+    toInput: string;
+} {
+    if (typeof value === 'object') {
+        return {
+            fromMode: 'absolute',
+            toMode: 'absolute',
+            fromInput: formatDateTimeLocal(value.from),
+            toInput: formatDateTimeLocal(value.to),
+        };
+    }
+
+    return {
+        fromMode: 'relative',
+        toMode: 'relative',
+        fromInput: value,
+        toInput: 'now',
+    };
+}
+
 export const resolveTimeRangeLabel = (value: TimeRangeValue): string => {
     if (typeof value === 'string') {
         const found = QUICK_RANGES.find(r => r.value === value);
         return found ? found.label : value;
     }
     if (value.label) return value.label;
-
-    const formatDate = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 16);
-    return `${formatDate(value.from)} to ${formatDate(value.to)}`;
+    return `${formatAbsoluteLabel(value.from)} to ${formatAbsoluteLabel(value.to)}`;
 };
 
 export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | null, to: number | null } => {
@@ -40,31 +108,23 @@ export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | nu
         return { from: value.from.getTime(), to: value.to.getTime() };
     }
 
-    const to = new Date().getTime();
-    const match = value.match(/^now-(\d+)([mhd])$/);
-    if (!match) return { from: null, to: null };
+    const to = Date.now();
+    const fromDate = parseRelativeTimeExpression(value, to);
+    if (!fromDate) return { from: null, to: null };
 
-    const amount = parseInt(match[1], 10);
-    const unit = match[2];
-
-    let ms = 0;
-    if (unit === 'm') ms = amount * 60 * 1000;
-    else if (unit === 'h') ms = amount * 60 * 60 * 1000;
-    else if (unit === 'd') ms = amount * 24 * 60 * 60 * 1000;
-
-    return { from: to - ms, to };
+    return { from: fromDate.getTime(), to };
 };
 
 export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Local state for the absolute range inputs
-    const [absFrom, setAbsFrom] = useState('');
-    const [absTo, setAbsTo] = useState('now');
+    const [fromMode, setFromMode] = useState<RangeFieldMode>('relative');
+    const [toMode, setToMode] = useState<RangeFieldMode>('relative');
+    const [fromInput, setFromInput] = useState('now-24h');
+    const [toInput, setToInput] = useState('now');
+    const [validationError, setValidationError] = useState('');
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -72,37 +132,47 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
                 setIsOpen(false);
             }
         };
+
         if (isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
+    useEffect(() => {
+        const next = getFieldStateFromValue(value);
+        setFromMode(next.fromMode);
+        setToMode(next.toMode);
+        setFromInput(next.fromInput);
+        setToInput(next.toInput);
+        setValidationError('');
+    }, [value, isOpen]);
+
     const handleQuickRange = (range: string) => {
         onChange(range);
+        setValidationError('');
         setIsOpen(false);
     };
 
-    const applyAbsoluteRange = () => {
-        try {
-            // Very basic parsing for demo purposes - assuming 'YYYY-MM-DDTHH:mm'
-            // Grafana supports "now" or "now-5m" in these fields too, but we'll stick to dates or "now"
-            let toDate = new Date();
-            if (absTo !== 'now') {
-                toDate = new Date(absTo);
-            }
+    const applyRange = () => {
+        const nowMs = Date.now();
+        const fromDate = resolveTimeInput(fromMode, fromInput, nowMs);
+        const toDate = resolveTimeInput(toMode, toInput, nowMs);
 
-            const fromDate = new Date(absFrom);
-
-            if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
-                onChange({ from: fromDate, to: toDate });
-                setIsOpen(false);
-            } else {
-                alert("Invalid date format. Please use the date picker.");
-            }
-        } catch (err) {
-            console.error(err);
+        if (!fromDate || !toDate) {
+            setValidationError('Use a valid relative expression like now-24h or choose an exact date and time.');
+            return;
         }
+
+        if (fromDate.getTime() >= toDate.getTime()) {
+            setValidationError('From must be earlier than To.');
+            return;
+        }
+
+        setValidationError('');
+        onChange({ from: fromDate, to: toDate });
+        setIsOpen(false);
     };
 
     const filteredRanges = QUICK_RANGES.filter(r =>
@@ -111,25 +181,9 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
 
     const displayLabel = resolveTimeRangeLabel(value);
 
-    // Prefill the 'from' value based on existing selection if it's absolute
-    useEffect(() => {
-        if (typeof value === 'object') {
-            // local ISO string roughly
-            const offsetFrom = new Date(value.from.getTime() - value.from.getTimezoneOffset() * 60000);
-            setAbsFrom(offsetFrom.toISOString().slice(0, 16));
-
-            const offsetTo = new Date(value.to.getTime() - value.to.getTimezoneOffset() * 60000);
-            setAbsTo(offsetTo.toISOString().slice(0, 16));
-        } else {
-            setAbsTo('now');
-            setAbsFrom(value);
-        }
-    }, [value, isOpen]);
-
-    const copyUrl = () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+    const browserZoneLabel = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(new Date());
+    const timezoneOffsetHours = Math.abs(new Date().getTimezoneOffset() / 60).toString().padStart(2, '0');
+    const timezoneOffsetSign = new Date().getTimezoneOffset() < 0 ? '+' : '-';
 
     return (
         <div className="time-range-container" ref={containerRef}>
@@ -137,6 +191,7 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
                 className="time-range-trigger"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
+                data-testid="time-range-trigger"
             >
                 <Clock size={16} className="strok-current" />
                 <span>{displayLabel}</span>
@@ -145,52 +200,105 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
             {isOpen && (
                 <div className="time-range-popover">
                     <div className="time-range-layout">
-
-                        {/* Left Col: Absolute Ranges */}
                         <div className="time-range-absolute">
-                            <h3>Absolute time range</h3>
-
-                            <div className="time-input-group">
-                                <label>From</label>
-                                <div className="time-input-wrapper">
-                                    <input
-                                        type={absFrom.startsWith('now') ? 'text' : 'datetime-local'}
-                                        value={absFrom}
-                                        onChange={e => setAbsFrom(e.target.value)}
-                                    />
-                                    {!absFrom.startsWith('now') && <Calendar size={14} className="input-icon" />}
+                            <div className="time-range-section-header">
+                                <div>
+                                    <h3>Custom range</h3>
+                                    <p>Mix relative expressions with exact timestamps in both fields.</p>
                                 </div>
                             </div>
 
                             <div className="time-input-group">
-                                <label>To</label>
+                                <div className="time-input-header">
+                                    <label htmlFor="time-range-from">From</label>
+                                    <div className="time-mode-toggle">
+                                        <button
+                                            type="button"
+                                            className={fromMode === 'relative' ? 'active' : ''}
+                                            onClick={() => setFromMode('relative')}
+                                        >
+                                            Relative
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={fromMode === 'absolute' ? 'active' : ''}
+                                            onClick={() => setFromMode('absolute')}
+                                        >
+                                            Absolute
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="time-input-wrapper">
+                                    {fromMode === 'relative' ? <Clock size={14} className="input-icon" /> : <Calendar size={14} className="input-icon" />}
                                     <input
-                                        type={absTo === 'now' ? 'text' : 'datetime-local'}
-                                        value={absTo}
-                                        onChange={e => setAbsTo(e.target.value)}
+                                        id="time-range-from"
+                                        type={fromMode === 'absolute' ? 'datetime-local' : 'text'}
+                                        value={fromInput}
+                                        onChange={e => setFromInput(e.target.value)}
+                                        placeholder={fromMode === 'absolute' ? undefined : 'now-24h'}
+                                        data-testid="time-range-from-input"
                                     />
-                                    {absTo !== 'now' && <Calendar size={14} className="input-icon" />}
+                                </div>
+                                <div className="time-input-help">
+                                    {fromMode === 'relative' ? 'Examples: now-15m, now-6h, now-7d' : 'Choose an exact browser-local date and time.'}
                                 </div>
                             </div>
+
+                            <div className="time-input-group">
+                                <div className="time-input-header">
+                                    <label htmlFor="time-range-to">To</label>
+                                    <div className="time-mode-toggle">
+                                        <button
+                                            type="button"
+                                            className={toMode === 'relative' ? 'active' : ''}
+                                            onClick={() => setToMode('relative')}
+                                        >
+                                            Relative
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={toMode === 'absolute' ? 'active' : ''}
+                                            onClick={() => setToMode('absolute')}
+                                        >
+                                            Absolute
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="time-input-wrapper">
+                                    {toMode === 'relative' ? <Clock size={14} className="input-icon" /> : <Calendar size={14} className="input-icon" />}
+                                    <input
+                                        id="time-range-to"
+                                        type={toMode === 'absolute' ? 'datetime-local' : 'text'}
+                                        value={toInput}
+                                        onChange={e => setToInput(e.target.value)}
+                                        placeholder={toMode === 'absolute' ? undefined : 'now'}
+                                        data-testid="time-range-to-input"
+                                    />
+                                </div>
+                                <div className="time-input-help">
+                                    {toMode === 'relative' ? 'Examples: now, now-5m, now-1h' : 'Choose an exact browser-local date and time.'}
+                                </div>
+                            </div>
+
+                            {validationError && (
+                                <div className="time-range-error" role="alert">
+                                    {validationError}
+                                </div>
+                            )}
 
                             <div className="time-range-actions">
-                                <button className="icon-btn" onClick={copyUrl} title="Copy link to clipboard">
-                                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                                </button>
-                                <button className="btn btn-primary apply-btn" onClick={applyAbsoluteRange}>
+                                <button className="btn btn-primary apply-btn" onClick={applyRange} data-testid="time-range-apply">
                                     Apply time range
                                 </button>
                             </div>
 
                             <div className="time-range-hint">
                                 <p>
-                                    Set a custom absolute time range to analyze a specific window.
+                                    Tip: drag across the response-time chart to populate an exact absolute range automatically.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Right Col: Quick Ranges */}
                         <div className="time-range-quick">
                             <div className="time-range-search">
                                 <Search size={14} />
@@ -217,15 +325,14 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
                                 )}
                             </div>
                         </div>
-
                     </div>
 
                     <div className="time-range-footer">
                         <span className="browser-time">
-                            <strong>Browser Time</strong> {new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(new Date())}
+                            <strong>Browser Time</strong> {browserZoneLabel}
                         </span>
                         <span className="utc-offset">
-                            UTC{new Date().getTimezoneOffset() < 0 ? '+' : '-'}{Math.abs(new Date().getTimezoneOffset() / 60).toString().padStart(2, '0')}:00
+                            UTC{timezoneOffsetSign}{timezoneOffsetHours}:00
                         </span>
                     </div>
                 </div>

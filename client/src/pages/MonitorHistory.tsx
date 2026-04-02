@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { monitorsApi, apiClient, CheckResult, Monitor } from '../api';
 import type { NotificationHistoryEntry } from '@uptime-monitor/shared';
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea
 } from 'recharts';
 import { useParams, useNavigate } from 'react-router-dom';
 import TimeRangeFilter, { TimeRangeValue, computeAbsoluteRange } from '../components/TimeRangeFilter';
@@ -50,6 +50,10 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const [offset, setOffset] = useState(0);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<TimeRangeValue>('now-1h');
+    const [chartSelection, setChartSelection] = useState<{ startIndex: number | null; endIndex: number | null }>({
+        startIndex: null,
+        endIndex: null,
+    });
 
     const fetchHistory = useCallback(async () => {
         if (!monitorId) return;
@@ -101,6 +105,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const handleTimeRangeChange = (newRange: TimeRangeValue) => {
         setTimeRange(newRange);
         setOffset(0);
+        setChartSelection({ startIndex: null, endIndex: null });
     };
 
     if (!monitor) {
@@ -116,11 +121,22 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         );
     }
 
-    const chartData = [...chartResults].reverse().map((r) => ({
+    const chartData = [...chartResults].reverse().map((r, index) => ({
+        index,
         time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeLabel: new Date(r.timestamp).toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        }),
+        timestampMs: new Date(r.timestamp).getTime(),
         responseTime: r.responseTimeMs,
         isUp: r.isUp,
     }));
+    const hasChartSelection = chartSelection.startIndex !== null && chartSelection.endIndex !== null;
+    const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
+    const chartSelectionEnd = hasChartSelection ? Math.max(chartSelection.startIndex!, chartSelection.endIndex!) : null;
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
@@ -200,13 +216,50 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         const data = payload[0].payload;
         return (
             <div className="history-tooltip">
-                <div className="history-tooltip-time">{data.time}</div>
+                <div className="history-tooltip-time">{data.timeLabel}</div>
                 <div className={`history-tooltip-status ${data.isUp ? 'up' : 'down'}`}>
                     {data.isUp ? '● UP' : '● DOWN'}
                 </div>
                 <div className="history-tooltip-value">{data.responseTime}ms</div>
             </div>
         );
+    };
+
+    const handleChartMouseDown = (state: any) => {
+        if (typeof state?.activeTooltipIndex !== 'number') return;
+        setChartSelection({ startIndex: state.activeTooltipIndex, endIndex: state.activeTooltipIndex });
+    };
+
+    const handleChartMouseMove = (state: any) => {
+        if (chartSelection.startIndex === null || typeof state?.activeTooltipIndex !== 'number') return;
+        setChartSelection((current) => ({ ...current, endIndex: state.activeTooltipIndex }));
+    };
+
+    const handleChartMouseUp = () => {
+        if (chartSelection.startIndex === null || chartSelection.endIndex === null) {
+            return;
+        }
+
+        if (chartSelection.startIndex === chartSelection.endIndex) {
+            setChartSelection({ startIndex: null, endIndex: null });
+            return;
+        }
+
+        const minIndex = Math.min(chartSelection.startIndex, chartSelection.endIndex);
+        const maxIndex = Math.max(chartSelection.startIndex, chartSelection.endIndex);
+        const fromPoint = chartData[minIndex];
+        const toPoint = chartData[maxIndex];
+
+        if (!fromPoint || !toPoint) {
+            setChartSelection({ startIndex: null, endIndex: null });
+            return;
+        }
+
+        handleTimeRangeChange({
+            from: new Date(fromPoint.timestampMs),
+            to: new Date(toPoint.timestampMs),
+            label: `${fromPoint.timeLabel} to ${toPoint.timeLabel}`,
+        });
     };
 
     return (
@@ -333,11 +386,20 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
             <div className="agents-section-card history-section-card">
                 <div className="section-header">
-                    <h2>Response Time</h2>
+                    <div>
+                        <h2>Response Time</h2>
+                        <p className="section-subtitle">Drag across the chart to set an exact time window.</p>
+                    </div>
                 </div>
                 {chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <AreaChart
+                            data={chartData}
+                            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                            onMouseDown={handleChartMouseDown}
+                            onMouseMove={handleChartMouseMove}
+                            onMouseUp={handleChartMouseUp}
+                        >
                             <defs>
                                 <linearGradient id="responseGrad" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -345,9 +407,24 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#d5e1ea" />
-                            <XAxis dataKey="time" stroke="#64748b" fontSize={11} tickLine={false} />
+                            <XAxis
+                                dataKey="index"
+                                stroke="#64748b"
+                                fontSize={11}
+                                tickLine={false}
+                                tickFormatter={(value) => chartData[value]?.time ?? ''}
+                            />
                             <YAxis stroke="#64748b" fontSize={11} tickLine={false} tickFormatter={(v) => `${v}ms`} />
                             <Tooltip content={<CustomTooltip />} />
+                            {chartSelectionStart !== null && chartSelectionEnd !== null && (
+                                <ReferenceArea
+                                    x1={chartSelectionStart}
+                                    x2={chartSelectionEnd}
+                                    fill="#9ec5ff"
+                                    fillOpacity={0.18}
+                                    strokeOpacity={0}
+                                />
+                            )}
                             <Area
                                 type="monotone"
                                 dataKey="responseTime"
