@@ -34,7 +34,7 @@ Roadmap policy:
 
 ## Current State Summary
 
-As of 2026-03-13:
+As of 2026-04-02:
 - control plane is production-ready and deployed in split-runtime mode
 - remote agents are deployed and reporting version `1.0.0`
 - public status page is live at `/status` with selected monitors, 24h uptime summary, and a derived incident timeline
