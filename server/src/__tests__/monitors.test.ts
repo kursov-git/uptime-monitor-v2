@@ -191,6 +191,41 @@ describe('Monitors API (Integration)', () => {
         expect(data[0].name).toBe('Exist');
     });
 
+    it('should return more than 1000 history rows for long monitor ranges', async () => {
+        const monitor = await prisma.monitor.create({
+            data: {
+                name: 'Dense History',
+                url: 'https://history.example.com',
+                method: 'GET',
+                intervalSeconds: 10,
+            },
+        });
+
+        const baseTime = new Date('2026-04-02T00:00:00.000Z').getTime();
+        await prisma.checkResult.createMany({
+            data: Array.from({ length: 1205 }, (_, index) => ({
+                monitorId: monitor.id,
+                isUp: true,
+                responseTimeMs: 200 + (index % 5),
+                statusCode: 200,
+                error: null,
+                timestamp: new Date(baseTime + index * 10_000),
+            })),
+        });
+
+        const res = await app.inject({
+            method: 'GET',
+            url: `/api/monitors/${monitor.id}/stats?limit=5000&offset=0`,
+            headers: { Authorization: `Bearer ${adminToken}` },
+        });
+
+        expect(res.statusCode).toBe(200);
+        const data = JSON.parse(res.body);
+        expect(data.limit).toBe(5000);
+        expect(data.results.length).toBe(1205);
+        expect(data.total).toBe(1205);
+    });
+
     it('should reject unauthenticated access', async () => {
         const res = await app.inject({
             method: 'GET',

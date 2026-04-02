@@ -9,6 +9,8 @@ import { agentSseService } from '../services/agentSse';
 import { encrypt, decrypt } from '../lib/crypto';
 import { serverEnv } from '../lib/env';
 
+const MAX_MONITOR_STATS_LIMIT = 100000;
+
 export default async function monitorRoutes(fastify: FastifyInstance) {
     const normalizeMonitorType = (type: string | undefined) => String(type || 'HTTP').toUpperCase();
     const normalizeDnsRecordType = (dnsRecordType: string | undefined) => String(dnsRecordType || 'A').toUpperCase();
@@ -197,7 +199,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         async (request, reply) => {
             const { id } = request.params;
 
-            const limit = Math.min(parseInt(request.query.limit || '100', 10), 1000);
+            const limit = Math.min(parseInt(request.query.limit || '100', 10), MAX_MONITOR_STATS_LIMIT);
 
             const monitor = await prisma.monitor.findUnique({
                 where: { id },
@@ -242,7 +244,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
         async (request, reply) => {
             const { id } = request.params;
 
-            const limit = Math.min(parseInt(request.query.limit || '100', 10), 1000);
+            const limit = Math.min(parseInt(request.query.limit || '100', 10), MAX_MONITOR_STATS_LIMIT);
             const offset = parseInt(request.query.offset || '0', 10);
             const { from, to } = request.query;
 

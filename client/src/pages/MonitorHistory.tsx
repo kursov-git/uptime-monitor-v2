@@ -20,7 +20,7 @@ interface StatsResponse {
 const PAGE_SIZE = 50;
 const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 const DEFAULT_INTERVAL_SECONDS = 60;
-const MAX_CHART_POINTS = 12000;
+const MAX_CHART_POINTS = 100000;
 
 function estimateChartPointLimit(
     range: TimeRangeValue,
