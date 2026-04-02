@@ -3,7 +3,15 @@ import { Calendar, Clock, RotateCcw } from 'lucide-react';
 
 export type TimeRangeValue =
     | string
-    | { from: Date; to: Date; label?: string };
+    | {
+        from: Date;
+        to: Date;
+        label?: string;
+        fromMode?: RangeFieldMode;
+        toMode?: RangeFieldMode;
+        fromInput?: string;
+        toInput?: string;
+    };
 
 interface TimeRangeFilterProps {
     value: TimeRangeValue;
@@ -87,10 +95,10 @@ function getFieldStateFromValue(value: TimeRangeValue): {
 } {
     if (typeof value === 'object') {
         return {
-            fromMode: 'absolute',
-            toMode: 'absolute',
-            fromInput: formatDateTimeLocal(value.from),
-            toInput: formatDateTimeLocal(value.to),
+            fromMode: value.fromMode ?? 'absolute',
+            toMode: value.toMode ?? 'absolute',
+            fromInput: value.fromInput ?? formatDateTimeLocal(value.from),
+            toInput: value.toInput ?? formatDateTimeLocal(value.to),
         };
     }
 
@@ -131,6 +139,28 @@ export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | nu
 
     return { from: fromDate.getTime(), to };
 };
+
+function buildRangeLabel(
+    fromMode: RangeFieldMode,
+    toMode: RangeFieldMode,
+    fromInput: string,
+    toInput: string,
+    fromDate: Date,
+    toDate: Date,
+): string | undefined {
+    if (fromMode === 'relative' && toMode === 'relative' && toInput.trim().toLowerCase() === 'now') {
+        const found = QUICK_RANGES.find((range) => range.value === fromInput.trim().toLowerCase());
+        if (found) {
+            return found.label;
+        }
+    }
+
+    if (fromMode === 'relative' || toMode === 'relative') {
+        return `${fromInput.trim()} → ${toInput.trim()}`;
+    }
+
+    return formatShortRangeLabel(fromDate, toDate);
+}
 
 export default function TimeRangeFilter({ value, onChange, canResetZoom = false, onResetZoom }: TimeRangeFilterProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -186,7 +216,15 @@ export default function TimeRangeFilter({ value, onChange, canResetZoom = false,
         }
 
         setValidationError('');
-        onChange({ from: fromDate, to: toDate });
+        onChange({
+            from: fromDate,
+            to: toDate,
+            label: buildRangeLabel(fromMode, toMode, fromInput, toInput, fromDate, toDate),
+            fromMode,
+            toMode,
+            fromInput,
+            toInput,
+        });
         setIsOpen(false);
     };
 

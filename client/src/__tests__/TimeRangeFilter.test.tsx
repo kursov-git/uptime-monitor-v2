@@ -49,7 +49,38 @@ describe('TimeRangeFilter', () => {
         expect(onChange).toHaveBeenCalledWith({
             from: new Date('2026-04-01T17:30:00.000Z'),
             to: new Date('2026-04-02T16:30:00.000Z'),
+            label: 'now-24h → now-1h',
+            fromMode: 'relative',
+            toMode: 'relative',
+            fromInput: 'now-24h',
+            toInput: 'now-1h',
         });
+    });
+
+    it('preserves relative field mode and inputs when reopening an applied relative range', () => {
+        const onChange = vi.fn();
+
+        render(
+            <TimeRangeFilter
+                value={{
+                    from: new Date('2026-04-01T17:30:00.000Z'),
+                    to: new Date('2026-04-02T16:30:00.000Z'),
+                    label: 'now-24h → now-1h',
+                    fromMode: 'relative',
+                    toMode: 'relative',
+                    fromInput: 'now-24h',
+                    toInput: 'now-1h',
+                }}
+                onChange={onChange}
+            />
+        );
+
+        fireEvent.click(screen.getByTestId('time-range-trigger'));
+
+        expect(screen.getByTestId('time-range-from-input')).toHaveValue('now-24h');
+        expect(screen.getByTestId('time-range-to-input')).toHaveValue('now-1h');
+        expect(screen.getAllByRole('button', { name: 'Relative' })[0]).toHaveClass('active');
+        expect(screen.getAllByRole('button', { name: 'Relative' })[1]).toHaveClass('active');
     });
 
     it('shows reset control for zoomed absolute ranges', () => {

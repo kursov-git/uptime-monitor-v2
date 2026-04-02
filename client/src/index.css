@@ -3489,14 +3489,23 @@ tr:hover td {
 }
 
 .time-range-actions .apply-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 164px;
   min-height: 42px;
-  background: var(--color-accent);
-  border: none;
+  background: linear-gradient(135deg, #1d9a5e, #15754c);
+  border: 1px solid rgba(21, 117, 76, 0.18);
   border-radius: 14px;
   color: #fff;
+  box-shadow: 0 14px 28px rgba(21, 117, 76, 0.22);
   font-weight: 600;
   cursor: pointer;
   padding: 0 18px;
+}
+
+.time-range-actions .apply-btn:hover {
+  background: linear-gradient(135deg, #18814f, #126541);
 }
 
 .time-range-hint {
