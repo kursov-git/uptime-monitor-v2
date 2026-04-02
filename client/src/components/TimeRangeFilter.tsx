@@ -24,6 +24,7 @@ const QUICK_RANGES = [
 ];
 
 const RELATIVE_RANGE_RE = /^now(?:-(\d+)([mhd]))?$/i;
+const ABSOLUTE_EDIT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 function formatAbsoluteLabel(date: Date): string {
     return date.toISOString().replace('T', ' ').substring(0, 16);
@@ -91,6 +92,16 @@ function getFieldStateFromValue(value: TimeRangeValue): {
             toMode: 'absolute',
             fromInput: formatDateTimeLocal(value.from),
             toInput: formatDateTimeLocal(value.to),
+        };
+    }
+
+    const { from, to } = computeAbsoluteRange(value);
+    if (from && to && to - from > ABSOLUTE_EDIT_THRESHOLD_MS) {
+        return {
+            fromMode: 'absolute',
+            toMode: 'absolute',
+            fromInput: formatDateTimeLocal(new Date(from)),
+            toInput: formatDateTimeLocal(new Date(to)),
         };
     }
 

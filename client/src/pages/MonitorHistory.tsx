@@ -17,7 +17,7 @@ interface StatsResponse {
     overallAvgResponseMs?: number;
 }
 
-const PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 const DEFAULT_INTERVAL_SECONDS = 60;
 const MAX_CHART_POINTS = 12000;
@@ -131,6 +131,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const [recentNotifications, setRecentNotifications] = useState<NotificationHistoryEntry[]>([]);
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<TimeRangeValue>(DEFAULT_TIME_RANGE);
     const [chartSelection, setChartSelection] = useState<{ startIndex: number | null; endIndex: number | null }>({
@@ -146,7 +147,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             const monitorRes = await monitorsApi.get<Monitor>(`/${monitorId}`);
             const chartLimit = estimateChartPointLimit(timeRange, monitorRes.data.intervalSeconds);
 
-            let statsUrl = `/${monitorId}/stats?limit=${PAGE_SIZE}&offset=${offset}`;
+            let statsUrl = `/${monitorId}/stats?limit=${pageSize}&offset=${offset}`;
             if (from) statsUrl += `&from=${from}`;
             if (to) statsUrl += `&to=${to}`;
 
@@ -180,7 +181,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         } finally {
             setLoading(false);
         }
-    }, [isAdmin, monitorId, offset, timeRange]);
+    }, [isAdmin, monitorId, offset, pageSize, timeRange]);
 
     useEffect(() => {
         fetchHistory();
@@ -190,6 +191,11 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         setTimeRange(newRange);
         setOffset(0);
         setChartSelection({ startIndex: null, endIndex: null });
+    };
+
+    const handlePageSizeChange = (nextPageSize: number) => {
+        setPageSize(nextPageSize);
+        setOffset(0);
     };
 
     const handleResetZoom = () => {
@@ -281,8 +287,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 }
         : null;
 
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-    const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+    const totalPages = Math.ceil(total / pageSize);
+    const currentPage = Math.floor(offset / pageSize) + 1;
     const isZoomedRange = typeof timeRange === 'object';
     const latestStatus = !monitor.isActive
         ? 'paused'
@@ -598,6 +604,21 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             <div className="agents-section-card history-section-card">
                 <div className="section-header">
                     <h2>Check Results</h2>
+                    <div className="history-section-controls">
+                        <label className="history-page-size">
+                            <span>Rows</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                            >
+                                {[25, 50, 100, 200].map((size) => (
+                                    <option key={size} value={size}>
+                                        {size}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
                 {loading ? (
                     <div className="empty-state" style={{ padding: '20px' }}>Loading...</div>
@@ -647,7 +668,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 <button
                                     className="btn btn-sm btn-secondary"
                                     disabled={offset === 0}
-                                    onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                                    onClick={() => setOffset(Math.max(0, offset - pageSize))}
                                 >
                                     ← Prev
                                 </button>
@@ -656,8 +677,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 </span>
                                 <button
                                     className="btn btn-sm btn-secondary"
-                                    disabled={offset + PAGE_SIZE >= total}
-                                    onClick={() => setOffset(offset + PAGE_SIZE)}
+                                    disabled={offset + pageSize >= total}
+                                    onClick={() => setOffset(offset + pageSize)}
                                 >
                                     Next →
                                 </button>
