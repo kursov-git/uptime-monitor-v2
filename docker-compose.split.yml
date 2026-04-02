@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
-    container_name: uptime-server-api
+    container_name: ${API_CONTAINER_NAME:-uptime-server-api}
     restart: unless-stopped
     environment:
       - DATABASE_URL=file:/data/uptime.db
@@ -41,7 +41,7 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
-    container_name: uptime-server-worker
+    container_name: ${WORKER_CONTAINER_NAME:-uptime-server-worker}
     restart: unless-stopped
     environment:
       - DATABASE_URL=file:/data/uptime.db
@@ -59,7 +59,7 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
-    container_name: uptime-server-retention
+    container_name: ${RETENTION_CONTAINER_NAME:-uptime-server-retention}
     restart: unless-stopped
     environment:
       - DATABASE_URL=file:/data/uptime.db
@@ -77,7 +77,7 @@ services:
     build:
       context: .
       dockerfile: ./server/Dockerfile
-    container_name: uptime-server-agent-offline
+    container_name: ${AGENT_OFFLINE_CONTAINER_NAME:-uptime-server-agent-offline}
     restart: unless-stopped
     environment:
       - DATABASE_URL=file:/data/uptime.db
@@ -96,7 +96,7 @@ services:
     build:
       context: .
       dockerfile: ./client/Dockerfile
-    container_name: uptime-client
+    container_name: ${CLIENT_CONTAINER_NAME:-uptime-client}
     restart: unless-stopped
     environment:
       - SSL_DOMAINS=${SSL_DOMAINS:-ping-agent.ru,www.ping-agent.ru}
@@ -106,8 +106,8 @@ services:
       - AGENT_ALLOWLIST=${AGENT_ALLOWLIST:-}
       - RUNTIME_HEALTH_ALLOWLIST=${RUNTIME_HEALTH_ALLOWLIST:-}
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CLIENT_HTTP_BIND:-80}:80"
+      - "${CLIENT_HTTPS_BIND:-443}:443"
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/lib/letsencrypt
@@ -115,7 +115,7 @@ services:
 
   certbot:
     image: certbot/certbot
-    container_name: certbot
+    container_name: ${CERTBOT_CONTAINER_NAME:-certbot}
     restart: unless-stopped
     environment:
       - SSL_DOMAINS=${SSL_DOMAINS:-ping-agent.ru,www.ping-agent.ru}
