@@ -129,7 +129,6 @@ describe('MonitorHistory', () => {
         expect(screen.getByText('Response Time')).toBeInTheDocument();
         expect(screen.getByText('Check Results')).toBeInTheDocument();
         expect(screen.getByText('Recent Notifications')).toBeInTheDocument();
-        expect(screen.getByText('Rows')).toBeInTheDocument();
         expect(screen.getByText('Authentication')).toBeInTheDocument();
         expect(screen.getAllByText('23 days left').length).toBeGreaterThan(0);
     });

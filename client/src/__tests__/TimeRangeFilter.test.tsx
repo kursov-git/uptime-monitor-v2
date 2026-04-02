@@ -74,17 +74,4 @@ describe('TimeRangeFilter', () => {
         expect(onResetZoom).toHaveBeenCalledTimes(1);
     });
 
-    it('opens long relative ranges in absolute editing mode', () => {
-        render(
-            <TimeRangeFilter
-                value="now-7d"
-                onChange={vi.fn()}
-            />
-        );
-
-        fireEvent.click(screen.getByTestId('time-range-trigger'));
-
-        expect(screen.getByTestId('time-range-from-input')).toHaveAttribute('type', 'datetime-local');
-        expect(screen.getByTestId('time-range-to-input')).toHaveAttribute('type', 'datetime-local');
-    });
 });

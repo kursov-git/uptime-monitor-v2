@@ -2900,40 +2900,6 @@ tr:hover td {
   padding: 22px;
 }
 
-.history-section-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.history-page-size {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 38px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(125, 154, 141, 0.18);
-  background: rgba(246, 250, 247, 0.94);
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.history-page-size span {
-  color: #6f8378;
-}
-
-.history-page-size select {
-  border: none;
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-}
-
 .history-chart-shell {
   position: relative;
 }
@@ -3217,11 +3183,6 @@ tr:hover td {
   .history-section-card {
     padding: 18px;
     border-radius: 22px;
-  }
-
-  .history-section-controls {
-    width: 100%;
-    justify-content: flex-start;
   }
 
   .history-summary-wrap .history-metric-grid {
