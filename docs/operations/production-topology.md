@@ -166,6 +166,11 @@ Operator-host note:
 - do not keep a second local control-plane runtime checkout under `/root/uptime-monitor`
 - that path was retired after an accidental local `80/443` exposure incident on the workspace host
 
+Live-host note:
+- the current deployment flow is direct-to-live after local verification
+- there is no supported staging promotion step on the control-plane host today
+- do not keep an extra checkout such as `/home/ubuntu/uptime-monitor-staging` on `onedashmsk`; it is not a true isolated staging stack and must not be treated as one
+
 ## Agent Update Workflow On Current Hosts
 
 For `cloudruvm1` and `ruvdskzn` today:

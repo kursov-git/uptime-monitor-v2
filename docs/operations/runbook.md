@@ -42,6 +42,11 @@ Workspace-host safety note:
 - do not keep or restart a second local compose runtime from `/root/uptime-monitor`
 - that stale path was retired after it accidentally exposed `80/tcp` and `443/tcp` on the workspace host
 
+Current rollout note:
+- there is no supported staging promotion step today
+- deploys go directly to the live control-plane host after local verification
+- do not keep a fake extra checkout such as `/home/ubuntu/uptime-monitor-staging` on the live host; it is not a real isolated staging environment and only creates operator confusion
+
 ## Health Checks
 
 ### API liveness

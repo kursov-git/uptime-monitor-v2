@@ -162,7 +162,8 @@ This is the current production pattern for the control plane.
 
 Operational note:
 - `docker compose -f docker-compose.split.yml up -d --build client` is the intended UI/nginx-only rollout path and should not recreate `uptime-server-api`
-- split compose container names and published client binds are overridable through env vars, so a staging checkout can run alongside live without name or port conflicts
+- the current supported deployment path is direct-to-live after local verification
+- split compose container names and published client binds are overridable through env vars only as future groundwork for an explicitly isolated staging stack
 
 ## Environment Variables
 

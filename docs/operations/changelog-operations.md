@@ -297,6 +297,15 @@ Operational notes:
 
 ### 2026-03-26
 
+#### Fake staging checkout removed from live host
+
+To keep the deployment path unambiguous on the control-plane host:
+
+- the unused `/home/ubuntu/uptime-monitor-staging` checkout on `onedashmsk` was removed
+- the current workflow remains direct-to-live after local verification
+- there is no supported staging promotion step today
+- any future staging environment must be a fully isolated stack, not an extra checkout on the live host
+
 #### Local runtime checkout retired on workspace host
 
 To prevent accidental local `80/tcp` and `443/tcp` exposure on the workspace host:
