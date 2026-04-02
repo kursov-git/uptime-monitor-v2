@@ -20,6 +20,16 @@ interface StatsResponse {
 const PAGE_SIZE = 50;
 const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 
+function getChartHoverIndex(state: any): number | null {
+    const rawIndex = state?.activeTooltipIndex;
+    if (rawIndex === null || rawIndex === undefined) return null;
+
+    const normalized = typeof rawIndex === 'number' ? rawIndex : Number(rawIndex);
+    if (!Number.isFinite(normalized)) return null;
+
+    return normalized;
+}
+
 function summarizeCheckError(error: string | null | undefined): string {
     if (!error) return 'Healthy response';
 
@@ -234,13 +244,15 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     };
 
     const handleChartMouseDown = (state: any) => {
-        if (typeof state?.activeTooltipIndex !== 'number') return;
-        setChartSelection({ startIndex: state.activeTooltipIndex, endIndex: state.activeTooltipIndex });
+        const hoverIndex = getChartHoverIndex(state);
+        if (hoverIndex === null) return;
+        setChartSelection({ startIndex: hoverIndex, endIndex: hoverIndex });
     };
 
     const handleChartMouseMove = (state: any) => {
-        if (chartSelection.startIndex === null || typeof state?.activeTooltipIndex !== 'number') return;
-        setChartSelection((current) => ({ ...current, endIndex: state.activeTooltipIndex }));
+        const hoverIndex = getChartHoverIndex(state);
+        if (chartSelection.startIndex === null || hoverIndex === null) return;
+        setChartSelection((current) => ({ ...current, endIndex: hoverIndex }));
     };
 
     const handleChartMouseUp = () => {
