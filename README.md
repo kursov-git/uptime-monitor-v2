@@ -86,6 +86,13 @@ docs/historical/        Historical rollout templates and trackers
 scripts/                Backup/restore, runtime diagnostics, agent install/update helpers
 ```
 
+## Screenshot Review Workflow
+
+For screenshot-based UI review during active work:
+- use `/home/skris/screenshots`
+- do not use or recreate `uptime-monitor-v2/screenshots`
+- treat screenshot artifacts as operator workspace files, not repository content
+
 ## Local Development
 
 ### Install

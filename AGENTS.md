@@ -183,6 +183,14 @@ When making changes, follow this sequence.
 5. Run the smallest relevant verification commands locally.
 6. Update documentation when behavior, deployment, or operations change.
 
+## Screenshot Workflow
+
+For visual review and screenshot-based feedback:
+- use `/home/skris/screenshots` as the shared screenshot drop zone
+- do not create or rely on `uptime-monitor-v2/screenshots`
+- treat `/home/skris/screenshots` as operator-owned workspace state, not repository content
+- do not commit screenshot review artifacts into this repository unless the user explicitly asks for that
+
 ## Hard Rules
 
 ### Never do these blindly
