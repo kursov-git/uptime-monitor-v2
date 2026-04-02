@@ -53,6 +53,45 @@ function formatChartTick(timestampMs: number, spanMs: number): string {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function getChartTickIntervalMs(spanMs: number): number {
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+
+    if (spanMs <= 90 * minute) return 5 * minute;
+    if (spanMs <= 3 * hour) return 15 * minute;
+    if (spanMs <= 6 * hour) return 30 * minute;
+    if (spanMs <= 24 * hour) return hour;
+    if (spanMs <= 3 * day) return 6 * hour;
+    if (spanMs <= 7 * day) return 12 * hour;
+    return day;
+}
+
+function buildChartTickIndexes(
+    chartData: Array<{ index: number; timestampMs: number }>,
+    spanMs: number,
+): number[] {
+    if (chartData.length <= 2) {
+        return chartData.map((point) => point.index);
+    }
+
+    const tickIntervalMs = getChartTickIntervalMs(spanMs);
+    const firstIndex = chartData[0].index;
+    const lastIndex = chartData[chartData.length - 1].index;
+    const ticks = new Set<number>([firstIndex, lastIndex]);
+    let previousBucket: number | null = null;
+
+    for (const point of chartData) {
+        const bucket = Math.floor(point.timestampMs / tickIntervalMs);
+        if (bucket !== previousBucket) {
+            ticks.add(point.index);
+            previousBucket = bucket;
+        }
+    }
+
+    return Array.from(ticks).sort((a, b) => a - b);
+}
+
 function getChartHoverIndex(state: any): number | null {
     const rawIndex = state?.activeTooltipIndex;
     if (rawIndex === null || rawIndex === undefined) return null;
@@ -191,7 +230,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const hasChartSelection = chartSelection.startIndex !== null && chartSelection.endIndex !== null;
     const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
     const chartSelectionEnd = hasChartSelection ? Math.max(chartSelection.startIndex!, chartSelection.endIndex!) : null;
-    const xAxisTickStep = Math.max(1, Math.ceil(chartData.length / 8));
+    const chartTickIndexes = buildChartTickIndexes(chartData, chartSpanMs);
 
     const uptimePercent = overallUptime;
     const avgResponseTime = overallAvgRes;
@@ -486,14 +525,14 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                             <CartesianGrid strokeDasharray="3 3" stroke="#d5e1ea" />
                             <XAxis
                                 dataKey="index"
+                                ticks={chartTickIndexes}
+                                interval={0}
                                 stroke="#64748b"
                                 fontSize={11}
                                 tickLine={false}
                                 tickFormatter={(value) => {
                                     const numericValue = Number(value);
                                     if (!Number.isFinite(numericValue)) return '';
-                                    const isLast = numericValue === chartData.length - 1;
-                                    if (!isLast && numericValue % xAxisTickStep !== 0) return '';
                                     return chartData[numericValue]?.time ?? '';
                                 }}
                             />
