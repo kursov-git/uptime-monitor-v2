@@ -176,6 +176,15 @@ Rules:
 - safe footer actions
 - closing outside the modal must not discard work
 
+### Time Range Controls
+
+Rules:
+- time range controls should keep relative and absolute editing as first-class modes
+- applying a relative window should preserve the relative inputs when the control is reopened
+- primary apply actions must remain visually obvious next to dismissive actions such as `Close`
+- quick ranges can coexist with custom `From` and `To`, but the control should not silently switch input modes after apply
+- chart-driven zoom should update the same range model instead of creating a parallel filter state
+
 ## Monitor Dashboard Rules
 
 The monitor dashboard is the canonical authenticated overview surface.
@@ -203,6 +212,18 @@ Carry over:
 Do not copy blindly:
 - public wording into internal operator flows
 - status-only layouts where internal pages need management controls
+
+## Monitor History Rules
+
+The monitor history page is the canonical detail surface for operational investigation.
+
+Rules:
+- the top range control supports both relative and absolute `From`/`To` inputs
+- drag on the response-time chart should zoom the same range state used by the picker
+- double-click on the chart should reset zoom
+- long windows should stay responsive by sampling chart data before rendering, while tabular check results remain paginated separately
+- `Check Results` should expose an explicit `Rows` selector alongside page navigation
+- chart labels should get sparser and more semantic as the window expands
 
 ## Delivered Rollout Result
 

@@ -9,6 +9,31 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-03-23
 
+## 2026-04-02
+
+### Monitor history range and chart responsiveness pass
+
+Host:
+- `onedashmsk`
+
+Changes:
+- fixed monitor-history range correctness for long windows by removing the old effective `1000`-row cap from `/api/monitors/:id/stats`
+- kept the monitor history page on the same relative/absolute time-range model instead of forcing applied relative ranges into absolute-only editing on reopen
+- restored explicit `Rows` selection for `Check Results`
+- added optional server-side sampling for history chart consumers so long windows such as `7 days` stay responsive without changing pagination totals
+- kept drag-to-zoom and reset behavior on the response-time chart while reducing browser-side rendering pressure
+
+Operational result:
+- `Last 7 days` and other long windows now request the full selected time window instead of silently collapsing to only the newest few hours
+- chart rendering stays significantly lighter on long intervals because the browser no longer receives or renders every raw point
+- operators can still inspect raw history through paginated ledger rows with a configurable page size
+
+Verification:
+- `server` targeted integration and contract tests passed
+- `client` targeted `TimeRangeFilter` and `MonitorHistory` tests passed
+- `server build` and `client build` passed
+- live rollout completed on `onedashmsk`
+
 ### Deployment zoo hygiene pass
 
 Repository:

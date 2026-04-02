@@ -60,6 +60,11 @@ Key responsibilities:
 - agent registration and lifecycle management
 - unauthenticated public status page rendering at `/status`
 
+Current monitor-history behavior:
+- the history range control supports both relative and absolute `From`/`To` editing
+- chart drag-selection updates the same range state used by the picker
+- long chart windows use server-assisted sampling so the browser does not try to render every raw check point
+
 Current UI rule:
 - durable visual and interaction rules now live in `docs/architecture/ui-design-system.md`
 - temporary redesign sequencing should live in `docs/plans/`, not in this architecture document
@@ -230,6 +235,18 @@ Important relationships:
 4. Builtin worker or remote agent sends the request body exactly as configured; the checker does not JSON-stringify it a second time.
 5. `GET` and `HEAD` monitors do not carry request bodies and clear that field on save.
 6. Result evaluation continues to use the ordinary expected-status and body-assertion pipeline.
+
+### Monitor History Flow
+
+1. Operator opens a monitor detail page and the client reads the current time range state.
+2. Client requests paginated result history from `GET /api/monitors/:id/stats`.
+3. The same endpoint can also serve the chart window with an optional `sampleTo` hint for long ranges.
+4. Server preserves full totals for uptime and pagination, but may return a sampled result set for chart rendering.
+5. Client renders:
+   - a zoomable response-time chart
+   - paginated check-result ledger rows
+   - a separate recent-notifications ledger
+6. Relative time ranges stay relative in the UI after apply; chart zoom produces an absolute range and can be reset back to the default window.
 
 ## Agent Protocol Details
 
