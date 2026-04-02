@@ -51,4 +51,26 @@ describe('TimeRangeFilter', () => {
             to: new Date('2026-04-02T16:30:00.000Z'),
         });
     });
+
+    it('shows reset control for zoomed absolute ranges', () => {
+        const onResetZoom = vi.fn();
+
+        render(
+            <TimeRangeFilter
+                value={{
+                    from: new Date('2026-04-02T16:00:00.000Z'),
+                    to: new Date('2026-04-02T17:00:00.000Z'),
+                    label: 'Zoomed range',
+                }}
+                onChange={vi.fn()}
+                canResetZoom
+                onResetZoom={onResetZoom}
+            />
+        );
+
+        fireEvent.click(screen.getByTestId('time-range-trigger'));
+        fireEvent.click(screen.getByRole('button', { name: 'Reset zoom' }));
+
+        expect(onResetZoom).toHaveBeenCalledTimes(1);
+    });
 });

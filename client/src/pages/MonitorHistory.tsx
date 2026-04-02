@@ -5,7 +5,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea
 } from 'recharts';
 import { useParams, useNavigate } from 'react-router-dom';
-import TimeRangeFilter, { TimeRangeValue, computeAbsoluteRange } from '../components/TimeRangeFilter';
+import TimeRangeFilter, { TimeRangeValue, computeAbsoluteRange, resolveTimeRangeLabel } from '../components/TimeRangeFilter';
 import { useAuth } from '../contexts/AuthContext';
 
 interface StatsResponse {
@@ -18,6 +18,7 @@ interface StatsResponse {
 }
 
 const PAGE_SIZE = 50;
+const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 
 function summarizeCheckError(error: string | null | undefined): string {
     if (!error) return 'Healthy response';
@@ -49,7 +50,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const [total, setTotal] = useState(0);
     const [offset, setOffset] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState<TimeRangeValue>('now-1h');
+    const [timeRange, setTimeRange] = useState<TimeRangeValue>(DEFAULT_TIME_RANGE);
     const [chartSelection, setChartSelection] = useState<{ startIndex: number | null; endIndex: number | null }>({
         startIndex: null,
         endIndex: null,
@@ -104,6 +105,12 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
     const handleTimeRangeChange = (newRange: TimeRangeValue) => {
         setTimeRange(newRange);
+        setOffset(0);
+        setChartSelection({ startIndex: null, endIndex: null });
+    };
+
+    const handleResetZoom = () => {
+        setTimeRange(DEFAULT_TIME_RANGE);
         setOffset(0);
         setChartSelection({ startIndex: null, endIndex: null });
     };
@@ -188,6 +195,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
     const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+    const isZoomedRange = typeof timeRange === 'object';
     const latestStatus = !monitor.isActive
         ? 'paused'
         : monitor.flappingState?.isFlapping
@@ -270,7 +278,12 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                     <p>Detailed response history, validation output, and recent notification delivery for a single monitor.</p>
                 </div>
                 <div className="history-toolbar-actions">
-                    <TimeRangeFilter value={timeRange} onChange={handleTimeRangeChange} />
+                    <TimeRangeFilter
+                        value={timeRange}
+                        onChange={handleTimeRangeChange}
+                        canResetZoom={isZoomedRange}
+                        onResetZoom={handleResetZoom}
+                    />
                     <button className="btn btn-secondary" onClick={onBack}>
                         ← Back
                     </button>
@@ -388,11 +401,25 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 <div className="section-header">
                     <div>
                         <h2>Response Time</h2>
-                        <p className="section-subtitle">Drag across the chart to set an exact time window.</p>
+                        <p className="section-subtitle">
+                            Drag across the chart to zoom into an exact time window.
+                            {isZoomedRange ? ' The graph is currently showing a zoomed range.' : ''}
+                        </p>
+                        {isZoomedRange && (
+                            <div className="history-zoom-chip">
+                                Zoomed window: {resolveTimeRangeLabel(timeRange)}
+                            </div>
+                        )}
                     </div>
+                    {isZoomedRange && (
+                        <button className="btn btn-secondary btn-sm" onClick={handleResetZoom}>
+                            Reset zoom
+                        </button>
+                    )}
                 </div>
                 {chartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <div className="history-chart-shell history-chart-zoomable">
+                        <ResponsiveContainer width="100%" height={300}>
                         <AreaChart
                             data={chartData}
                             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -449,7 +476,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 }}
                             />
                         </AreaChart>
-                    </ResponsiveContainer>
+                        </ResponsiveContainer>
+                    </div>
                 ) : (
                     <div className="empty-state" style={{ padding: '40px 20px' }}>
                         <p>No check results yet</p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Calendar, Search } from 'lucide-react';
+import { Calendar, Clock, RotateCcw } from 'lucide-react';
 
 export type TimeRangeValue =
     | string
@@ -8,21 +8,19 @@ export type TimeRangeValue =
 interface TimeRangeFilterProps {
     value: TimeRangeValue;
     onChange: (value: TimeRangeValue) => void;
+    canResetZoom?: boolean;
+    onResetZoom?: () => void;
 }
 
 type RangeFieldMode = 'relative' | 'absolute';
 
 const QUICK_RANGES = [
-    { value: 'now-5m', label: 'Last 5 minutes' },
     { value: 'now-15m', label: 'Last 15 minutes' },
-    { value: 'now-30m', label: 'Last 30 minutes' },
     { value: 'now-1h', label: 'Last 1 hour' },
     { value: 'now-3h', label: 'Last 3 hours' },
     { value: 'now-6h', label: 'Last 6 hours' },
-    { value: 'now-12h', label: 'Last 12 hours' },
     { value: 'now-24h', label: 'Last 24 hours' },
-    { value: 'now-2d', label: 'Last 2 days' },
-    { value: 'now-7d', label: 'Last 7 days' }
+    { value: 'now-7d', label: 'Last 7 days' },
 ];
 
 const RELATIVE_RANGE_RE = /^now(?:-(\d+)([mhd]))?$/i;
@@ -94,16 +92,25 @@ function getFieldStateFromValue(value: TimeRangeValue): {
     };
 }
 
+function getFieldHelp(mode: RangeFieldMode, field: 'from' | 'to'): string {
+    if (mode === 'absolute') {
+        return 'Exact browser-local date and time.';
+    }
+    return field === 'from'
+        ? 'Examples: now-15m, now-6h, now-7d'
+        : 'Examples: now, now-5m, now-1h';
+}
+
 export const resolveTimeRangeLabel = (value: TimeRangeValue): string => {
     if (typeof value === 'string') {
-        const found = QUICK_RANGES.find(r => r.value === value);
+        const found = QUICK_RANGES.find((r) => r.value === value);
         return found ? found.label : value;
     }
     if (value.label) return value.label;
     return `${formatAbsoluteLabel(value.from)} to ${formatAbsoluteLabel(value.to)}`;
 };
 
-export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | null, to: number | null } => {
+export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | null; to: number | null } => {
     if (typeof value === 'object') {
         return { from: value.from.getTime(), to: value.to.getTime() };
     }
@@ -115,15 +122,13 @@ export const computeAbsoluteRange = (value: TimeRangeValue): { from: number | nu
     return { from: fromDate.getTime(), to };
 };
 
-export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProps) {
+export default function TimeRangeFilter({ value, onChange, canResetZoom = false, onResetZoom }: TimeRangeFilterProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
     const [fromMode, setFromMode] = useState<RangeFieldMode>('relative');
     const [toMode, setToMode] = useState<RangeFieldMode>('relative');
     const [fromInput, setFromInput] = useState('now-24h');
     const [toInput, setToInput] = useState('now');
     const [validationError, setValidationError] = useState('');
-
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -175,15 +180,7 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
         setIsOpen(false);
     };
 
-    const filteredRanges = QUICK_RANGES.filter(r =>
-        r.label.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     const displayLabel = resolveTimeRangeLabel(value);
-
-    const browserZoneLabel = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(new Date());
-    const timezoneOffsetHours = Math.abs(new Date().getTimezoneOffset() / 60).toString().padStart(2, '0');
-    const timezoneOffsetSign = new Date().getTimezoneOffset() < 0 ? '+' : '-';
 
     return (
         <div className="time-range-container" ref={containerRef}>
@@ -199,15 +196,28 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
 
             {isOpen && (
                 <div className="time-range-popover">
-                    <div className="time-range-layout">
-                        <div className="time-range-absolute">
-                            <div className="time-range-section-header">
-                                <div>
-                                    <h3>Custom range</h3>
-                                    <p>Mix relative expressions with exact timestamps in both fields.</p>
-                                </div>
+                    <div className="time-range-panel">
+                        <div className="time-range-section-header">
+                            <div>
+                                <h3>Custom range</h3>
+                                <p>Use relative expressions or exact timestamps. Drag on the chart to zoom instantly.</p>
                             </div>
+                            {canResetZoom && onResetZoom && (
+                                <button
+                                    type="button"
+                                    className="time-range-reset"
+                                    onClick={() => {
+                                        onResetZoom();
+                                        setIsOpen(false);
+                                    }}
+                                >
+                                    <RotateCcw size={14} />
+                                    Reset zoom
+                                </button>
+                            )}
+                        </div>
 
+                        <div className="time-range-grid">
                             <div className="time-input-group">
                                 <div className="time-input-header">
                                     <label htmlFor="time-range-from">From</label>
@@ -234,14 +244,12 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
                                         id="time-range-from"
                                         type={fromMode === 'absolute' ? 'datetime-local' : 'text'}
                                         value={fromInput}
-                                        onChange={e => setFromInput(e.target.value)}
+                                        onChange={(e) => setFromInput(e.target.value)}
                                         placeholder={fromMode === 'absolute' ? undefined : 'now-24h'}
                                         data-testid="time-range-from-input"
                                     />
                                 </div>
-                                <div className="time-input-help">
-                                    {fromMode === 'relative' ? 'Examples: now-15m, now-6h, now-7d' : 'Choose an exact browser-local date and time.'}
-                                </div>
+                                <div className="time-input-help">{getFieldHelp(fromMode, 'from')}</div>
                             </div>
 
                             <div className="time-input-group">
@@ -270,70 +278,47 @@ export default function TimeRangeFilter({ value, onChange }: TimeRangeFilterProp
                                         id="time-range-to"
                                         type={toMode === 'absolute' ? 'datetime-local' : 'text'}
                                         value={toInput}
-                                        onChange={e => setToInput(e.target.value)}
+                                        onChange={(e) => setToInput(e.target.value)}
                                         placeholder={toMode === 'absolute' ? undefined : 'now'}
                                         data-testid="time-range-to-input"
                                     />
                                 </div>
-                                <div className="time-input-help">
-                                    {toMode === 'relative' ? 'Examples: now, now-5m, now-1h' : 'Choose an exact browser-local date and time.'}
-                                </div>
+                                <div className="time-input-help">{getFieldHelp(toMode, 'to')}</div>
                             </div>
+                        </div>
 
-                            {validationError && (
-                                <div className="time-range-error" role="alert">
-                                    {validationError}
-                                </div>
-                            )}
+                        {validationError && (
+                            <div className="time-range-error" role="alert">
+                                {validationError}
+                            </div>
+                        )}
 
+                        <div className="time-range-presets">
+                            {QUICK_RANGES.map((range) => (
+                                <button
+                                    key={range.value}
+                                    type="button"
+                                    className={`quick-range-chip ${value === range.value ? 'active' : ''}`}
+                                    onClick={() => handleQuickRange(range.value)}
+                                >
+                                    {range.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="time-range-bottom">
+                            <div className="time-range-hint">
+                                Drag across the response-time chart to zoom into an exact window.
+                            </div>
                             <div className="time-range-actions">
+                                <button type="button" className="btn btn-secondary" onClick={() => setIsOpen(false)}>
+                                    Close
+                                </button>
                                 <button className="btn btn-primary apply-btn" onClick={applyRange} data-testid="time-range-apply">
                                     Apply time range
                                 </button>
                             </div>
-
-                            <div className="time-range-hint">
-                                <p>
-                                    Tip: drag across the response-time chart to populate an exact absolute range automatically.
-                                </p>
-                            </div>
                         </div>
-
-                        <div className="time-range-quick">
-                            <div className="time-range-search">
-                                <Search size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Search quick ranges"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="quick-ranges-list">
-                                {filteredRanges.map(range => (
-                                    <button
-                                        key={range.value}
-                                        className={`quick-range-item ${value === range.value ? 'active' : ''}`}
-                                        onClick={() => handleQuickRange(range.value)}
-                                    >
-                                        {range.label}
-                                    </button>
-                                ))}
-                                {filteredRanges.length === 0 && (
-                                    <div className="quick-range-empty">No matching ranges</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="time-range-footer">
-                        <span className="browser-time">
-                            <strong>Browser Time</strong> {browserZoneLabel}
-                        </span>
-                        <span className="utc-offset">
-                            UTC{timezoneOffsetSign}{timezoneOffsetHours}:00
-                        </span>
                     </div>
                 </div>
             )}
