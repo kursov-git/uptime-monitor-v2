@@ -171,6 +171,8 @@ Operational note:
 - `docker compose -f docker-compose.split.yml up -d --build client` is the intended UI/nginx-only rollout path and should not recreate `uptime-server-api`
 - the current supported deployment path is direct-to-live after local verification
 - split compose container names and published client binds are overridable through env vars only as future groundwork for an explicitly isolated staging stack
+- in split-runtime SQLite deployments, only the `server` / `SERVER_ROLE=api` container should run Prisma migration + seed on startup; background roles must keep `DB_INIT_ON_START=false` to avoid `database is locked` restart loops
+- background roles should also wait for `server` health before startup so API-side migration completes before worker/retention/offline processes open the SQLite file
 
 ## Environment Variables
 
@@ -191,6 +193,7 @@ Defined and validated in `server/src/lib/env.ts`.
 | `LOG_LEVEL` | no | default `info`, `warn` in tests |
 | `LOG_FORMAT` | no | `pretty` in dev, `json` in prod |
 | `SERVER_ROLE` | no | default `all` |
+| `DB_INIT_ON_START` | no | `auto` by default; use `false` for split background roles on SQLite |
 | `ENCRYPTION_KEY` | operationally required in production | used for secret encryption |
 
 ### Agent

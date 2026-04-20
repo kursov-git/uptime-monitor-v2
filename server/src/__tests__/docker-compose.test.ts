@@ -21,6 +21,9 @@ describe('Docker Compose Smoke', () => {
         expect(compose).toContain('SERVER_ROLE=worker');
         expect(compose).toContain('SERVER_ROLE=retention');
         expect(compose).toContain('SERVER_ROLE=agent-offline-monitor');
+        expect(compose).toContain('DB_INIT_ON_START=true');
+        expect(compose).toContain('DB_INIT_ON_START=false');
+        expect(compose).toContain('condition: service_healthy');
         expect(compose).toContain('/health/runtime');
     });
 });

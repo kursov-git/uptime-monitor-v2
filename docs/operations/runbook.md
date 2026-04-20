@@ -36,6 +36,8 @@ Recommended defaults:
 - explicit `DATABASE_URL`
 - `TRUST_PROXY=true` when the API sits behind the `client` nginx reverse proxy
 - explicit edge allowlists once trusted operator/agent source ranges are known
+- `DB_INIT_ON_START=true` only for `server`; keep `DB_INIT_ON_START=false` for `worker`, `retention`, and `agent-offline-monitor` when using SQLite
+- keep background roles behind `depends_on: server: condition: service_healthy` so the API container finishes migration before split workers touch SQLite
 
 Workspace-host safety note:
 - use `/home/skris/uptime-monitor-v2` as the only local checkout
@@ -81,6 +83,8 @@ SQLite note:
   - `synchronous=NORMAL`
   - `busy_timeout=5000`
   - `foreign_keys=ON`
+- in split-runtime mode, Prisma migration + seed must run only from the API container; running startup DB init concurrently in background-role containers can lock SQLite and create restart loops
+- rollout order matters too: on SQLite, the API container must become healthy before `worker`, `retention`, and `agent-offline-monitor` are started or recreated
 - retention cleanup now runs in smaller batches with bounded retry on temporary
   `SQLITE_BUSY` lock collisions
 - SSE paths are proxied separately from ordinary `/api/` traffic with:

@@ -3,6 +3,35 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-04-20
+
+### Split-runtime SQLite startup fix
+
+Host:
+- `onedashmsk`
+
+Repository:
+- `uptime-monitor-v2`
+
+Changes:
+- changed the shared server image entrypoint so Prisma migrate + seed run only when `DB_INIT_ON_START=true` or when auto-resolved for `SERVER_ROLE=api/all`
+- pinned split-runtime compose defaults to:
+  - `server` -> `DB_INIT_ON_START=true`
+  - `worker` -> `DB_INIT_ON_START=false`
+  - `retention` -> `DB_INIT_ON_START=false`
+  - `agent-offline-monitor` -> `DB_INIT_ON_START=false`
+- changed split-runtime startup ordering so background roles wait for `server` health before startup
+- documented the SQLite split-runtime rule in the README and operations runbook
+
+Operational result:
+- background roles no longer fight over SQLite migration locks during container startup
+- `worker`, `retention`, and `agent-offline-monitor` can stay up instead of entering restart loops
+- builtin-worker history and offline-agent detection can resume normally after rollout
+
+Verification:
+- `server` targeted compose/role tests passed
+- split compose config rendered successfully
+
 ## 2026-03-19
 
 ## 2026-03-20

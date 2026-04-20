@@ -20,6 +20,7 @@ services:
       - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
       - AGENT_SSE_ENABLED=${AGENT_SSE_ENABLED:-true}
       - ENABLE_BUILTIN_WORKER=false
+      - DB_INIT_ON_START=true
       - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
     volumes:
       - db-data:/data
@@ -50,10 +51,12 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - DB_INIT_ON_START=false
     volumes:
       - db-data:/data
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
   retention:
     build:
@@ -68,10 +71,12 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - DB_INIT_ON_START=false
     volumes:
       - db-data:/data
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
   agent-offline-monitor:
     build:
@@ -87,10 +92,12 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
+      - DB_INIT_ON_START=false
     volumes:
       - db-data:/data
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
   client:
     build:
