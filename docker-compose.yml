@@ -12,6 +12,8 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - HOST=0.0.0.0
       - PORT=3000
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     expose:

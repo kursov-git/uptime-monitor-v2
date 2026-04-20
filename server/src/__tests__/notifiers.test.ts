@@ -7,6 +7,7 @@ import { ZulipNotifier } from '../services/zulip';
 vi.mock('axios', () => ({
     default: {
         post: vi.fn(),
+        isAxiosError: vi.fn((value) => Boolean(value?.isAxiosError)),
     },
 }));
 
@@ -24,6 +25,10 @@ describe('Notification Notifiers', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.unstubAllEnvs();
+        mockedPost.mockReset();
+        mockedSleep.mockReset();
+        mockedSleep.mockResolvedValue(undefined);
     });
 
     it('TelegramNotifier sends successfully on first attempt', async () => {
@@ -35,6 +40,7 @@ describe('Notification Notifiers', () => {
         expect(result).toEqual({ success: true });
         expect(mockedPost).toHaveBeenCalledTimes(1);
         expect(mockedPost.mock.calls[0][0]).toContain('/bottoken/sendMessage');
+        expect(mockedPost.mock.calls[0][2]).toEqual({ timeout: 5000 });
     });
 
     it('TelegramNotifier retries and returns error on final failure', async () => {
@@ -57,8 +63,37 @@ describe('Notification Notifiers', () => {
 
         const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
 
-        expect(result).toEqual({ success: false, error: 'Unknown error' });
+        expect(result).toEqual({ success: false, error: 'Telegram API returned ok=false' });
         expect(mockedPost).toHaveBeenCalledTimes(1);
+    });
+
+    it('TelegramNotifier supports TELEGRAM_API_BASE_URL override', async () => {
+        vi.stubEnv('TELEGRAM_API_BASE_URL', 'https://telegram-relay.internal/');
+        mockedPost.mockResolvedValueOnce({ data: { ok: true } } as any);
+        const notifier = new TelegramNotifier();
+
+        const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
+
+        expect(result).toEqual({ success: true });
+        expect(mockedPost.mock.calls[0][0]).toBe('https://telegram-relay.internal/bottoken/sendMessage');
+    });
+
+    it('TelegramNotifier does not retry on network egress timeout', async () => {
+        mockedPost.mockRejectedValueOnce({
+            isAxiosError: true,
+            code: 'ECONNABORTED',
+            message: 'timeout of 5000ms exceeded',
+        });
+        const notifier = new TelegramNotifier();
+
+        const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 3);
+
+        expect(result).toEqual({
+            success: false,
+            error: 'Telegram connect timeout via https://api.telegram.org; check host egress or set TELEGRAM_API_BASE_URL',
+        });
+        expect(mockedPost).toHaveBeenCalledTimes(1);
+        expect(mockedSleep).not.toHaveBeenCalled();
     });
 
     it('ZulipNotifier succeeds when API returns result=success', async () => {

@@ -97,6 +97,8 @@ SQLite note:
   - `X-Accel-Buffering: no`
 - if `agentSse.staleReplayRequests` starts climbing, treat it as reconnect-churn
   evidence and inspect recent agent/network logs
+- if Telegram notifications fail with connect timeout or `ENETUNREACH`, verify host egress to `api.telegram.org:443`
+  before changing application code; direct Telegram egress may be blocked by provider or routing, and `TELEGRAM_API_BASE_URL` exists for relay/proxy override
 
 ### Compose health snapshot
 
@@ -104,6 +106,19 @@ SQLite note:
 ./scripts/runtime-status.sh
 COMPOSE_FILE=docker-compose.split.yml ./scripts/runtime-status.sh
 ```
+
+### Post-deploy smoke-check
+
+```bash
+COMPOSE_FILE=docker-compose.split.yml BASE_URL=https://ping-agent.ru ./scripts/post-deploy-smoke-check.sh
+```
+
+Use this after every API or full-stack rollout.
+Minimum expected checks:
+- `docker compose ps -a` shows no `Restarting` control-plane containers
+- recent API logs do not show startup-loop errors such as repeated Prisma lock failures
+- `/health` and `/health/runtime` return `200`
+- external `/status` and `/api/public/status` return `200`
 
 ## Compose Operations
 

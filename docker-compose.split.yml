@@ -18,6 +18,8 @@ services:
       - ENABLE_BUILTIN_WORKER=false
       - DB_INIT_ON_START=true
       - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     command: ["node", "-e", "process.exit(0)"]
@@ -45,6 +47,8 @@ services:
       - ENABLE_BUILTIN_WORKER=false
       - DB_INIT_ON_START=false
       - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     expose:
@@ -78,6 +82,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - DB_INIT_ON_START=false
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     depends_on:
@@ -98,6 +104,8 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - DB_INIT_ON_START=false
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     depends_on:
@@ -119,6 +127,8 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
       - DB_INIT_ON_START=false
+      - TELEGRAM_API_BASE_URL=${TELEGRAM_API_BASE_URL:-}
+      - TELEGRAM_TIMEOUT_MS=${TELEGRAM_TIMEOUT_MS:-5000}
     volumes:
       - db-data:/data
     depends_on:

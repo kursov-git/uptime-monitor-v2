@@ -62,6 +62,7 @@ Implemented and working:
 - production JSON logging
 - centralized env validation
 - backup/restore scripts for SQLite compose deployments
+- post-deploy smoke-check script for split-runtime rollouts
 - CI parity across server, client, agent, and e2e
 
 Not yet implemented:
@@ -196,6 +197,8 @@ Defined and validated in `server/src/lib/env.ts`.
 | `LOG_FORMAT` | no | `pretty` in dev, `json` in prod |
 | `SERVER_ROLE` | no | default `all` |
 | `DB_INIT_ON_START` | no | `auto` by default; use `false` for split background roles on SQLite |
+| `TELEGRAM_API_BASE_URL` | no | override Telegram endpoint, useful for relay/proxy when direct egress is blocked |
+| `TELEGRAM_TIMEOUT_MS` | no | request timeout for Telegram sends, default `5000` |
 | `ENCRYPTION_KEY` | operationally required in production | used for secret encryption |
 
 ### Agent
