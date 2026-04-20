@@ -17,10 +17,13 @@ describe('Docker Compose Smoke', () => {
         const composePath = path.resolve(__dirname, '../../../docker-compose.split.yml');
         const compose = fs.readFileSync(composePath, 'utf8');
 
+        expect(compose).toContain('migrate:');
         expect(compose).toContain('SERVER_ROLE=api');
         expect(compose).toContain('SERVER_ROLE=worker');
         expect(compose).toContain('SERVER_ROLE=retention');
         expect(compose).toContain('SERVER_ROLE=agent-offline-monitor');
+        expect(compose).toContain('condition: service_completed_successfully');
+        expect(compose).toContain('command: ["node", "-e", "process.exit(0)"]');
         expect(compose).toContain('DB_INIT_ON_START=true');
         expect(compose).toContain('DB_INIT_ON_START=false');
         expect(compose).toContain('condition: service_healthy');

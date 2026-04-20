@@ -1,4 +1,27 @@
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    container_name: ${MIGRATE_CONTAINER_NAME:-uptime-server-migrate}
+    restart: "no"
+    environment:
+      - DATABASE_URL=file:/data/uptime.db
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - SERVER_ROLE=api
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
+      - AGENT_SSE_ENABLED=${AGENT_SSE_ENABLED:-true}
+      - ENABLE_BUILTIN_WORKER=false
+      - DB_INIT_ON_START=true
+      - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
+    volumes:
+      - db-data:/data
+    command: ["node", "-e", "process.exit(0)"]
+
   server:
     build:
       context: .
@@ -20,12 +43,15 @@ services:
       - ENABLE_AGENT_API=${ENABLE_AGENT_API:-true}
       - AGENT_SSE_ENABLED=${AGENT_SSE_ENABLED:-true}
       - ENABLE_BUILTIN_WORKER=false
-      - DB_INIT_ON_START=true
+      - DB_INIT_ON_START=false
       - ALLOW_PRIVATE_MONITOR_TARGETS=${ALLOW_PRIVATE_MONITOR_TARGETS:-false}
     volumes:
       - db-data:/data
     expose:
       - "3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [

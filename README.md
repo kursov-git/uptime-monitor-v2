@@ -159,6 +159,7 @@ Good for:
 ### `docker-compose.split.yml`
 Current recommended control-plane deployment.
 Includes:
+- `migrate` one-shot init job
 - `server` (`SERVER_ROLE=api`)
 - `worker`
 - `retention`
@@ -171,8 +172,9 @@ Operational note:
 - `docker compose -f docker-compose.split.yml up -d --build client` is the intended UI/nginx-only rollout path and should not recreate `uptime-server-api`
 - the current supported deployment path is direct-to-live after local verification
 - split compose container names and published client binds are overridable through env vars only as future groundwork for an explicitly isolated staging stack
-- in split-runtime SQLite deployments, only the `server` / `SERVER_ROLE=api` container should run Prisma migration + seed on startup; background roles must keep `DB_INIT_ON_START=false` to avoid `database is locked` restart loops
-- background roles should also wait for `server` health before startup so API-side migration completes before worker/retention/offline processes open the SQLite file
+- in split-runtime SQLite deployments, Prisma migration + seed now run in a dedicated one-shot `migrate` service before the API starts
+- `server`, `worker`, `retention`, and `agent-offline-monitor` should keep `DB_INIT_ON_START=false` so ordinary restarts do not rerun Prisma against a live SQLite file
+- background roles should also wait for `server` health before startup so the API is ready before worker/retention/offline processes start their loops
 
 ## Environment Variables
 

@@ -22,6 +22,7 @@ Compose file:
 - `docker-compose.split.yml`
 
 Services:
+- `migrate` -> one-shot Prisma migrate + seed
 - `server` -> `SERVER_ROLE=api`
 - `worker` -> `SERVER_ROLE=worker`
 - `retention` -> `SERVER_ROLE=retention`
@@ -36,8 +37,9 @@ Recommended defaults:
 - explicit `DATABASE_URL`
 - `TRUST_PROXY=true` when the API sits behind the `client` nginx reverse proxy
 - explicit edge allowlists once trusted operator/agent source ranges are known
-- `DB_INIT_ON_START=true` only for `server`; keep `DB_INIT_ON_START=false` for `worker`, `retention`, and `agent-offline-monitor` when using SQLite
-- keep background roles behind `depends_on: server: condition: service_healthy` so the API container finishes migration before split workers touch SQLite
+- keep `DB_INIT_ON_START=true` only for the one-shot `migrate` service; keep `DB_INIT_ON_START=false` for `server`, `worker`, `retention`, and `agent-offline-monitor` when using SQLite
+- keep `server` behind `depends_on: migrate: condition: service_completed_successfully`
+- keep background roles behind `depends_on: server: condition: service_healthy` so split workers do not touch SQLite before the API is up
 
 Workspace-host safety note:
 - use `/home/skris/uptime-monitor-v2` as the only local checkout
@@ -83,8 +85,9 @@ SQLite note:
   - `synchronous=NORMAL`
   - `busy_timeout=5000`
   - `foreign_keys=ON`
-- in split-runtime mode, Prisma migration + seed must run only from the API container; running startup DB init concurrently in background-role containers can lock SQLite and create restart loops
-- rollout order matters too: on SQLite, the API container must become healthy before `worker`, `retention`, and `agent-offline-monitor` are started or recreated
+- in split-runtime mode, Prisma migration + seed must run only from the dedicated one-shot `migrate` service; concurrent startup DB init from long-lived runtime containers can lock SQLite and create restart loops
+- in the current split compose, Prisma migration + seed are isolated in the one-shot `migrate` service; ordinary API restarts must not rerun Prisma
+- rollout order still matters: on SQLite, `migrate` must complete successfully, then the API container must become healthy, before `worker`, `retention`, and `agent-offline-monitor` are started or recreated
 - retention cleanup now runs in smaller batches with bounded retry on temporary
   `SQLITE_BUSY` lock collisions
 - SSE paths are proxied separately from ordinary `/api/` traffic with:
@@ -139,6 +142,11 @@ docker compose -f docker-compose.split.yml restart agent-offline-monitor
 ```bash
 docker compose -f docker-compose.split.yml up -d --build
 ```
+
+Expected startup order:
+- `migrate` completes successfully
+- `server` becomes healthy
+- `worker`, `retention`, and `agent-offline-monitor` start
 
 ## TLS And Let's Encrypt
 
