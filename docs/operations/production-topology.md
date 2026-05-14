@@ -215,7 +215,7 @@ Current production agents use:
 
 Current preferred workflow:
 1. update code locally
-   - use `/home/skris/uptime-monitor-v2` as the only workspace checkout on the operator host
+   - use `/home/skris/code/uptime-monitor-v2` as the only workspace checkout on the operator host
 2. run local verification
 3. back up control-plane SQLite DB
 4. sync code to control-plane host

@@ -4,6 +4,8 @@ This document is the short resume checklist for coming back to `uptime-monitor-v
 
 Use it before writing new code.
 
+**Last resumed: 2026-05-14.** Resume completed successfully by Claude Code via `claudeops` SSH user. All services healthy, docs refreshed. See `docs/operations/changelog-operations.md` (2026-05-14 entries) for the full record.
+
 ## 1. Rebuild Context
 
 Read these files first:
@@ -16,6 +18,7 @@ Read these files first:
 7. `docs/operations/runbook.md`
 8. `docs/product/lean-roadmap.md`
 9. `docs/product/strategic-roadmap.md`
+10. `docs/architecture/architectural-review-2026-05-14.md` (latest review)
 
 Goal:
 - restore repo context

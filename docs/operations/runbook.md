@@ -42,7 +42,7 @@ Recommended defaults:
 - keep background roles behind `depends_on: server: condition: service_healthy` so split workers do not touch SQLite before the API is up
 
 Workspace-host safety note:
-- use `/home/skris/uptime-monitor-v2` as the only local checkout
+- use `/home/skris/code/uptime-monitor-v2` as the only local checkout
 - do not keep or restart a second local compose runtime from `/root/uptime-monitor`
 - that stale path was retired after it accidentally exposed `80/tcp` and `443/tcp` on the workspace host
 

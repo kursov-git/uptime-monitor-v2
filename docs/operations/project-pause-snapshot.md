@@ -8,6 +8,12 @@ Snapshot date:
 Snapshot commit:
 - `45d448c2397d8157d2a86fa95fb6e49ed4e8e4e4`
 
+**Project resumed on 2026-05-14.**
+- resume commit: `45442c2`
+- infrastructure health check: all 5 control-plane services healthy, both agents ONLINE
+- new docs since resume: `docs/architecture/architectural-review-2026-05-14.md`, claudeops access section in topology, cluster telemetry reference in runbook
+- latest changelog: `docs/operations/changelog-operations.md` (2026-05-14 entries)
+
 Current project mode:
 - active codebase
 - production deployed
