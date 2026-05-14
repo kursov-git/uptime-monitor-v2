@@ -33,10 +33,6 @@ const QUICK_RANGES = [
 
 const RELATIVE_RANGE_RE = /^now(?:-(\d+)([mhd]))?$/i;
 
-function formatAbsoluteLabel(date: Date): string {
-    return date.toISOString().replace('T', ' ').substring(0, 16);
-}
-
 function formatShortRangeLabel(from: Date, to: Date): string {
     const sameDay = from.toDateString() === to.toDateString();
 
