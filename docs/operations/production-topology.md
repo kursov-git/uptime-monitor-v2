@@ -41,11 +41,20 @@ Claude deploy key.
 Operator alias:
 - `onedashmsk`
 
+SSH:
+- `ssh uptime-main` (from Pi workspace, port `2332`, user `claudeops`)
+
 Role:
 - primary control plane
 
 Current deployment mode:
 - `docker-compose.split.yml`
+
+Compose project location:
+- `/root/uptime-monitor/`
+- compose file: `/root/uptime-monitor/docker-compose.split.yml`
+- Docker commands require `sudo` for the `claudeops` user
+- `claudeops` home directory is intentionally clean; the compose project lives under `/root/`
 
 Services expected there:
 - `uptime-server-api`
@@ -53,6 +62,13 @@ Services expected there:
 - `uptime-server-retention`
 - `uptime-server-agent-offline`
 - `uptime-client`
+- `certbot`
+
+Docker volumes (production):
+- `uptime-monitor_db-data` — SQLite database
+- `uptime-monitor_certbot-etc` — Let's Encrypt certificates
+- `uptime-monitor_certbot-var` — certbot working state
+- `uptime-monitor_webroot` — ACME challenge webroot
 
 Public responsibilities:
 - browser UI
@@ -66,6 +82,26 @@ Public responsibilities:
 Operationally restricted surfaces:
 - `/health`
 - `/health/runtime`
+
+Current runtime telemetry (`/health/runtime`):
+- returns per-service health with a top-level `cluster` section aggregating all split-runtime containers
+- each service heartbeats its runtime state into a shared SQLite table; the API container reads the latest heartbeat from each role
+- `cluster.api` / `cluster.worker` / `cluster.retention` / `cluster.agentOfflineMonitor` — each reports `present`, `fresh`, `hostname`, `pid`, `startedAt`, `updatedAt`, and role-specific status
+- `cluster.worker.status` includes `scheduledMonitors`, `lastCheckMonitorId`, `lastCheckMonitorName`, `syncLoopActive`
+- `cluster.retention.status` includes `lastDeletedCheckResults`, `lastRetentionDays`, `lastBusyRetryCount`
+- `cluster.agentOfflineMonitor.status` includes `lastMarkedOfflineCount`
+- `streams.browserSse` and `streams.agentSse` report connection counts and event log stats
+- `caches.publicStatus` reports cache hit/miss/stale-serve counts with a 5-second TTL
+
+Observed production configuration (2026-05-14):
+- `SERVER_ROLE=api`, `DB_INIT_ON_START=false`, `ENABLE_BUILTIN_WORKER=false`
+- `TRUST_PROXY=true`, `LOG_FORMAT=json`, `LOG_LEVEL=info`
+- `ENABLE_AGENT_API=true`, `AGENT_SSE_ENABLED=true`
+- `CORS_ORIGINS=https://ping-agent.ru,https://www.ping-agent.ru`
+- `ALLOW_PRIVATE_MONITOR_TARGETS=false`
+- `DATABASE_URL=file:/data/uptime.db`
+- retention configured to 5 days (not the schema default of 30)
+- 2 builtin-worker monitors: `auth.alutech24.com`, `auth.alutech24.by`
 
 Edge hardening capabilities now available in the `client` nginx container:
 - `ADMIN_ALLOWLIST` for browser UI and non-agent `/api/*`
@@ -236,7 +272,30 @@ Before updating dockerized agents, create tar backups of:
 
 ## Diagnostics Checklist
 
-### Control plane
+### Control plane (claudeops user)
+
+Quick status:
+- `ssh uptime-main 'sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"'`
+
+Runtime health with cluster telemetry:
+- `ssh uptime-main 'sudo docker exec uptime-server-api node -e "fetch(\"http://127.0.0.1:3000/health/runtime\").then(r=>r.json()).then(d=>console.log(JSON.stringify(d,null,2)))"'`
+
+Compose service state (requires root):
+- `ssh uptime-main 'sudo docker ps --format "table {{.Names}}\t{{.Status}}"'`
+
+Disk usage:
+- `ssh uptime-main 'sudo docker exec uptime-server-api df -h /data'`
+
+Container logs:
+- `ssh uptime-main 'sudo docker logs --tail=50 uptime-server-worker'`
+- `ssh uptime-main 'sudo docker logs --tail=50 uptime-server-api'`
+
+Check recent agent activity:
+- look for `agentSse.currentClients: 2` in runtime health (both agents connected)
+- recent worker logs for check results via `sudo docker logs --tail=20 uptime-server-worker`
+
+### Control plane (legacy/root user, for reference)
+
 - `docker compose -f docker-compose.split.yml ps`
 - `./scripts/runtime-status.sh`
 - internal `/health`

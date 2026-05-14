@@ -53,14 +53,24 @@ Current rollout note:
 
 ## Health Checks
 
-### API liveness
+### API liveness (claudeops, from Pi)
+
+```bash
+ssh uptime-main 'sudo docker exec uptime-server-api node -e "fetch(\"http://127.0.0.1:3000/health\").then(r=>r.text()).then(console.log)"'
+```
+
+### Runtime health (claudeops, from Pi)
+
+```bash
+ssh uptime-main 'sudo docker exec uptime-server-api node -e "fetch(\"http://127.0.0.1:3000/health/runtime\").then(r=>r.json()).then(d=>console.log(JSON.stringify(d,null,2)))"'
+```
+
+### Legacy health checks (root on control plane)
 
 ```bash
 docker compose -f docker-compose.split.yml exec -T server \
   node -e "fetch('http://127.0.0.1:3000/health').then(r=>r.text()).then(console.log)"
 ```
-
-### Runtime health
 
 ```bash
 docker compose -f docker-compose.split.yml exec -T server \
@@ -68,20 +78,25 @@ docker compose -f docker-compose.split.yml exec -T server \
 ```
 
 Interpretation:
-- `serverRole` shows the active role of the API container
-- background service states in `/health/runtime` are per-process
-- `/health/runtime.cluster` now aggregates heartbeat snapshots across split-runtime roles:
-  - `api`
-  - `worker`
-  - `retention`
-  - `agentOfflineMonitor`
-- `/health/runtime` now also includes lightweight in-memory telemetry:
-  - browser SSE and agent SSE connection counters
-  - agent replay and stale-replay counters
-  - latest worker refresh/check metadata
-  - latest retention cleanup metadata, including batch count and SQLite lock retries
-  - latest agent-offline monitor metadata
-- in split runtime mode, use `cluster.*` for role presence/freshness and use the per-process `services.*` block to understand only the current container
+- `serverRole` shows the active role of the API container (`api` in split mode)
+- `status` top-level — `ok` when the API process itself is healthy
+- `runtime` — which subsystems are enabled in the current process (agentApiEnabled, agentSseEnabled, builtinWorkerEnabled)
+- `services.worker` / `services.retention` / `services.agentOfflineMonitor` — each reports `running: true|false` for the current process only; in split mode the API process correctly reports all three as `false`
+- `cluster.api` / `cluster.worker` / `cluster.retention` / `cluster.agentOfflineMonitor` — cross-process heartbeat snapshots:
+  - `present: true` — the role's container has heartbeated recently
+  - `fresh: true` — the heartbeat is within the freshness window
+  - `hostname`, `pid`, `startedAt`, `updatedAt` — container identity and timing
+  - `cluster.worker.status.scheduledMonitors` — how many monitors the builtin worker is scheduling
+  - `cluster.worker.status.lastCheckMonitorId` / `lastCheckMonitorName` — most recent check target
+  - `cluster.retention.status.lastRetentionDays` — current retention window (5 days in production)
+  - `cluster.retention.status.lastDeletedCheckResults` — deletions in the last retention cycle
+  - `cluster.retention.status.lastBusyRetryCount` — SQLite lock retries (non-zero means write contention)
+  - `cluster.agentOfflineMonitor.status.lastMarkedOfflineCount` — agents marked offline in last poll
+- `streams.browserSse.currentClients` — browser UI clients connected (1 in normal ops)
+- `streams.agentSse.currentClients` — agent SSE connections (2 expected for cloudruvm1 + ruvdskzn)
+- `streams.agentSse.totalDisconnected` — cumulative disconnections; spikes suggest network issues
+- `caches.publicStatus` — cache hit/miss/stale-serve counts; TTL is 5 seconds
+- `cluster` is the authoritative health view in split runtime; `services` only reflects the API process itself
 
 SQLite note:
 - server processes now apply SQLite session pragmas on startup:

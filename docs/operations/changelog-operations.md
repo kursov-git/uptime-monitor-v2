@@ -5,6 +5,30 @@ It is intended for future operators and AI agents that need a compact history of
 
 ## 2026-05-14
 
+### Infrastructure health check and documentation refresh
+
+Hosts:
+- `onedashmsk`
+- `cloudruvm1`
+- `ruvdskzn`
+
+Repository:
+- `uptime-monitor-v2`
+
+What was checked:
+- all 5 split-runtime services on the control plane: Up + healthy (34h uptime)
+- both remote agents: Up 2 weeks, SSE-connected to the control plane
+- `/health/runtime` cluster telemetry: all 4 roles present and fresh
+- worker: 2 builtin monitors running (`auth.alutech24.com`, `auth.alutech24.by`), all checks passing
+- retention: running with 5-day window, 953 records cleaned in last cycle, 0 SQLite busy retries
+- agent-offline-monitor: running, 0 agents marked offline
+- disk: 76G / 97G (79%) on control plane data volume
+
+Documentation updates:
+- `production-topology.md`: added compose project location (`/root/uptime-monitor`), docker volumes, cluster telemetry schema, observed production env vars, claudeops-compatible diagnostic commands
+- `runbook.md`: expanded runtime health interpretation with full cluster/stats/caches field reference, added claudeops-specific health check commands
+- `docs/architecture/architectural-review-2026-05-14.md`: new architectural review with 9 prioritized recommendations
+
 ### Claude Code VPS ops access
 
 Hosts:
