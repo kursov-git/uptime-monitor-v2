@@ -24,6 +24,8 @@ import { backfillLegacyApiKeys } from './services/apiKeys';
 import { SESSION_JWT_EXPIRES_IN } from './lib/auth';
 import { sseService } from './services/sse';
 import { agentSseService } from './services/agentSse';
+import { publicStatusService } from './services/publicStatus';
+import { getRuntimeClusterStatus, RuntimeStatusPublisher } from './services/runtimeClusterStatus';
 
 const env = serverEnv;
 
@@ -79,6 +81,10 @@ fastify.get('/health/runtime', async () => {
             browserSse: sseService.getStatus(),
             agentSse: agentSseService.getStatus(),
         },
+        caches: {
+            publicStatus: publicStatusService.getStatus(),
+        },
+        cluster: await getRuntimeClusterStatus(),
     };
 });
 
@@ -112,6 +118,22 @@ export async function initApp() {
 const worker = new CheckWorker(prisma);
 const retentionService = new RetentionService(prisma);
 const agentOfflineMonitorService = new AgentOfflineMonitorService();
+const runtimeStatusPublisher = new RuntimeStatusPublisher(env.serverRole, () => ({
+    serverRole: env.serverRole,
+    runtime: {
+        agentApiEnabled: env.enableAgentApi,
+        agentSseEnabled: env.agentSseEnabled,
+        builtinWorkerEnabled: env.enableBuiltinWorker,
+    },
+    services: {
+        worker: worker.getStatus(),
+        retention: retentionService.getStatus(),
+        agentOfflineMonitor: agentOfflineMonitorService.getStatus(),
+    },
+    caches: {
+        publicStatus: publicStatusService.getStatus(),
+    },
+}));
 let shutdownPromise: Promise<void> | null = null;
 
 async function startApiServer() {
@@ -170,6 +192,8 @@ async function start() {
             await startBackgroundRole(env.serverRole);
         }
 
+        await runtimeStatusPublisher.start();
+
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
@@ -187,6 +211,7 @@ async function shutdown(signal: string) {
         worker.stop();
         retentionService.stop();
         agentOfflineMonitorService.stop();
+        await runtimeStatusPublisher.stop();
         await fastify.close();
         await prisma.$disconnect();
         fastify.log.info('Server stopped');

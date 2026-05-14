@@ -60,6 +60,11 @@ Key responsibilities:
 - agent registration and lifecycle management
 - unauthenticated public status page rendering at `/status`
 
+Current public status runtime behavior:
+- `/api/public/status` is backed by a short-lived server snapshot cache
+- cached payload freshness budget is currently `5s`
+- the endpoint still returns the same public contract shape, but `generatedAt` reflects snapshot build time
+
 Current monitor-history behavior:
 - the history range control supports both relative and absolute `From`/`To` editing
 - chart drag-selection updates the same range state used by the picker
@@ -361,6 +366,7 @@ Returns:
 - active server role
 - runtime feature flags
 - status of worker, retention, and agent-offline-monitor services inside the current process
+- aggregated split-runtime role presence/freshness under `cluster`
 - lightweight runtime telemetry for:
   - browser SSE connections
   - agent SSE connections

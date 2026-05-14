@@ -3,7 +3,54 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-05-14
+
+### Claude Code VPS ops access
+
+Hosts:
+- `onedashmsk`
+- `cloudruvm1`
+- `ruvdskzn`
+
+Changes:
+- created a dedicated Pi-side SSH key for Claude Code uptime operations
+- created the `claudeops` user on all three uptime VPS hosts
+- granted `claudeops` `NOPASSWD:ALL` through `/etc/sudoers.d/90-claudeops`
+- allowed `claudeops` through the existing `AllowUsers` SSH policy with `/etc/ssh/sshd_config.d/98-claudeops-allowusers.conf`
+- added Pi SSH aliases for `uptime-main`, `uptime-agent-cloudruvm1`, and `uptime-agent-ruvdskzn`
+
+Operational result:
+- Claude Code on the Pi can deploy and maintain the control plane and remote agents without using the human admin SSH keys
+- access remains intentionally broad because these VPS nodes are service nodes without critical local data and can be reprovisioned
+
+Verification:
+- `ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'`
+- `ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'`
+- `ssh uptime-agent-ruvdskzn 'hostname; whoami; sudo -n true && echo sudo_ok'`
+
 ## 2026-04-20
+
+### Public status latency optimization
+
+Host:
+- `onedashmsk`
+
+Repository:
+- `uptime-monitor-v2`
+
+Changes:
+- moved `/api/public/status` assembly behind a dedicated server-side snapshot service
+- replaced raw 24h public-history row replay with hourly SQL aggregation
+- added a `5s` in-process cache for the anonymous public payload with stale-while-refresh behavior
+- exposed public-status cache telemetry via `/health/runtime`
+
+Operational result:
+- anonymous public status requests no longer rebuild the full 24h monitor history on every hit
+- operators can distinguish cache hits, cold misses, stale serves, and refresh errors from runtime health data
+
+Verification:
+- `server` public-status and contract tests passed
+- `server build` passed
 
 ### Split-runtime SQLite startup fix
 

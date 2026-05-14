@@ -70,14 +70,18 @@ docker compose -f docker-compose.split.yml exec -T server \
 Interpretation:
 - `serverRole` shows the active role of the API container
 - background service states in `/health/runtime` are per-process
+- `/health/runtime.cluster` now aggregates heartbeat snapshots across split-runtime roles:
+  - `api`
+  - `worker`
+  - `retention`
+  - `agentOfflineMonitor`
 - `/health/runtime` now also includes lightweight in-memory telemetry:
   - browser SSE and agent SSE connection counters
   - agent replay and stale-replay counters
   - latest worker refresh/check metadata
   - latest retention cleanup metadata, including batch count and SQLite lock retries
   - latest agent-offline monitor metadata
-- in split runtime mode, the API process will correctly report worker/retention/offline-monitor as not running in that process
-- use compose status to verify those dedicated services separately
+- in split runtime mode, use `cluster.*` for role presence/freshness and use the per-process `services.*` block to understand only the current container
 
 SQLite note:
 - server processes now apply SQLite session pragmas on startup:
@@ -162,6 +166,38 @@ Expected startup order:
 - `migrate` completes successfully
 - `server` becomes healthy
 - `worker`, `retention`, and `agent-offline-monitor` start
+
+## Claude Code SSH Operations
+
+Claude Code on the Pi should use the dedicated `claudeops` SSH aliases, not the
+human admin keys.
+
+Run from the Pi as `skris`:
+
+```bash
+ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'
+ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'
+ssh uptime-agent-ruvdskzn 'hostname; whoami; sudo -n true && echo sudo_ok'
+```
+
+Expected result:
+- `uptime-main` returns `onedashmsk`, `claudeops`, `sudo_ok`
+- `uptime-agent-cloudruvm1` returns `cloudruvm1`, `claudeops`, `sudo_ok`
+- `uptime-agent-ruvdskzn` returns `ruvdskzn`, `claudeops`, `sudo_ok`
+
+Current Pi-side files:
+- `/home/skris/.ssh/claude_uptime_ops_ed25519`
+- `/home/skris/.ssh/claude_uptime_ops_ed25519.pub`
+- `/home/skris/.ssh/config`
+
+Current VPS-side files:
+- `/home/claudeops/.ssh/authorized_keys`
+- `/etc/sudoers.d/90-claudeops`
+- `/etc/ssh/sshd_config.d/98-claudeops-allowusers.conf`
+
+Do not paste the private key into prompts, docs, repository files, or chat.
+Claude Code should reach the hosts through `ssh uptime-main`,
+`ssh uptime-agent-cloudruvm1`, and `ssh uptime-agent-ruvdskzn`.
 
 ## TLS And Let's Encrypt
 
@@ -273,6 +309,7 @@ Current behavior:
 - one shared public page only
 - no authentication
 - only monitors explicitly marked public are returned
+- `/api/public/status` now uses a short in-process snapshot cache with a `5s` TTL
 - page shows:
   - current monitor state
   - latest check snapshot
@@ -310,9 +347,17 @@ Operational rule:
 
 Current implementation notes:
 - monitor exposure is currently a boolean flag on `Monitor`
-- the public timeline is derived from hourly check-result buckets
+- the public timeline is derived from hourly check-result buckets, not from raw per-request replay of every 24h check row
+- `generatedAt` in `/api/public/status` is the snapshot build time and can lag wall clock by up to the cache TTL
 - it is not yet backed by the future incident model from the roadmap
 - the page must work both on direct reload and on in-app navigation from the authenticated UI
+
+Operational telemetry:
+- inspect `/health/runtime` -> `caches.publicStatus` to see:
+  - latest snapshot build time and duration
+  - cache hits vs misses
+  - stale serves during background refresh
+  - last refresh error
 
 Operator workflow:
 1. Open the dashboard.

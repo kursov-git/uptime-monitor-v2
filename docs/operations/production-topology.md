@@ -8,6 +8,32 @@ It is the canonical production reference for future AI agents.
 SSH is expected on port `2332`.
 Do not assume port `22` is available.
 
+## Claude Code Ops Access
+
+Claude Code on the Pi has a separate deploy identity for this project.
+
+Pi-side SSH material:
+- private key: `/home/skris/.ssh/claude_uptime_ops_ed25519`
+- public key: `/home/skris/.ssh/claude_uptime_ops_ed25519.pub`
+- SSH config: `/home/skris/.ssh/config`
+
+Pi-side aliases:
+- `uptime-main` -> `claudeops@144.31.61.49:2332`
+- `uptime-agent-cloudruvm1` -> `claudeops@82.202.137.51:2332`
+- `uptime-agent-ruvdskzn` -> `claudeops@193.124.118.92:2332`
+
+VPS-side access state:
+- user: `claudeops`
+- sudo policy: `/etc/sudoers.d/90-claudeops`
+- sudo level: `NOPASSWD:ALL`
+- SSH allow rule: `/etc/ssh/sshd_config.d/98-claudeops-allowusers.conf`
+- public key location: `/home/claudeops/.ssh/authorized_keys`
+
+This is intentionally broad because these uptime VPS nodes are service nodes
+without critical local data and can be reprovisioned. Human break-glass access
+still uses the existing admin identities and must not be replaced by the
+Claude deploy key.
+
 ## Host Roles
 
 ### Control Plane
