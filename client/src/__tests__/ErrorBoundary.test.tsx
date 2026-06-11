@@ -1,5 +1,5 @@
 /// <reference types="@testing-library/jest-dom" />
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
@@ -12,13 +12,22 @@ const BuggyComponent = () => {
 const SafeComponent = () => <div>Safe Content</div>;
 
 describe('ErrorBoundary', () => {
-    // Spy on console.error to avoid spamming the test output with React's error logging
-    beforeEach(() => {
-        vi.spyOn(console, 'error').mockImplementation(() => { });
+    let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+    const suppressExpectedErrorEvent = (event: ErrorEvent) => {
+        if (event.error instanceof Error && event.error.message === 'Test application crash') {
+            event.preventDefault();
+        }
+    };
+
+    beforeAll(() => {
+        window.addEventListener('error', suppressExpectedErrorEvent);
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+    afterAll(() => {
+        window.removeEventListener('error', suppressExpectedErrorEvent);
+        consoleErrorSpy.mockRestore();
     });
 
     it('should render children when there is no error', () => {

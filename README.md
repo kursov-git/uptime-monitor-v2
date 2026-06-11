@@ -291,13 +291,15 @@ Current scope:
 ### Local CI parity
 
 ```bash
-npm --prefix server run test:integration
-npm --prefix server run build
-npm --prefix client test
-npm --prefix client run lint
-npm --prefix client run build
-CI=1 npm --prefix e2e run test
-npm --prefix apps/agent run build
+npm run ci:local
+```
+
+`npm run ci:local` is the normal local gate before pushing code. It covers shared package builds, checker/server/client/agent tests, client lint, and server/client/agent builds.
+
+Run browser e2e separately when a change touches deployed UI flows or public status behavior:
+
+```bash
+CI=1 npm run test:e2e
 ```
 
 ### Runtime diagnostics
