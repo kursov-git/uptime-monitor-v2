@@ -4,6 +4,7 @@ import { getApiErrorMessage } from './apiErrors';
 export type PublicBucket = PublicStatusResponse['history24h'][number];
 export type PublicMonitor = PublicStatusResponse['monitors'][number];
 export type PublicMonitorStatus = PublicMonitor['status'];
+export type ServiceGroup = [string, PublicMonitor[]];
 
 export interface AvailabilityPoint {
     time: string;
@@ -16,6 +17,11 @@ export interface PublicHeadline {
     tone: 'empty' | 'down' | 'unknown' | 'paused' | 'up';
     title: string;
     description: string;
+}
+
+export interface HeadlineBadge {
+    className: 'down' | 'flapping' | 'paused' | 'up';
+    label: string;
 }
 
 export function formatTimestamp(value: string | null): string {
@@ -142,8 +148,43 @@ export function getPublicHeadline(summary: PublicStatusResponse['summary'], moni
     };
 }
 
+export function getHeadlineBadge(tone: PublicHeadline['tone']): HeadlineBadge {
+    if (tone === 'down') {
+        return { className: 'down', label: 'Attention' };
+    }
+
+    if (tone === 'up') {
+        return { className: 'up', label: 'Operational' };
+    }
+
+    if (tone === 'paused') {
+        return { className: 'paused', label: 'Paused' };
+    }
+
+    return { className: 'flapping', label: 'Watch' };
+}
+
 export function getServiceGroupLabel(serviceName: string | null): string {
     return serviceName?.trim() || 'Standalone checks';
+}
+
+export function buildServiceGroups(monitors: PublicMonitor[]): ServiceGroup[] {
+    return Array.from(
+        monitors.reduce((acc, monitor) => {
+            const key = getServiceGroupLabel(monitor.serviceName);
+            const existing = acc.get(key);
+            if (existing) {
+                existing.push(monitor);
+            } else {
+                acc.set(key, [monitor]);
+            }
+            return acc;
+        }, new Map<string, PublicMonitor[]>())
+    ).sort(([left], [right]) => {
+        if (left === 'Standalone checks') return 1;
+        if (right === 'Standalone checks') return -1;
+        return left.localeCompare(right);
+    });
 }
 
 export function getServiceGroupStatus(monitors: PublicStatusResponse['monitors']): PublicMonitorStatus {

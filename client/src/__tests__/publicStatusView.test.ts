@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+    buildServiceGroups,
     formatAvailabilityValue,
     getAverageUptime,
+    getHeadlineBadge,
     getIncidentLabel,
     getIncidentSummary,
     getIncidentTone,
@@ -57,6 +59,28 @@ describe('publicStatusView helpers', () => {
         expect(getPublicHeadline({ up: 1, down: 0, paused: 1, unknown: 0 }, 2).tone).toBe('paused');
         expect(getPublicHeadline({ up: 2, down: 0, paused: 0, unknown: 0 }, 2).tone).toBe('up');
         expect(getPublicHeadline({ up: 0, down: 0, paused: 0, unknown: 0 }, 0).tone).toBe('empty');
+    });
+
+    it('maps headline tone to the public status badge contract', () => {
+        expect(getHeadlineBadge('down')).toEqual({ className: 'down', label: 'Attention' });
+        expect(getHeadlineBadge('up')).toEqual({ className: 'up', label: 'Operational' });
+        expect(getHeadlineBadge('paused')).toEqual({ className: 'paused', label: 'Paused' });
+        expect(getHeadlineBadge('unknown')).toEqual({ className: 'flapping', label: 'Watch' });
+        expect(getHeadlineBadge('empty')).toEqual({ className: 'flapping', label: 'Watch' });
+    });
+
+    it('groups public monitors by service and keeps standalone checks last', () => {
+        const groups = buildServiceGroups([
+            monitor({ id: 'standalone', serviceName: null }),
+            monitor({ id: 'billing-1', serviceName: 'Billing' }),
+            monitor({ id: 'api-1', serviceName: 'API' }),
+            monitor({ id: 'billing-2', serviceName: 'Billing' }),
+            monitor({ id: 'blank', serviceName: '   ' }),
+        ]);
+
+        expect(groups.map(([label]) => label)).toEqual(['API', 'Billing', 'Standalone checks']);
+        expect(groups[1][1].map((entry) => entry.id)).toEqual(['billing-1', 'billing-2']);
+        expect(groups[2][1].map((entry) => entry.id)).toEqual(['standalone', 'blank']);
     });
 
     it('aggregates service status and uptime from monitor contracts', () => {

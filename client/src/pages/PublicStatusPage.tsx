@@ -3,6 +3,7 @@ import { publicApi, type PublicStatusResponse } from '../api';
 import type { PublicStatusBucket, PublicStatusDrilldownFailure, PublicStatusDrilldownResponse } from '@uptime-monitor/shared';
 import {
     buildAvailabilitySeries,
+    buildServiceGroups,
     formatAvailabilityValue,
     formatDateLabel,
     formatHourLabel,
@@ -10,12 +11,12 @@ import {
     formatMinuteLabel,
     formatTimestamp,
     getAverageUptime,
+    getHeadlineBadge,
     getIncidentLabel,
     getIncidentSummary,
     getIncidentTone,
     getPublicHeadline,
     getPublicStatusErrorMessage,
-    getServiceGroupLabel,
     getServiceGroupStatus,
     getStatusLabel,
 } from '../lib/publicStatusView';
@@ -160,24 +161,8 @@ export default function PublicStatusPage() {
     const availabilitySeries = data ? buildAvailabilitySeries(data.history24h) : [];
     const latestAvailability = availabilitySeries[availabilitySeries.length - 1]?.availability ?? null;
     const headline = getPublicHeadline(summary, data?.monitorCount ?? 0);
-    const serviceGroups = data
-        ? Array.from(
-            data.monitors.reduce((acc, monitor) => {
-                const key = getServiceGroupLabel(monitor.serviceName);
-                const existing = acc.get(key);
-                if (existing) {
-                    existing.push(monitor);
-                } else {
-                    acc.set(key, [monitor]);
-                }
-                return acc;
-            }, new Map<string, PublicStatusResponse['monitors']>())
-        ).sort(([a], [b]) => {
-            if (a === 'Standalone checks') return 1;
-            if (b === 'Standalone checks') return -1;
-            return a.localeCompare(b);
-        })
-        : [];
+    const headlineBadge = getHeadlineBadge(headline.tone);
+    const serviceGroups = data ? buildServiceGroups(data.monitors) : [];
 
     const OverviewTooltip = ({ active, payload }: OverviewTooltipProps) => {
         const point = payload?.[0]?.payload;
@@ -231,14 +216,8 @@ export default function PublicStatusPage() {
                         <strong className="public-status-metric-title">{headline.title}</strong>
                         <span className="public-status-metric-description">{headline.description}</span>
                         <div className="public-status-metric-footer">
-                            <span className={`status-badge ${headline.tone === 'down' ? 'down' : headline.tone === 'up' ? 'up' : headline.tone === 'paused' ? 'paused' : 'flapping'}`}>
-                                {headline.tone === 'down'
-                                    ? 'Attention'
-                                    : headline.tone === 'up'
-                                        ? 'Operational'
-                                        : headline.tone === 'paused'
-                                            ? 'Paused'
-                                            : 'Watch'}
+                            <span className={`status-badge ${headlineBadge.className}`}>
+                                {headlineBadge.label}
                             </span>
                         </div>
                     </div>
