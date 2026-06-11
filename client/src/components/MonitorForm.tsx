@@ -7,7 +7,9 @@ import {
     buildInitialMonitorFormData,
     buildMonitorSubmitData,
     getAssertionHelpText,
+    getMonitorFormMode,
     getMonitorFormErrorMessage,
+    getTargetHelpText,
     getTargetLabel,
     getTargetPlaceholder,
     parseAuthPayloadFields,
@@ -29,11 +31,11 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     const [loginExtra, setLoginExtra] = useState(initialAuthFields.loginExtra);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const isHttpMonitor = formData.type === 'HTTP';
-    const isDnsMonitor = formData.type === 'DNS';
-    const isTcpMonitor = formData.type === 'TCP';
-    const currentHttpMethod = String(formData.method || 'GET').toUpperCase();
-    const showRequestBody = isHttpMonitor && !['GET', 'HEAD'].includes(currentHttpMethod);
+    const {
+        isHttpMonitor,
+        isDnsMonitor,
+        showRequestBody,
+    } = getMonitorFormMode(formData);
 
     useEffect(() => {
         const loadAgents = async () => {
@@ -164,9 +166,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                             required
                                         />
                                         <div className="help-text">
-                                            {isHttpMonitor && 'Use a full HTTP or HTTPS URL.'}
-                                            {isTcpMonitor && 'Use tcp://host:port to verify that a TCP socket accepts connections.'}
-                                            {isDnsMonitor && 'Use dns://hostname to resolve a DNS record from the assigned executor.'}
+                                            {getTargetHelpText(formData.type)}
                                         </div>
                                     </div>
                                 </div>

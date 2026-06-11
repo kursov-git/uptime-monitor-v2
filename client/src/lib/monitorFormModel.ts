@@ -11,6 +11,14 @@ export type MonitorSubmitResult =
     | { ok: true; data: MonitorFormData }
     | { ok: false; error: string };
 
+export interface MonitorFormMode {
+    isHttpMonitor: boolean;
+    isDnsMonitor: boolean;
+    isTcpMonitor: boolean;
+    currentHttpMethod: string;
+    showRequestBody: boolean;
+}
+
 export function buildInitialMonitorFormData(monitor?: Monitor): MonitorFormData {
     const monitorType = monitor?.type || 'HTTP';
 
@@ -81,6 +89,27 @@ export function getTargetPlaceholder(type: MonitorFormData['type']): string {
     if (type === 'TCP') return 'tcp://db.example.com:5432';
     if (type === 'DNS') return 'dns://example.com';
     return 'https://example.com';
+}
+
+export function getTargetHelpText(type: MonitorFormData['type']): string {
+    if (type === 'TCP') return 'Use tcp://host:port to verify that a TCP socket accepts connections.';
+    if (type === 'DNS') return 'Use dns://hostname to resolve a DNS record from the assigned executor.';
+    return 'Use a full HTTP or HTTPS URL.';
+}
+
+export function getMonitorFormMode(formData: MonitorFormData): MonitorFormMode {
+    const isHttpMonitor = formData.type === 'HTTP';
+    const isDnsMonitor = formData.type === 'DNS';
+    const isTcpMonitor = formData.type === 'TCP';
+    const currentHttpMethod = String(formData.method || 'GET').toUpperCase();
+
+    return {
+        isHttpMonitor,
+        isDnsMonitor,
+        isTcpMonitor,
+        currentHttpMethod,
+        showRequestBody: isHttpMonitor && !['GET', 'HEAD'].includes(currentHttpMethod),
+    };
 }
 
 export function applyMonitorTypeDefaults(
@@ -187,10 +216,7 @@ export function buildMonitorSubmitData({
     loginPass: string;
     loginExtra: string;
 }): MonitorSubmitResult {
-    const isHttpMonitor = formData.type === 'HTTP';
-    const isDnsMonitor = formData.type === 'DNS';
-    const currentHttpMethod = String(formData.method || 'GET').toUpperCase();
-    const showRequestBody = isHttpMonitor && !['GET', 'HEAD'].includes(currentHttpMethod);
+    const { isHttpMonitor, isDnsMonitor, currentHttpMethod, showRequestBody } = getMonitorFormMode(formData);
 
     let constructedPayload = formData.authPayload;
     if (formData.authMethod === 'BASIC') {

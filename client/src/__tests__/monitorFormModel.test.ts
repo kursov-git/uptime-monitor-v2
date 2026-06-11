@@ -5,6 +5,8 @@ import {
     applyMonitorTypeDefaults,
     buildInitialMonitorFormData,
     buildMonitorSubmitData,
+    getMonitorFormMode,
+    getTargetHelpText,
     getMonitorFormErrorMessage,
     parseAuthPayloadFields,
 } from '../lib/monitorFormModel';
@@ -133,6 +135,25 @@ describe('monitorFormModel helpers', () => {
             expectedBody: '',
             bodyAssertionPath: '',
         }));
+    });
+
+    it('derives form mode and target help text from monitor type and method', () => {
+        expect(getMonitorFormMode(baseForm({ type: 'HTTP', method: 'POST' }))).toMatchObject({
+            isHttpMonitor: true,
+            isDnsMonitor: false,
+            isTcpMonitor: false,
+            currentHttpMethod: 'POST',
+            showRequestBody: true,
+        });
+        expect(getMonitorFormMode(baseForm({ type: 'HTTP', method: 'HEAD' })).showRequestBody).toBe(false);
+        expect(getMonitorFormMode(baseForm({ type: 'DNS', method: 'POST' }))).toMatchObject({
+            isHttpMonitor: false,
+            isDnsMonitor: true,
+            showRequestBody: false,
+        });
+        expect(getTargetHelpText('HTTP')).toBe('Use a full HTTP or HTTPS URL.');
+        expect(getTargetHelpText('TCP')).toContain('TCP socket');
+        expect(getTargetHelpText('DNS')).toContain('DNS record');
     });
 
     it('normalizes submit payloads for HTTP auth and non-HTTP monitors', () => {
