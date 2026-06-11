@@ -289,7 +289,7 @@ Use these commands after meaningful changes.
 npm run ci:local
 ```
 
-`npm run ci:local` is the canonical local gate for ordinary code changes. It builds shared packages, runs checker/server/client/agent tests, runs client lint, and builds server/client/agent.
+`npm run ci:local` is the canonical local gate for ordinary code changes. It runs the TypeScript contract scan, builds shared packages, runs checker/server/client/agent tests, runs client lint, and builds server/client/agent.
 
 Run browser e2e separately when the change touches deployed user flows or public status behavior:
 
@@ -303,6 +303,7 @@ Use the narrowest meaningful gate while iterating, then `npm run ci:local` befor
 
 | Changed area | Focused command |
 |---|---|
+| typed API/runtime/test contracts | `npm run check:contracts` |
 | shared checker logic | `npm run test:checker` |
 | agent config or runtime | `npm run test:agent` |
 | server routes, services, or env | `npm run test:server` |

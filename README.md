@@ -297,7 +297,7 @@ Current scope:
 npm run ci:local
 ```
 
-`npm run ci:local` is the normal local gate before pushing code. It covers shared package builds, checker/server/client/agent tests, client lint, and server/client/agent builds.
+`npm run ci:local` is the normal local gate before pushing code. It covers the TypeScript contract scan, shared package builds, checker/server/client/agent tests, client lint, and server/client/agent builds.
 
 Run browser e2e separately when a change touches deployed UI flows or public status behavior:
 
@@ -311,6 +311,7 @@ Use focused commands while iterating, then `npm run ci:local` before push.
 
 | Changed area | Focused command |
 |---|---|
+| typed API/runtime/test contracts | `npm run check:contracts` |
 | checker package | `npm run test:checker` |
 | agent config/runtime | `npm run test:agent` |
 | server code | `npm run test:server` |

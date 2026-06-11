@@ -4,6 +4,7 @@
     "scripts": {
         "prepare": "git config core.hooksPath .githooks || true",
         "check:paths": "bash ./scripts/check-paths.sh all",
+        "check:contracts": "bash ./scripts/check-contracts.sh",
         "loadtest:agent-results": "node ./scripts/loadtest-agent-results.mjs",
         "build:shared": "npm --prefix packages/shared run build && npm --prefix packages/checker run build",
         "build:server": "npm --prefix server run build",
@@ -16,7 +17,7 @@
         "test:agent": "npm --prefix apps/agent run test",
         "test:e2e": "npm --prefix e2e run test",
         "lint:client": "npm --prefix client run lint",
-        "ci:local": "npm run build:shared && npm run test:checker && npm run test:server && npm run build:server && npm run test:client && npm run lint:client && npm run build:client && npm run test:agent && npm run build:agent"
+        "ci:local": "npm run check:contracts && npm run build:shared && npm run test:checker && npm run test:server && npm run build:server && npm run test:client && npm run lint:client && npm run build:client && npm run test:agent && npm run build:agent"
     },
     "workspaces": [
         "client",
