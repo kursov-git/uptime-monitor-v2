@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
 import { sleep } from '../lib/utils';
 import { TelegramNotifier } from '../services/telegram';
 import { ZulipNotifier } from '../services/zulip';
 
-vi.mock('axios', () => ({
-    default: {
-        post: vi.fn(),
-        isAxiosError: vi.fn((value) => Boolean(value?.isAxiosError)),
-    },
-}));
+vi.mock('axios', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('axios')>();
+    return {
+        ...actual,
+        default: {
+            ...actual.default,
+            post: vi.fn(),
+            isAxiosError: vi.fn((value) => Boolean(value?.isAxiosError)),
+        },
+    };
+});
 
 vi.mock('../lib/utils', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../lib/utils')>();
@@ -18,6 +24,16 @@ vi.mock('../lib/utils', async (importOriginal) => {
         sleep: vi.fn().mockResolvedValue(undefined),
     };
 });
+
+function mockAxiosResponse<T>(data: T): AxiosResponse<T> {
+    return {
+        data,
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+    };
+}
 
 describe('Notification Notifiers', () => {
     const mockedPost = vi.mocked(axios.post);
@@ -32,7 +48,7 @@ describe('Notification Notifiers', () => {
     });
 
     it('TelegramNotifier sends successfully on first attempt', async () => {
-        mockedPost.mockResolvedValueOnce({ data: { ok: true } } as any);
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ ok: true }));
         const notifier = new TelegramNotifier();
 
         const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
@@ -58,7 +74,7 @@ describe('Notification Notifiers', () => {
     });
 
     it('TelegramNotifier returns fallback error when API responds without ok=true', async () => {
-        mockedPost.mockResolvedValueOnce({ data: { ok: false } } as any);
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ ok: false }));
         const notifier = new TelegramNotifier();
 
         const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
@@ -69,7 +85,7 @@ describe('Notification Notifiers', () => {
 
     it('TelegramNotifier supports TELEGRAM_API_BASE_URL override', async () => {
         vi.stubEnv('TELEGRAM_API_BASE_URL', 'https://telegram-relay.internal/');
-        mockedPost.mockResolvedValueOnce({ data: { ok: true } } as any);
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ ok: true }));
         const notifier = new TelegramNotifier();
 
         const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
@@ -97,7 +113,7 @@ describe('Notification Notifiers', () => {
     });
 
     it('ZulipNotifier succeeds when API returns result=success', async () => {
-        mockedPost.mockResolvedValueOnce({ data: { result: 'success' } } as any);
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ result: 'success' }));
         const notifier = new ZulipNotifier();
 
         const result = await notifier.send({
@@ -116,7 +132,7 @@ describe('Notification Notifiers', () => {
     it('ZulipNotifier retries once and then succeeds', async () => {
         mockedPost
             .mockRejectedValueOnce(new Error('temporary error'))
-            .mockResolvedValueOnce({ data: { result: 'success' } } as any);
+            .mockResolvedValueOnce(mockAxiosResponse({ result: 'success' }));
         const notifier = new ZulipNotifier();
 
         const result = await notifier.send({
@@ -133,7 +149,7 @@ describe('Notification Notifiers', () => {
     });
 
     it('ZulipNotifier returns fallback error when API result is not success', async () => {
-        mockedPost.mockResolvedValueOnce({ data: { result: 'error' } } as any);
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ result: 'error' }));
         const notifier = new ZulipNotifier();
 
         const result = await notifier.send({

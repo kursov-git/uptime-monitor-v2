@@ -18,6 +18,13 @@ const userSchema = z.object({
     createdAt: isoDate,
 });
 
+const flappingStateSchema = z.object({
+    isFlapping: z.boolean(),
+    consecutiveFailures: z.number(),
+    firstFailureTime: isoDate.nullable(),
+    lastError: z.string().nullable(),
+});
+
 const monitorSchema = z.object({
     id: uuid,
     name: z.string(),
@@ -57,7 +64,7 @@ const monitorSchema = z.object({
         sslIssuer: z.string().nullable().optional(),
         sslSubject: z.string().nullable().optional(),
     }).nullable(),
-    flappingState: z.any().nullable().optional(),
+    flappingState: flappingStateSchema.nullable().optional(),
 });
 
 const publicStatusBucketSchema = z.object({
@@ -165,7 +172,7 @@ const agentHeartbeatResponseSchema = z.object({
     commands: z.array(z.string()),
 });
 
-function normalizeForSnapshot<T extends Record<string, any>>(input: T): T {
+function normalizeForSnapshot<T extends Record<string, unknown>>(input: T): T {
     return JSON.parse(JSON.stringify(input, (key, value) => {
         if (key === 'version' && typeof value === 'number') {
             return '<version>';
