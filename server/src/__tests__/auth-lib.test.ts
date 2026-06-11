@@ -36,7 +36,7 @@ describe('authenticateSseJWT', () => {
         await authenticateSseJWT(request, reply);
 
         expect(verify).toHaveBeenCalledWith('cookie-token');
-        expect((request as any).user).toMatchObject({
+        expect(request.user).toMatchObject({
             id: user.id,
             username: user.username,
             role: 'ADMIN',
@@ -123,7 +123,7 @@ describe('authenticateSseJWT', () => {
 
         await authenticateJWT(request, reply);
 
-        expect((request as any).user).toMatchObject({
+        expect(request.user).toMatchObject({
             id: user.id,
             username: 'api-user',
             role: 'VIEWER',
@@ -160,12 +160,13 @@ describe('authenticateSseJWT', () => {
 
         expect(status).toHaveBeenCalledWith(401);
         expect(send).toHaveBeenCalledWith({ error: 'Authentication required' });
-        expect((request as any).user).toBeUndefined();
+        expect(request.user).toBeUndefined();
     });
 
     it('blocks admin-only routes for viewers and API keys', async () => {
+        const viewerStatus = vi.fn().mockReturnThis();
         const reply = {
-            status: vi.fn().mockReturnThis(),
+            status: viewerStatus,
             send: vi.fn(),
         } as unknown as FastifyReply;
         const viewerRequest = {
@@ -173,10 +174,11 @@ describe('authenticateSseJWT', () => {
         } as unknown as FastifyRequest;
 
         await requireAdmin(viewerRequest, reply);
-        expect((reply.status as any).mock.calls[0][0]).toBe(403);
+        expect(viewerStatus).toHaveBeenCalledWith(403);
 
+        const apiKeyStatus = vi.fn().mockReturnThis();
         const apiKeyReply = {
-            status: vi.fn().mockReturnThis(),
+            status: apiKeyStatus,
             send: vi.fn(),
         } as unknown as FastifyReply;
         const apiKeyRequest = {
@@ -184,6 +186,6 @@ describe('authenticateSseJWT', () => {
         } as unknown as FastifyRequest;
 
         await blockApiKeyWrites(apiKeyRequest, apiKeyReply);
-        expect((apiKeyReply.status as any).mock.calls[0][0]).toBe(403);
+        expect(apiKeyStatus).toHaveBeenCalledWith(403);
     });
 });

@@ -3,14 +3,21 @@ import { EventEmitter } from 'node:events';
 import axiosRetry from 'axios-retry';
 import { performCheck } from '../../../packages/checker/src';
 
+type MockAxiosInstance = ReturnType<typeof vi.fn> & {
+    interceptors: {
+        request: { use: ReturnType<typeof vi.fn> };
+        response: { use: ReturnType<typeof vi.fn> };
+    };
+};
+
 const mockLookup = vi.hoisted(() => vi.fn());
 const mockResolve = vi.hoisted(() => vi.fn());
 const mockTlsConnect = vi.hoisted(() => vi.fn());
 const mockNetConnect = vi.hoisted(() => vi.fn());
 
 const mockAxiosInstance = vi.hoisted(() => {
-    const fn = vi.fn();
-    (fn as any).interceptors = { request: { use: vi.fn() }, response: { use: vi.fn() } };
+    const fn = vi.fn() as MockAxiosInstance;
+    fn.interceptors = { request: { use: vi.fn() }, response: { use: vi.fn() } };
     return fn;
 });
 
@@ -460,7 +467,7 @@ describe('checker', () => {
                 socket.emit('connect');
             });
 
-            return socket as any;
+            return socket;
         });
 
         const result = await performCheck({
