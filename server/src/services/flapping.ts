@@ -60,6 +60,10 @@ export class FlappingService {
         return this.states.get(monitorId) || null;
     }
 
+    public static resetDiagnosticState(): void {
+        this.states.clear();
+    }
+
     async handleCheckResult(
         monitor: Monitor,
         isUp: boolean,

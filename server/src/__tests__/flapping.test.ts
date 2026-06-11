@@ -41,8 +41,7 @@ describe('FlappingService', () => {
             }
         });
 
-        // Reset the static states map in FlappingService
-        (FlappingService as any).states = new Map();
+        FlappingService.resetDiagnosticState();
         vi.clearAllMocks();
 
         // Mock successful axios requests

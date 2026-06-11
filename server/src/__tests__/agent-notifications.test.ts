@@ -29,7 +29,7 @@ beforeEach(async () => {
     await prisma.agent.deleteMany();
     await prisma.notificationSettings.deleteMany();
     await prisma.auditLog.deleteMany();
-    (FlappingService as any).states = new Map();
+    FlappingService.resetDiagnosticState();
     vi.clearAllMocks();
     mockedAxios.post.mockResolvedValue({ data: { ok: true, result: 'success' } });
 

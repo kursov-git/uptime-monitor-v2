@@ -64,7 +64,7 @@ describe('RetentionService', () => {
         });
 
         const service = new RetentionService(prisma);
-        await (service as any).cleanup();
+        await service.runCleanupNow();
 
         const [checkResults, auditLogs, notifications] = await Promise.all([
             prisma.checkResult.findMany({ orderBy: { timestamp: 'asc' } }),
@@ -112,7 +112,7 @@ describe('RetentionService', () => {
         });
 
         const service = new RetentionService(prisma);
-        await (service as any).cleanup();
+        await service.runCleanupNow();
 
         expect(await prisma.checkResult.count()).toBe(0);
         expect(service.getStatus().lastDeleteBatchCount).toBeGreaterThan(1);
@@ -149,10 +149,10 @@ describe('RetentionService', () => {
             },
             $queryRawUnsafe: vi.fn().mockResolvedValue([{ journal_mode: 'wal' }]),
             $executeRawUnsafe: vi.fn().mockResolvedValue(undefined),
-        } as any;
+        } as unknown as ConstructorParameters<typeof RetentionService>[0];
 
         const service = new RetentionService(fakePrisma);
-        await (service as any).cleanup();
+        await service.runCleanupNow();
 
         expect(checkResultFindMany).toHaveBeenCalledTimes(2);
         expect(checkResultDeleteMany).toHaveBeenCalledTimes(1);

@@ -48,7 +48,7 @@ describe('CheckWorker', () => {
             ssl: null,
         });
 
-        await (worker as any).performCheck(monitor);
+        await worker.runMonitorCheck(monitor);
 
         const results = await prisma.checkResult.findMany({ where: { monitorId: monitor.id } });
         expect(results).toHaveLength(1);
@@ -75,7 +75,7 @@ describe('CheckWorker', () => {
             ssl: null,
         });
 
-        await (worker as any).performCheck(monitor);
+        await worker.runMonitorCheck(monitor);
 
         const results = await prisma.checkResult.findMany({ where: { monitorId: monitor.id } });
         expect(results).toHaveLength(1);
@@ -110,7 +110,7 @@ describe('CheckWorker', () => {
             ssl: null,
         });
 
-        await (worker as any).performCheck(monitor);
+        await worker.runMonitorCheck(monitor);
 
         expect(performCheck).toHaveBeenCalledTimes(1);
         expect(vi.mocked(performCheck).mock.calls[0][0]).toMatchObject({
@@ -147,7 +147,7 @@ describe('CheckWorker', () => {
             },
         });
 
-        await (worker as any).performCheck(monitor);
+        await worker.runMonitorCheck(monitor);
 
         const result = await prisma.checkResult.findFirstOrThrow({ where: { monitorId: monitor.id } });
         expect(result.sslExpiresAt?.toISOString()).toBe('2026-06-10T12:00:00.000Z');
@@ -173,7 +173,7 @@ describe('CheckWorker', () => {
             ssl: null,
         });
 
-        await (worker as any).performCheck(monitor);
+        await worker.runMonitorCheck(monitor);
 
         expect(performCheck).toHaveBeenCalledWith(expect.objectContaining({
             type: 'TCP',

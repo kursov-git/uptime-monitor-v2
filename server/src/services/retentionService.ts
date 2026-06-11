@@ -49,8 +49,10 @@ export class RetentionService {
     start() {
         retentionLogger.info('RetentionService started');
         // Run cleanup immediately and then every hour
-        this.cleanup();
-        this.interval = setInterval(() => this.cleanup(), 60 * 60 * 1000);
+        void this.runCleanupNow();
+        this.interval = setInterval(() => {
+            void this.runCleanupNow();
+        }, 60 * 60 * 1000);
     }
 
     stop() {
@@ -194,7 +196,7 @@ export class RetentionService {
         }
     }
 
-    private async cleanup() {
+    async runCleanupNow() {
         const startedAt = Date.now();
         this.lastDeleteBatchCount = 0;
         this.lastBusyRetryCount = 0;
