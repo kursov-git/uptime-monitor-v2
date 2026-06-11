@@ -10,7 +10,15 @@ const envSchema = z.object({
     ALLOW_PRIVATE_MONITOR_TARGETS: z.string().optional(),
 });
 
-export interface AgentEnv {
+const VERSIONED_ENCRYPTION_KEY_RE = /^ENCRYPTION_KEY_(\d+)$/;
+const ENCRYPTION_KEY_HEX_RE = /^[0-9a-fA-F]{64}$/;
+
+export interface AgentKeySource {
+    encryptionKeysByVersion: Record<number, string>;
+    fallbackEncryptionKey: string | null;
+}
+
+export interface AgentEnv extends AgentKeySource {
     mainServerUrl: string;
     agentToken: string;
     httpTimeoutMs: number;
@@ -20,8 +28,41 @@ export interface AgentEnv {
     allowPrivateMonitorTargets: boolean;
 }
 
+function readEncryptionKey(name: string, value: string): string {
+    if (!ENCRYPTION_KEY_HEX_RE.test(value)) {
+        throw new Error(`${name} must be a 64-character hex string`);
+    }
+    return value;
+}
+
+export function readAgentKeySource(source: NodeJS.ProcessEnv = process.env): AgentKeySource {
+    const encryptionKeysByVersion: Record<number, string> = {};
+
+    for (const [name, value] of Object.entries(source)) {
+        if (!value) continue;
+
+        const match = name.match(VERSIONED_ENCRYPTION_KEY_RE);
+        if (!match) continue;
+
+        const version = Number.parseInt(match[1], 10);
+        if (version < 1) {
+            throw new Error(`${name} must use a positive key version`);
+        }
+
+        encryptionKeysByVersion[version] = readEncryptionKey(name, value);
+    }
+
+    return {
+        encryptionKeysByVersion,
+        fallbackEncryptionKey: source.ENCRYPTION_KEY
+            ? readEncryptionKey('ENCRYPTION_KEY', source.ENCRYPTION_KEY)
+            : null,
+    };
+}
+
 export function readAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv {
     const raw = envSchema.parse(source);
+    const keySource = readAgentKeySource(source);
 
     return {
         mainServerUrl: raw.MAIN_SERVER_URL.replace(/\/$/, ''),
@@ -31,6 +72,7 @@ export function readAgentEnv(source: NodeJS.ProcessEnv = process.env): AgentEnv 
         resultMaxBatch: raw.AGENT_RESULT_MAX_BATCH ?? 50,
         maxConcurrency: raw.AGENT_MAX_CONCURRENCY ?? 6,
         allowPrivateMonitorTargets: raw.ALLOW_PRIVATE_MONITOR_TARGETS === 'true',
+        ...keySource,
     };
 }
 

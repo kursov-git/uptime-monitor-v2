@@ -23,11 +23,11 @@
     "test:watch": "cross-env DATABASE_URL=file:./test.db vitest",
     "pretest": "cross-env DATABASE_URL=file:./test.db prisma db push",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed": "node prisma/seed.js",
     "prisma:studio": "prisma studio"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",

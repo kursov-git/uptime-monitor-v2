@@ -3,6 +3,51 @@
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 
+## 2026-06-11
+
+### `ruvdskzn` agent emergency revoke
+
+Host:
+- `onedashmsk`
+
+Affected agent host:
+- `ruvdskzn`
+
+Reason:
+- `ruvdskzn` should be treated as physically lost and no longer trusted.
+
+Changes:
+- took a control-plane SQLite backup before the live DB write:
+  - `/data/backups/uptime-20260611T142517Z.db`
+- revoked the `ruvdskzn` control-plane agent by setting `revokedAt`
+- kept the agent record present for investigation/history
+- recorded an `AGENT_REVOKED` audit entry with `manual-incident-response`
+- wrote the incident audit:
+  - `docs/operations/incident-audit-2026-06-11-ruvdskzn-afc.md`
+
+Production state after revoke:
+- agent id: `aeddef30-9d3e-4340-a36c-9183aa13f34f`
+- agent status: `OFFLINE`
+- `revokedAt`: `2026-06-11T14:26:07.360Z`
+- last seen before revoke: `2026-06-11T06:54:26.231Z`
+- last seen IP: `193.124.118.92`
+
+Affected monitor inventory:
+- one assigned monitor remained on `ruvdskzn`:
+  - `Портал дилера`
+  - `https://dealer.alutech24.com/ru/orders`
+  - `isActive=false`
+  - auth method: `CSRF_FORM_LOGIN`
+  - stored auth payload contains username/password fields
+
+Operational result:
+- the old `ruvdskzn` agent token should now receive `403` on agent routes
+- no `CheckResult` rows were present for this agent at the time of review
+
+Follow-up required:
+- rotate the external Dealer Portal credentials used by the affected monitor
+- provision a replacement agent host before reassigning live monitors to the Kazan location again
+
 ## 2026-05-14
 
 ### Infrastructure health check and documentation refresh

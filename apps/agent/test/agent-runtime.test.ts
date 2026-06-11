@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { readAgentEnv } from '../src/config';
 import {
     calculateSseReconnectDelayMs,
     decryptAgentPayload,
@@ -57,7 +58,6 @@ describe('agent runtime helpers', () => {
 
     it('decrypts encrypted payloads with the configured key', () => {
         const key = crypto.randomBytes(32);
-        process.env.ENCRYPTION_KEY = key.toString('hex');
 
         const iv = crypto.randomBytes(12);
         const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -66,6 +66,30 @@ describe('agent runtime helpers', () => {
         const authTag = cipher.getAuthTag().toString('hex');
         const payload = `enc:${iv.toString('hex')}:${authTag}:${encrypted}`;
 
-        expect(decryptAgentPayload(payload, 1)).toBe('grant_type=client_credentials');
+        expect(decryptAgentPayload(payload, 1, {
+            encryptionKeysByVersion: {},
+            fallbackEncryptionKey: key.toString('hex'),
+        })).toBe('grant_type=client_credentials');
+    });
+
+    it('reads versioned encryption keys from agent env', () => {
+        const env = readAgentEnv({
+            MAIN_SERVER_URL: 'https://uptime.example.test/',
+            AGENT_TOKEN: 'agent-token',
+            ENCRYPTION_KEY: 'a'.repeat(64),
+            ENCRYPTION_KEY_2: 'b'.repeat(64),
+        });
+
+        expect(env.mainServerUrl).toBe('https://uptime.example.test');
+        expect(env.fallbackEncryptionKey).toBe('a'.repeat(64));
+        expect(env.encryptionKeysByVersion).toEqual({ 2: 'b'.repeat(64) });
+    });
+
+    it('rejects malformed agent encryption keys', () => {
+        expect(() => readAgentEnv({
+            MAIN_SERVER_URL: 'https://uptime.example.test',
+            AGENT_TOKEN: 'agent-token',
+            ENCRYPTION_KEY_1: 'not-hex',
+        })).toThrow('ENCRYPTION_KEY_1 must be a 64-character hex string');
     });
 });

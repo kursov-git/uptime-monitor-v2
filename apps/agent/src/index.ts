@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { performCheck } from '@uptime-monitor/checker';
 import { CURRENT_AGENT_VERSION } from '@uptime-monitor/shared';
-import { readAgentEnv, type AgentEnv } from './config';
+import { readAgentEnv, readAgentKeySource, type AgentEnv, type AgentKeySource } from './config';
 
 type AgentJob = {
     monitorId: string;
@@ -155,7 +155,11 @@ class AgentRuntime {
 
         this.inFlightChecks += 1;
         try {
-            const authPayload = decryptAgentPayload(job.authPayloadEncrypted || null, job.keyVersion || 1);
+            const authPayload = decryptAgentPayload(
+                job.authPayloadEncrypted || null,
+                job.keyVersion || 1,
+                this.config,
+            );
 
             const result = await performCheck({
                 type: job.type,
@@ -433,24 +437,22 @@ export function buildIdempotencyKey(monitorId: string): string {
     return `${monitorId}:${Date.now()}:${crypto.randomUUID()}`;
 }
 
-function getKeyForVersion(version: number): Buffer | null {
-    const specific = process.env[`ENCRYPTION_KEY_${version}`];
-    const fallback = process.env.ENCRYPTION_KEY;
-    const keyHex = specific || fallback;
+function getKeyForVersion(version: number, keySource: AgentKeySource): Buffer | null {
+    const keyHex = keySource.encryptionKeysByVersion[version] || keySource.fallbackEncryptionKey;
     if (!keyHex) return null;
 
-    try {
-        return Buffer.from(keyHex, 'hex');
-    } catch {
-        return null;
-    }
+    return Buffer.from(keyHex, 'hex');
 }
 
-export function decryptAgentPayload(ciphertext: string | null, keyVersion: number): string | null {
+export function decryptAgentPayload(
+    ciphertext: string | null,
+    keyVersion: number,
+    keySource: AgentKeySource = readAgentKeySource(),
+): string | null {
     if (!ciphertext) return null;
     if (!ciphertext.startsWith('enc:')) return ciphertext;
 
-    const key = getKeyForVersion(keyVersion);
+    const key = getKeyForVersion(keyVersion, keySource);
     if (!key) return ciphertext;
 
     const parts = ciphertext.split(':');
