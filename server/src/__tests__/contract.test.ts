@@ -11,10 +11,12 @@ import {
     agentHeartbeatResponseSchema,
     agentJobsResponseSchema,
     agentResultsResponseSchema,
+    healthResponseSchema,
     isoDate,
     monitorSchema,
     publicStatusDrilldownSchema,
     publicStatusSchema,
+    runtimeHealthResponseSchema,
     userSchema,
     uuid,
 } from './contractSchemas';
@@ -96,10 +98,7 @@ describe('API Contract', () => {
         expect(res.statusCode).toBe(200);
 
         const body = JSON.parse(res.body);
-        const parsed = z.object({
-            status: z.literal('ok'),
-            timestamp: isoDate,
-        }).parse(body);
+        const parsed = healthResponseSchema.parse(body);
 
         expect(normalizeForSnapshot(parsed)).toMatchSnapshot();
     });
@@ -109,199 +108,7 @@ describe('API Contract', () => {
         expect(res.statusCode).toBe(200);
 
         const body = JSON.parse(res.body);
-        const parsed = z.object({
-            status: z.literal('ok'),
-            timestamp: isoDate,
-            serverRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']),
-            runtime: z.object({
-                agentApiEnabled: z.boolean(),
-                agentSseEnabled: z.boolean(),
-                builtinWorkerEnabled: z.boolean(),
-            }),
-            services: z.object({
-                worker: z.object({
-                    running: z.boolean(),
-                    scheduledMonitors: z.number(),
-                    syncLoopActive: z.boolean(),
-                    lastRefreshAt: isoDate.nullable(),
-                    lastRefreshDurationMs: z.number().nullable(),
-                    lastRefreshError: z.string().nullable(),
-                    lastCheckCompletedAt: isoDate.nullable(),
-                    lastCheckMonitorId: uuid.nullable(),
-                    lastCheckMonitorName: z.string().nullable(),
-                    lastCheckError: z.string().nullable(),
-                }),
-                retention: z.object({
-                    running: z.boolean(),
-                    lastRunAt: isoDate.nullable(),
-                    lastDurationMs: z.number().nullable(),
-                    lastRetentionDays: z.number().nullable(),
-                    lastDeletedCheckResults: z.number(),
-                    lastDeletedAuditLogs: z.number(),
-                    lastDeletedNotificationHistory: z.number(),
-                    lastDeleteBatchCount: z.number(),
-                    lastBusyRetryCount: z.number(),
-                    lastError: z.string().nullable(),
-                }),
-                agentOfflineMonitor: z.object({
-                    running: z.boolean(),
-                    lastRunAt: isoDate.nullable(),
-                    lastDurationMs: z.number().nullable(),
-                    lastMarkedOfflineCount: z.number(),
-                    lastError: z.string().nullable(),
-                }),
-            }),
-            streams: z.object({
-                browserSse: z.object({
-                    currentClients: z.number(),
-                    maxClients: z.number(),
-                    totalAccepted: z.number(),
-                    totalRejected: z.number(),
-                    totalDisconnected: z.number(),
-                    failedWrites: z.number(),
-                    lastAcceptedAt: isoDate.nullable(),
-                    lastRejectedAt: isoDate.nullable(),
-                    lastDisconnectedAt: isoDate.nullable(),
-                    lastHeartbeatAt: isoDate.nullable(),
-                    lastBroadcastAt: isoDate.nullable(),
-                }),
-                agentSse: z.object({
-                    currentClients: z.number(),
-                    maxClients: z.number(),
-                    totalAccepted: z.number(),
-                    totalRejected: z.number(),
-                    totalDisconnected: z.number(),
-                    failedWrites: z.number(),
-                    totalReplayRequests: z.number(),
-                    totalReplayedEvents: z.number(),
-                    staleReplayRequests: z.number(),
-                    eventLogSize: z.number(),
-                    lastEventId: z.number(),
-                    lastAcceptedAt: isoDate.nullable(),
-                    lastRejectedAt: isoDate.nullable(),
-                    lastDisconnectedAt: isoDate.nullable(),
-                    lastReplayAt: isoDate.nullable(),
-                    lastStaleReplayAt: isoDate.nullable(),
-                    lastHeartbeatAt: isoDate.nullable(),
-                    lastPublishedAt: isoDate.nullable(),
-                }),
-            }),
-            caches: z.object({
-                publicStatus: z.object({
-                    ttlSec: z.number(),
-                    hasSnapshot: z.boolean(),
-                    lastBuildAt: isoDate.nullable(),
-                    lastBuildDurationMs: z.number().nullable(),
-                    hitCount: z.number(),
-                    missCount: z.number(),
-                    staleServeCount: z.number(),
-                    refreshInFlight: z.boolean(),
-                    lastError: z.string().nullable(),
-                }),
-            }),
-            cluster: z.object({
-                api: z.object({
-                    present: z.boolean(),
-                    fresh: z.boolean(),
-                    sourceRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']).nullable(),
-                    updatedAt: isoDate.nullable(),
-                    startedAt: isoDate.nullable(),
-                    hostname: z.string().nullable(),
-                    pid: z.number().nullable(),
-                    runtime: z.object({
-                        agentApiEnabled: z.boolean(),
-                        agentSseEnabled: z.boolean(),
-                        builtinWorkerEnabled: z.boolean(),
-                    }).nullable(),
-                    caches: z.object({
-                        publicStatus: z.object({
-                            ttlSec: z.number(),
-                            hasSnapshot: z.boolean(),
-                            lastBuildAt: isoDate.nullable(),
-                            lastBuildDurationMs: z.number().nullable(),
-                            hitCount: z.number(),
-                            missCount: z.number(),
-                            staleServeCount: z.number(),
-                            refreshInFlight: z.boolean(),
-                            lastError: z.string().nullable(),
-                        }),
-                    }).nullable(),
-                }),
-                worker: z.object({
-                    present: z.boolean(),
-                    fresh: z.boolean(),
-                    sourceRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']).nullable(),
-                    updatedAt: isoDate.nullable(),
-                    startedAt: isoDate.nullable(),
-                    hostname: z.string().nullable(),
-                    pid: z.number().nullable(),
-                    runtime: z.object({
-                        agentApiEnabled: z.boolean(),
-                        agentSseEnabled: z.boolean(),
-                        builtinWorkerEnabled: z.boolean(),
-                    }).nullable(),
-                    status: z.object({
-                        running: z.boolean(),
-                        scheduledMonitors: z.number(),
-                        syncLoopActive: z.boolean(),
-                        lastRefreshAt: isoDate.nullable(),
-                        lastRefreshDurationMs: z.number().nullable(),
-                        lastRefreshError: z.string().nullable(),
-                        lastCheckCompletedAt: isoDate.nullable(),
-                        lastCheckMonitorId: uuid.nullable(),
-                        lastCheckMonitorName: z.string().nullable(),
-                        lastCheckError: z.string().nullable(),
-                    }).nullable(),
-                }),
-                retention: z.object({
-                    present: z.boolean(),
-                    fresh: z.boolean(),
-                    sourceRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']).nullable(),
-                    updatedAt: isoDate.nullable(),
-                    startedAt: isoDate.nullable(),
-                    hostname: z.string().nullable(),
-                    pid: z.number().nullable(),
-                    runtime: z.object({
-                        agentApiEnabled: z.boolean(),
-                        agentSseEnabled: z.boolean(),
-                        builtinWorkerEnabled: z.boolean(),
-                    }).nullable(),
-                    status: z.object({
-                        running: z.boolean(),
-                        lastRunAt: isoDate.nullable(),
-                        lastDurationMs: z.number().nullable(),
-                        lastRetentionDays: z.number().nullable(),
-                        lastDeletedCheckResults: z.number(),
-                        lastDeletedAuditLogs: z.number(),
-                        lastDeletedNotificationHistory: z.number(),
-                        lastDeleteBatchCount: z.number(),
-                        lastBusyRetryCount: z.number(),
-                        lastError: z.string().nullable(),
-                    }).nullable(),
-                }),
-                agentOfflineMonitor: z.object({
-                    present: z.boolean(),
-                    fresh: z.boolean(),
-                    sourceRole: z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']).nullable(),
-                    updatedAt: isoDate.nullable(),
-                    startedAt: isoDate.nullable(),
-                    hostname: z.string().nullable(),
-                    pid: z.number().nullable(),
-                    runtime: z.object({
-                        agentApiEnabled: z.boolean(),
-                        agentSseEnabled: z.boolean(),
-                        builtinWorkerEnabled: z.boolean(),
-                    }).nullable(),
-                    status: z.object({
-                        running: z.boolean(),
-                        lastRunAt: isoDate.nullable(),
-                        lastDurationMs: z.number().nullable(),
-                        lastMarkedOfflineCount: z.number(),
-                        lastError: z.string().nullable(),
-                    }).nullable(),
-                }),
-            }),
-        }).parse(body);
+        const parsed = runtimeHealthResponseSchema.parse(body);
 
         expect(normalizeForSnapshot(parsed)).toMatchSnapshot();
     });

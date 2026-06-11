@@ -3,6 +3,142 @@ import { z } from 'zod';
 export const isoDate = z.string().datetime();
 export const uuid = z.string().uuid();
 
+const serverRoleSchema = z.enum(['all', 'api', 'worker', 'retention', 'agent-offline-monitor']);
+
+const runtimeFlagsSchema = z.object({
+    agentApiEnabled: z.boolean(),
+    agentSseEnabled: z.boolean(),
+    builtinWorkerEnabled: z.boolean(),
+});
+
+const publicStatusCacheSchema = z.object({
+    ttlSec: z.number(),
+    hasSnapshot: z.boolean(),
+    lastBuildAt: isoDate.nullable(),
+    lastBuildDurationMs: z.number().nullable(),
+    hitCount: z.number(),
+    missCount: z.number(),
+    staleServeCount: z.number(),
+    refreshInFlight: z.boolean(),
+    lastError: z.string().nullable(),
+});
+
+const workerStatusSchema = z.object({
+    running: z.boolean(),
+    scheduledMonitors: z.number(),
+    syncLoopActive: z.boolean(),
+    lastRefreshAt: isoDate.nullable(),
+    lastRefreshDurationMs: z.number().nullable(),
+    lastRefreshError: z.string().nullable(),
+    lastCheckCompletedAt: isoDate.nullable(),
+    lastCheckMonitorId: uuid.nullable(),
+    lastCheckMonitorName: z.string().nullable(),
+    lastCheckError: z.string().nullable(),
+});
+
+const retentionStatusSchema = z.object({
+    running: z.boolean(),
+    lastRunAt: isoDate.nullable(),
+    lastDurationMs: z.number().nullable(),
+    lastRetentionDays: z.number().nullable(),
+    lastDeletedCheckResults: z.number(),
+    lastDeletedAuditLogs: z.number(),
+    lastDeletedNotificationHistory: z.number(),
+    lastDeleteBatchCount: z.number(),
+    lastBusyRetryCount: z.number(),
+    lastError: z.string().nullable(),
+});
+
+const agentOfflineMonitorStatusSchema = z.object({
+    running: z.boolean(),
+    lastRunAt: isoDate.nullable(),
+    lastDurationMs: z.number().nullable(),
+    lastMarkedOfflineCount: z.number(),
+    lastError: z.string().nullable(),
+});
+
+const clusterProcessBaseSchema = z.object({
+    present: z.boolean(),
+    fresh: z.boolean(),
+    sourceRole: serverRoleSchema.nullable(),
+    updatedAt: isoDate.nullable(),
+    startedAt: isoDate.nullable(),
+    hostname: z.string().nullable(),
+    pid: z.number().nullable(),
+    runtime: runtimeFlagsSchema.nullable(),
+});
+
+export const healthResponseSchema = z.object({
+    status: z.literal('ok'),
+    timestamp: isoDate,
+});
+
+export const runtimeHealthResponseSchema = z.object({
+    status: z.literal('ok'),
+    timestamp: isoDate,
+    serverRole: serverRoleSchema,
+    runtime: runtimeFlagsSchema,
+    services: z.object({
+        worker: workerStatusSchema,
+        retention: retentionStatusSchema,
+        agentOfflineMonitor: agentOfflineMonitorStatusSchema,
+    }),
+    streams: z.object({
+        browserSse: z.object({
+            currentClients: z.number(),
+            maxClients: z.number(),
+            totalAccepted: z.number(),
+            totalRejected: z.number(),
+            totalDisconnected: z.number(),
+            failedWrites: z.number(),
+            lastAcceptedAt: isoDate.nullable(),
+            lastRejectedAt: isoDate.nullable(),
+            lastDisconnectedAt: isoDate.nullable(),
+            lastHeartbeatAt: isoDate.nullable(),
+            lastBroadcastAt: isoDate.nullable(),
+        }),
+        agentSse: z.object({
+            currentClients: z.number(),
+            maxClients: z.number(),
+            totalAccepted: z.number(),
+            totalRejected: z.number(),
+            totalDisconnected: z.number(),
+            failedWrites: z.number(),
+            totalReplayRequests: z.number(),
+            totalReplayedEvents: z.number(),
+            staleReplayRequests: z.number(),
+            eventLogSize: z.number(),
+            lastEventId: z.number(),
+            lastAcceptedAt: isoDate.nullable(),
+            lastRejectedAt: isoDate.nullable(),
+            lastDisconnectedAt: isoDate.nullable(),
+            lastReplayAt: isoDate.nullable(),
+            lastStaleReplayAt: isoDate.nullable(),
+            lastHeartbeatAt: isoDate.nullable(),
+            lastPublishedAt: isoDate.nullable(),
+        }),
+    }),
+    caches: z.object({
+        publicStatus: publicStatusCacheSchema,
+    }),
+    cluster: z.object({
+        api: clusterProcessBaseSchema.extend({
+            caches: z.object({
+                publicStatus: publicStatusCacheSchema,
+            }).nullable(),
+        }),
+        worker: clusterProcessBaseSchema.extend({
+            status: workerStatusSchema.nullable(),
+        }),
+        retention: clusterProcessBaseSchema.extend({
+            status: retentionStatusSchema.nullable(),
+        }),
+        agentOfflineMonitor: clusterProcessBaseSchema.extend({
+            status: agentOfflineMonitorStatusSchema.nullable(),
+        }),
+    }),
+});
+
 export const userSchema = z.object({
     id: uuid,
     username: z.string(),
