@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { authenticateJWT, authenticateSseJWT, requireAdmin, blockApiKeyWrites } from '../lib/auth';
 import { validateMonitorInputWithOptions, CreateMonitorBody } from '../lib/validation';
@@ -296,7 +297,7 @@ export default async function monitorRoutes(fastify: FastifyInstance) {
                 : null;
             const { from, to } = request.query;
 
-            const whereClause: any = { monitorId: id };
+            const whereClause: Prisma.CheckResultWhereInput = { monitorId: id };
             if (from || to) {
                 whereClause.timestamp = {};
                 if (from) {

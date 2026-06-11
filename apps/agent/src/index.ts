@@ -47,6 +47,9 @@ type BufferedResult = {
     };
 };
 
+type ApiMethod = 'GET' | 'POST';
+type JsonRequestBody = Record<string, unknown>;
+
 const SSE_RECONNECT_BASE_DELAY_MS = 2_000;
 const SSE_RECONNECT_MAX_DELAY_MS = 30_000;
 
@@ -342,14 +345,14 @@ class AgentRuntime {
         }
     }
 
-    private async requestJson<T>(method: string, path: string, body?: any): Promise<T> {
+    private async requestJson<T>(method: ApiMethod, path: string, body?: JsonRequestBody): Promise<T> {
         const res = await fetch(`${this.config.mainServerUrl}${path}`, {
             method,
             headers: {
                 Authorization: `Bearer ${this.config.agentToken}`,
                 'Content-Type': 'application/json',
             },
-            body: body ? JSON.stringify(body) : undefined,
+            body: body === undefined ? undefined : JSON.stringify(body),
             signal: AbortSignal.timeout(this.config.httpTimeoutMs),
         });
 
