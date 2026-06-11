@@ -2,58 +2,17 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { initApp } from '../index';
 import prisma from '../lib/prisma';
-import bcrypt from 'bcrypt';
 import { AUTH_COOKIE_MAX_AGE_SEC } from '../lib/authCookies';
-import { resetLoginAbuseTrackingForTests } from '../routes/auth';
+import {
+    createAdminToken,
+    createUser,
+    getAuthTokenFromSetCookie,
+    getCookieHeader,
+    resetAuthTestState,
+    signAuthToken,
+} from './authTestUtils';
 
 let app: FastifyInstance;
-
-type TestUser = {
-    id: string;
-    username: string;
-    role: 'ADMIN' | 'VIEWER';
-    sessionVersion: number;
-};
-
-function getCookieHeader(setCookie: string | string[] | undefined): string {
-    const value = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-    if (!value) {
-        throw new Error('Missing Set-Cookie header');
-    }
-
-    return value;
-}
-
-function getAuthTokenFromSetCookie(setCookie: string | string[] | undefined): string {
-    const cookieHeader = getCookieHeader(setCookie);
-    const match = cookieHeader.match(/auth_token=([^;]+)/);
-    if (!match) {
-        throw new Error('Missing auth_token cookie');
-    }
-
-    return decodeURIComponent(match[1]);
-}
-
-async function createUser(username: string, password: string, role: TestUser['role'] = 'VIEWER') {
-    const passwordHash = await bcrypt.hash(password, 10);
-    return prisma.user.create({
-        data: {
-            username,
-            passwordHash,
-            role,
-        },
-    });
-}
-
-async function createAdminToken(username: string) {
-    const admin = await createUser(username, 'admin123', 'ADMIN');
-    return app.jwt.sign({
-        id: admin.id,
-        username: admin.username,
-        role: admin.role,
-        sessionVersion: admin.sessionVersion,
-    });
-}
 
 beforeAll(async () => {
     app = await initApp();
@@ -64,12 +23,7 @@ afterAll(async () => {
     await app.close();
 });
 
-beforeEach(async () => {
-    resetLoginAbuseTrackingForTests();
-    await prisma.apiKey.deleteMany();
-    await prisma.auditLog.deleteMany();
-    await prisma.user.deleteMany();
-});
+beforeEach(resetAuthTestState);
 
 describe('Auth API (Integration)', () => {
     it('rejects login with wrong credentials', async () => {
@@ -191,14 +145,7 @@ describe('Auth API (Integration)', () => {
     });
 
     it('returns the raw API key only at generation time', async () => {
-        const passwordHash = await bcrypt.hash('secret123', 10);
-        const admin = await prisma.user.create({
-            data: {
-                username: 'api_key_admin',
-                passwordHash,
-                role: 'ADMIN',
-            },
-        });
+        const admin = await createUser('api_key_admin', 'secret123', 'ADMIN');
 
         const loginRes = await app.inject({
             method: 'POST',
@@ -231,12 +178,7 @@ describe('Auth API (Integration)', () => {
         expect(meRes.statusCode).toBe(200);
         expect(JSON.parse(meRes.body)).not.toHaveProperty('key');
 
-        const adminToken = app.jwt.sign({
-            id: admin.id,
-            username: admin.username,
-            role: admin.role,
-            sessionVersion: admin.sessionVersion,
-        });
+        const adminToken = signAuthToken(app, admin);
         const usersRes = await app.inject({
             method: 'GET',
             url: '/api/users',
@@ -402,7 +344,7 @@ describe('Auth API (Integration)', () => {
 
     it('revokes active sessions when an admin changes the password', async () => {
         const viewer = await createUser('password_target', 'secret123');
-        const adminToken = await createAdminToken('password_admin');
+        const adminToken = await createAdminToken(app, 'password_admin');
 
         const loginRes = await app.inject({
             method: 'POST',
@@ -459,7 +401,7 @@ describe('Auth API (Integration)', () => {
 
     it('revokes active sessions when an admin changes the role', async () => {
         const viewer = await createUser('role_target', 'secret123');
-        const adminToken = await createAdminToken('role_admin');
+        const adminToken = await createAdminToken(app, 'role_admin');
 
         const loginRes = await app.inject({
             method: 'POST',
@@ -512,7 +454,7 @@ describe('Auth API (Integration)', () => {
 
     it('revokes active sessions when a user is deleted', async () => {
         const viewer = await createUser('delete_target', 'secret123');
-        const adminToken = await createAdminToken('delete_admin');
+        const adminToken = await createAdminToken(app, 'delete_admin');
 
         const loginRes = await app.inject({
             method: 'POST',
