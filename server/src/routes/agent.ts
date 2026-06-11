@@ -12,6 +12,7 @@ import { ZulipNotifier } from '../services/zulip';
 import { decrypt } from '../lib/crypto';
 import { resolveAgentGeo } from '../services/geoip';
 import { buildAgentOnlineMessage, htmlToNotifierText } from '../services/notificationMessages';
+import { buildAgentJobsResponse } from './agentRouteModel';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -184,35 +185,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
             orderBy: { createdAt: 'asc' },
         });
 
-        return {
-            serverTime: new Date().toISOString(),
-            heartbeatIntervalSec: agent.heartbeatIntervalSec,
-            jobs: jobs.map((job) => ({
-                monitorId: job.id,
-                type: job.type,
-                url: job.url,
-                dnsRecordType: job.dnsRecordType,
-                method: job.method,
-                intervalSeconds: job.intervalSeconds,
-                timeoutMs: job.timeoutSeconds * 1000,
-                expectedStatus: job.expectedStatus,
-                expectedBody: job.expectedBody,
-                requestBody: job.requestBody,
-                bodyAssertionType: job.bodyAssertionType,
-                bodyAssertionPath: job.bodyAssertionPath,
-                headers: job.headers,
-                authMethod: job.authMethod,
-                authUrl: job.authUrl,
-                authPayloadEncrypted: job.authPayload,
-                authTokenRegex: job.authTokenRegex,
-                sslExpiryEnabled: job.sslExpiryEnabled,
-                sslExpiryThresholdDays: job.sslExpiryThresholdDays,
-                authPayloadIv: null,
-                authPayloadTag: null,
-                keyVersion: agent.keyVersion,
-                version: job.updatedAt.getTime(),
-            })),
-        };
+        return buildAgentJobsResponse(agent, jobs);
     });
 
     fastify.post('/results', {
