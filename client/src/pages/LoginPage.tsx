@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiErrorMessage } from '../lib/apiErrors';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -15,8 +16,8 @@ export default function LoginPage() {
 
         try {
             await login(username, password);
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Login failed');
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Login failed'));
         } finally {
             setLoading(false);
         }

@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { usersApi, User } from '../api';
+import { usersApi, type UserDirectoryEntry } from '../api';
+import { getApiErrorMessage } from '../lib/apiErrors';
 
 export default function UsersPage() {
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<UserDirectoryEntry[]>([]);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [newUsername, setNewUsername] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [newRole, setNewRole] = useState<'ADMIN' | 'VIEWER'>('VIEWER');
     const [error, setError] = useState('');
-    const [passwordModal, setPasswordModal] = useState<User | null>(null);
+    const [passwordModal, setPasswordModal] = useState<UserDirectoryEntry | null>(null);
     const [changePassword, setChangePassword] = useState('');
 
     const fetchUsers = useCallback(async () => {
@@ -39,8 +40,8 @@ export default function UsersPage() {
             setNewRole('VIEWER');
             setShowCreateForm(false);
             await fetchUsers();
-        } catch (err: any) {
-            setError(err.response?.data?.error || 'Failed to create user');
+        } catch (err: unknown) {
+            setError(getApiErrorMessage(err, 'Failed to create user'));
         }
     };
 
@@ -49,8 +50,8 @@ export default function UsersPage() {
         try {
             await usersApi.delete(`/${id}`);
             await fetchUsers();
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Failed to delete user');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Failed to delete user'));
         }
     };
 
@@ -65,8 +66,8 @@ export default function UsersPage() {
             setPasswordModal(null);
             setChangePassword('');
             alert('Password changed successfully');
-        } catch (err: any) {
-            alert(err.response?.data?.error || 'Failed to change password');
+        } catch (err: unknown) {
+            alert(getApiErrorMessage(err, 'Failed to change password'));
         }
     };
 

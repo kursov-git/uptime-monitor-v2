@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiClient } from '../api';
+import { monitorsApi, notificationsApi } from '../api';
 import type { NotificationHistoryEntry, Monitor } from '@uptime-monitor/shared';
 
 export default function NotificationHistoryPage() {
@@ -19,10 +19,10 @@ export default function NotificationHistoryPage() {
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const query = monitorId ? `?page=${page}&limit=${limit}&monitorId=${monitorId}` : `?page=${page}&limit=${limit}`;
+            const query: `?${string}` = monitorId ? `?page=${page}&limit=${limit}&monitorId=${monitorId}` : `?page=${page}&limit=${limit}`;
             const [historyRes, monitorsRes] = await Promise.all([
-                apiClient.get(`/notifications/history${query}`),
-                apiClient.get('/monitors')
+                notificationsApi.get(`/history${query}`),
+                monitorsApi.get('/')
             ]);
 
             setHistory(historyRes.data.history);

@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import NotificationSettings from '../pages/NotificationSettings';
 import { notificationsApi } from '../api';
+import type { NotificationSettingsResponse } from '../api';
+import { mockAxiosResponse } from './testUtils';
 
 const navigateMock = vi.fn();
 
@@ -20,24 +22,24 @@ describe('NotificationSettings', () => {
     });
 
     it('renders redesigned settings layout', async () => {
-        vi.spyOn(notificationsApi, 'get').mockResolvedValueOnce({
-            data: {
-                id: 'settings-1',
-                appBaseUrl: 'https://ping-agent.ru',
-                telegramEnabled: true,
-                telegramBotToken: 'token',
-                telegramChatId: 'chat',
-                zulipEnabled: false,
-                zulipBotEmail: 'bot@example.com',
-                zulipApiKey: 'key',
-                zulipServerUrl: 'https://zulip.example.com',
-                zulipStream: 'alerts',
-                zulipTopic: 'uptime',
-                flappingFailCount: 3,
-                flappingIntervalSec: 120,
-                retentionDays: 30,
-            },
-        } as any);
+        const settings: NotificationSettingsResponse = {
+            id: 'settings-1',
+            appBaseUrl: 'https://ping-agent.ru',
+            telegramEnabled: true,
+            telegramBotToken: 'token',
+            telegramChatId: 'chat',
+            zulipEnabled: false,
+            zulipBotEmail: 'bot@example.com',
+            zulipApiKey: 'key',
+            zulipServerUrl: 'https://zulip.example.com',
+            zulipStream: 'alerts',
+            zulipTopic: 'uptime',
+            flappingFailCount: 3,
+            flappingIntervalSec: 120,
+            retentionDays: 30,
+        };
+
+        vi.spyOn(notificationsApi, 'get').mockResolvedValueOnce(mockAxiosResponse(settings));
 
         render(<NotificationSettings />);
 

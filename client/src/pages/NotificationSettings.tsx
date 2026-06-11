@@ -1,27 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../api';
-
-interface Settings {
-    id: string;
-    appBaseUrl: string | null;
-    telegramEnabled: boolean;
-    telegramBotToken: string | null;
-    telegramChatId: string | null;
-    zulipEnabled: boolean;
-    zulipBotEmail: string | null;
-    zulipApiKey: string | null;
-    zulipServerUrl: string | null;
-    zulipStream: string | null;
-    zulipTopic: string | null;
-    flappingFailCount: number;
-    flappingIntervalSec: number;
-    retentionDays: number;
-}
+import type { NotificationSettingsResponse } from '../api';
 
 export default function NotificationSettings() {
     const navigate = useNavigate();
-    const [settings, setSettings] = useState<Settings | null>(null);
+    const [settings, setSettings] = useState<NotificationSettingsResponse | null>(null);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [testingTelegram, setTestingTelegram] = useState(false);
@@ -91,7 +75,7 @@ export default function NotificationSettings() {
         }
     };
 
-    const update = (field: keyof Settings, value: any) => {
+    const update = <K extends keyof NotificationSettingsResponse>(field: K, value: NotificationSettingsResponse[K]) => {
         setSettings(prev => prev ? { ...prev, [field]: value } : prev);
     };
 

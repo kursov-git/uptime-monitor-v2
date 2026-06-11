@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = () => {
-        authApi.post('/logout').catch(() => { });
+        authApi.logout().catch(() => { });
         removeToken();
         setUser(null);
     };

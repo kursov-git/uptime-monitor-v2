@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import UsersPage from '../pages/UsersPage';
 import { usersApi } from '../api';
+import type { UserDirectoryEntry } from '../api';
+import { mockAxiosResponse } from './testUtils';
 
 describe('UsersPage', () => {
     beforeEach(() => {
@@ -17,29 +19,28 @@ describe('UsersPage', () => {
     });
 
     it('renders redesigned access directory', async () => {
-        vi.spyOn(usersApi, 'get').mockResolvedValue({
-            data: [
-                {
-                    id: 'user-1',
-                    username: 'admin',
-                    role: 'ADMIN',
+        const users: UserDirectoryEntry[] = [
+            {
+                id: 'user-1',
+                username: 'admin',
+                role: 'ADMIN',
+                createdAt: '2026-03-20T10:00:00.000Z',
+                apiKey: {
+                    id: 'key-1',
                     createdAt: '2026-03-20T10:00:00.000Z',
-                    apiKey: {
-                        id: 'key-1',
-                        key: 'hidden',
-                        createdAt: '2026-03-20T10:00:00.000Z',
-                        revokedAt: null,
-                    },
+                    revokedAt: null,
                 },
-                {
-                    id: 'user-2',
-                    username: 'viewer',
-                    role: 'VIEWER',
-                    createdAt: '2026-03-19T10:00:00.000Z',
-                    apiKey: null,
-                },
-            ],
-        } as any);
+            },
+            {
+                id: 'user-2',
+                username: 'viewer',
+                role: 'VIEWER',
+                createdAt: '2026-03-19T10:00:00.000Z',
+                apiKey: null,
+            },
+        ];
+
+        vi.spyOn(usersApi, 'get').mockResolvedValue(mockAxiosResponse(users));
 
         render(<UsersPage />);
 

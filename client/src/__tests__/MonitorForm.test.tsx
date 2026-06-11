@@ -3,11 +3,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MonitorForm from '../components/MonitorForm';
 import { agentsApi } from '../api';
+import { mockAxiosResponse } from './testUtils';
 
 describe('MonitorForm', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.spyOn(agentsApi, 'get').mockResolvedValue({ data: [] } as any);
+        vi.spyOn(agentsApi, 'get').mockResolvedValue(mockAxiosResponse([]));
     });
 
     afterEach(() => {

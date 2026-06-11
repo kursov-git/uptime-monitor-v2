@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
-import { monitorsApi, apiClient, CheckResult, Monitor } from '../api';
+import { monitorsApi, notificationsApi, CheckResult, Monitor } from '../api';
+import type { MonitorStatsPath } from '../api';
 import type { NotificationHistoryEntry } from '@uptime-monitor/shared';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea
@@ -7,25 +8,15 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import TimeRangeFilter, { TimeRangeValue, computeAbsoluteRange, resolveTimeRangeLabel } from '../components/TimeRangeFilter';
 import { useAuth } from '../contexts/AuthContext';
-
-interface StatsResponse {
-    results: CheckResult[];
-    total: number;
-    limit: number;
-    offset: number;
-    overallUptimePercent?: string;
-    overallAvgResponseMs?: number;
-}
-
-interface ChartPoint {
-    index: number;
-    time: string;
-    timeLabel: string;
-    timestampMs: number;
-    responseTime: number;
-    isUp: boolean;
-    statusCode: number | null;
-}
+import {
+    buildChartTickIndexes,
+    detailCheckError,
+    downsampleChartData,
+    formatChartTick,
+    getChartHoverIndex,
+    summarizeCheckError,
+} from '../lib/monitorHistoryChart';
+import type { ChartPoint } from '../lib/monitorHistoryChart';
 
 const DEFAULT_PAGE_SIZE = 50;
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -33,6 +24,17 @@ const DEFAULT_TIME_RANGE: TimeRangeValue = 'now-1h';
 const DEFAULT_INTERVAL_SECONDS = 60;
 const MAX_CHART_POINTS = 100000;
 const MAX_RENDERED_CHART_POINTS = 1800;
+
+interface ChartTooltipProps {
+    active?: boolean;
+    payload?: Array<{ payload: ChartPoint }>;
+}
+
+interface ChartDotProps {
+    cx?: number;
+    cy?: number;
+    payload?: ChartPoint;
+}
 
 function estimateChartPointLimit(
     range: TimeRangeValue,
@@ -49,123 +51,6 @@ function estimateChartPointLimit(
     const expectedPoints = Math.ceil(durationMs / (safeIntervalSeconds * 1000)) + 4;
 
     return Math.max(300, Math.min(MAX_CHART_POINTS, expectedPoints));
-}
-
-function formatChartTick(timestampMs: number, spanMs: number): string {
-    const date = new Date(timestampMs);
-
-    if (spanMs >= 3 * 24 * 60 * 60 * 1000) {
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
-
-    if (spanMs >= 24 * 60 * 60 * 1000) {
-        return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function downsampleChartData(points: ChartPoint[], maxPoints: number): ChartPoint[] {
-    if (points.length <= maxPoints) {
-        return points;
-    }
-
-    const first = points[0];
-    const last = points[points.length - 1];
-    const middle = points.slice(1, -1);
-    const bucketCount = Math.max(1, Math.floor((maxPoints - 2) / 2));
-    const bucketSize = Math.max(1, Math.ceil(middle.length / bucketCount));
-    const sampled: ChartPoint[] = [first];
-
-    for (let index = 0; index < middle.length; index += bucketSize) {
-        const bucket = middle.slice(index, index + bucketSize);
-        if (bucket.length === 0) continue;
-
-        const firstFailure = bucket.find((point) => !point.isUp) ?? null;
-        const peak = bucket.reduce((highest, point) => (
-            point.responseTime >= highest.responseTime ? point : highest
-        ), bucket[0]);
-
-        const bucketPoints = [firstFailure, peak]
-            .filter((point): point is ChartPoint => point !== null)
-            .sort((a, b) => a.timestampMs - b.timestampMs)
-            .filter((point, pointIndex, allPoints) => pointIndex === 0 || point !== allPoints[pointIndex - 1]);
-
-        sampled.push(...bucketPoints);
-    }
-
-    sampled.push(last);
-
-    return sampled
-        .sort((a, b) => a.timestampMs - b.timestampMs)
-        .filter((point, pointIndex, allPoints) => pointIndex === 0 || point !== allPoints[pointIndex - 1])
-        .map((point, pointIndex) => ({ ...point, index: pointIndex }));
-}
-
-function getChartTickIntervalMs(spanMs: number): number {
-    const minute = 60 * 1000;
-    const hour = 60 * minute;
-    const day = 24 * hour;
-
-    if (spanMs <= 90 * minute) return 5 * minute;
-    if (spanMs <= 3 * hour) return 15 * minute;
-    if (spanMs <= 6 * hour) return 30 * minute;
-    if (spanMs <= 24 * hour) return hour;
-    if (spanMs <= 3 * day) return 6 * hour;
-    if (spanMs <= 7 * day) return 12 * hour;
-    return day;
-}
-
-function buildChartTickIndexes(
-    chartData: Array<{ index: number; timestampMs: number }>,
-    spanMs: number,
-): number[] {
-    if (chartData.length <= 2) {
-        return chartData.map((point) => point.index);
-    }
-
-    const tickIntervalMs = getChartTickIntervalMs(spanMs);
-    const firstIndex = chartData[0].index;
-    const lastIndex = chartData[chartData.length - 1].index;
-    const ticks = new Set<number>([firstIndex, lastIndex]);
-    let previousBucket: number | null = null;
-
-    for (const point of chartData) {
-        const bucket = Math.floor(point.timestampMs / tickIntervalMs);
-        if (bucket !== previousBucket) {
-            ticks.add(point.index);
-            previousBucket = bucket;
-        }
-    }
-
-    return Array.from(ticks).sort((a, b) => a - b);
-}
-
-function getChartHoverIndex(state: any): number | null {
-    const rawIndex = state?.activeTooltipIndex;
-    if (rawIndex === null || rawIndex === undefined) return null;
-
-    const normalized = typeof rawIndex === 'number' ? rawIndex : Number(rawIndex);
-    if (!Number.isFinite(normalized)) return null;
-
-    return normalized;
-}
-
-function summarizeCheckError(error: string | null | undefined): string {
-    if (!error) return 'Healthy response';
-
-    const normalized = error.toLowerCase();
-    if (normalized.includes('handshake failure')) return 'TLS handshake failed';
-    if (normalized.includes('protocol version')) return 'TLS protocol mismatch';
-    if (normalized.includes('certificate')) return 'Certificate validation failed';
-    if (normalized.includes('eproto')) return 'TLS connection failed';
-
-    return error;
-}
-
-function detailCheckError(error: string | null | undefined): string {
-    if (!error) return 'Healthy response';
-    return error;
 }
 
 export default function MonitorHistory({ onBack }: { onBack: () => void }) {
@@ -224,7 +109,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         try {
             setLoading(true);
             const { from, to } = computeAbsoluteRange(timeRange);
-            const monitorRes = await monitorsApi.get<Monitor>(`/${monitorId}`);
+            const monitorRes = await monitorsApi.get(`/${monitorId}`);
             const chartLimit = estimateChartPointLimit(timeRange, monitorRes.data.intervalSeconds);
 
             let statsUrl = `/${monitorId}/stats?limit=${pageSize}&offset=${offset}`;
@@ -237,8 +122,8 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             chartUrl += `&sampleTo=${MAX_RENDERED_CHART_POINTS}`;
 
             const [statsRes, chartRes] = await Promise.all([
-                monitorsApi.get<StatsResponse>(statsUrl),
-                monitorsApi.get<StatsResponse>(chartUrl),
+                monitorsApi.get(statsUrl as MonitorStatsPath),
+                monitorsApi.get(chartUrl as MonitorStatsPath),
             ]);
             setMonitor(monitorRes.data);
             setResults(statsRes.data.results);
@@ -248,7 +133,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
             setChartResults(chartRes.data.results);
             if (isAdmin) {
                 try {
-                    const notifRes = await apiClient.get(`/notifications/history?limit=5&monitorId=${monitorId}`);
+                    const notifRes = await notificationsApi.get(`/history?limit=5&monitorId=${monitorId}`);
                     setRecentNotifications(notifRes.data.history);
                 } catch (notifErr) {
                     console.error('Failed to fetch notification history:', notifErr);
@@ -376,9 +261,9 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         ? new Date(latestResult.timestamp).toLocaleString()
         : 'No checks yet';
 
-    const CustomTooltip = ({ active, payload }: any) => {
-        if (!active || !payload?.[0]) return null;
-        const data = payload[0].payload;
+    const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
+        const data = payload?.[0]?.payload;
+        if (!active || !data) return null;
         return (
             <div className="history-tooltip">
                 <div className="history-tooltip-time">{data.timeLabel}</div>
@@ -395,13 +280,13 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         );
     };
 
-    const handleChartMouseDown = (state: any) => {
+    const handleChartMouseDown = (state: unknown) => {
         const hoverIndex = getChartHoverIndex(state);
         if (hoverIndex === null) return;
         setChartSelection({ startIndex: hoverIndex, endIndex: hoverIndex });
     };
 
-    const handleChartMouseMove = (state: any) => {
+    const handleChartMouseMove = (state: unknown) => {
         const hoverIndex = getChartHoverIndex(state);
         if (chartSelection.startIndex === null || hoverIndex === null) return;
         setChartSelection((current) => ({ ...current, endIndex: hoverIndex }));
@@ -638,8 +523,11 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                                 strokeWidth={2}
                                 fill="url(#responseGrad)"
                                 isAnimationActive={false}
-                                dot={chartDataWithFormattedTicks.length <= 1200 ? ((props: any) => {
-                                    const { cx, cy, payload } = props;
+                                dot={chartDataWithFormattedTicks.length <= 1200 ? ((props: unknown) => {
+                                    const { cx, cy, payload } = props as ChartDotProps;
+                                    if (typeof cx !== 'number' || typeof cy !== 'number' || !payload) {
+                                        return <circle r={0} />;
+                                    }
                                     if (!payload.isUp) {
                                         return (
                                             <circle

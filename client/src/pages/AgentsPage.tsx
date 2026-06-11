@@ -1,65 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Agent, agentsApi } from '../api';
-
-const CURRENT_AGENT_VERSION = '1.0.0';
-const GEO_CITY_LABELS: Record<string, string> = {
-    "Kazan'": 'Казань',
-    'Moscow': 'Москва',
-    'Saint Petersburg': 'Санкт-Петербург',
-    'Yekaterinburg': 'Екатеринбург',
-    'Novosibirsk': 'Новосибирск',
-    'Nizhniy Novgorod': 'Нижний Новгород',
-    'Yuzhno-Sakhalinsk': 'Южно-Сахалинск',
-};
-
-function getAgentVersionState(version: string | null): 'CURRENT' | 'OUTDATED' | 'UNKNOWN' {
-    if (!version) return 'UNKNOWN';
-    return version === CURRENT_AGENT_VERSION ? 'CURRENT' : 'OUTDATED';
-}
-
-function getAgentVersionLabel(version: string | null): string {
-    const state = getAgentVersionState(version);
-    if (state === 'UNKNOWN') return 'unknown';
-    if (state === 'OUTDATED') return `${version} (expected ${CURRENT_AGENT_VERSION})`;
-    return version || CURRENT_AGENT_VERSION;
-}
-
-function formatAgentCity(city: string | null): string | null {
-    if (!city) {
-        return null;
-    }
-
-    return GEO_CITY_LABELS[city] || city.replace(/'+/g, '').trim() || null;
-}
-
-function formatAgentLocation(agent: Agent): string {
-    const countryName = agent.lastSeenCountry
-        ? new Intl.DisplayNames(['ru', 'en'], { type: 'region' }).of(agent.lastSeenCountry) || agent.lastSeenCountry
-        : null;
-    const parts = [countryName, formatAgentCity(agent.lastSeenCity)].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'Unknown location';
-}
-
-function getAgentAttentionFlags(agent: Agent) {
-    const versionState = getAgentVersionState(agent.agentVersion);
-    const isOnline = agent.status === 'ONLINE';
-
-    return {
-        isOnline,
-        isRevoked: Boolean(agent.revokedAt),
-        isOutdated: versionState === 'OUTDATED',
-        versionState,
-        needsAttention: !isOnline || Boolean(agent.revokedAt) || versionState === 'OUTDATED',
-    };
-}
-
-function getAgentPriority(agent: Agent): number {
-    const flags = getAgentAttentionFlags(agent);
-    if (flags.isRevoked) return 0;
-    if (!flags.isOnline) return 1;
-    if (flags.isOutdated) return 2;
-    return 3;
-}
+import {
+    buildAgentDockerRun,
+    buildAgentEnvSnippet,
+    buildAgentInstallScript,
+    buildAgentSystemdSnippet,
+    formatAgentLocation,
+    getAgentApiErrorMessage,
+    getAgentAttentionFlags,
+    getAgentVersionLabel,
+    sortAgentsForAttention,
+    summarizeAgents,
+} from '../lib/agentsView';
 
 export default function AgentsPage() {
     const [agents, setAgents] = useState<Agent[]>([]);
@@ -78,10 +30,10 @@ export default function AgentsPage() {
         setLoading(true);
         setError('');
         try {
-            const res = await agentsApi.get<Agent[]>('/');
+            const res = await agentsApi.get('/');
             setAgents(res.data);
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to load agents');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to load agents'));
         } finally {
             setLoading(false);
         }
@@ -100,13 +52,13 @@ export default function AgentsPage() {
         setCopyMessage('');
         try {
             const res = await agentsApi.post('/', { name, heartbeatIntervalSec, offlineAfterSec });
-            setCreatedToken(res.data.token || '');
-            setRegistrationName(res.data.agent?.name || name);
-            setRegistrationAgentId(res.data.agent?.id || '');
+            setCreatedToken(res.data.token);
+            setRegistrationName(res.data.agent.name || name);
+            setRegistrationAgentId(res.data.agent.id);
             setName('');
             await fetchAgents();
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to register agent');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to register agent'));
         }
     };
 
@@ -118,13 +70,13 @@ export default function AgentsPage() {
         setCopyMessage('');
         try {
             const res = await agentsApi.post(`/${id}/rotate-token`);
-            setCreatedToken(res.data.token || '');
+            setCreatedToken(res.data.token);
             const agent = agents.find((entry) => entry.id === id);
             setRegistrationName(agent?.name || '');
             setRegistrationAgentId(id);
             await fetchAgents();
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to rotate token');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to rotate token'));
         }
     };
 
@@ -134,8 +86,8 @@ export default function AgentsPage() {
         try {
             await agentsApi.post(`/${id}/revoke`);
             await fetchAgents();
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to revoke agent');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to revoke agent'));
         }
     };
 
@@ -154,8 +106,8 @@ export default function AgentsPage() {
                 setCopyMessage('');
             }
             await fetchAgents();
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to delete agent');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to delete agent'));
         }
     };
 
@@ -167,78 +119,31 @@ export default function AgentsPage() {
                 offlineAfterSec: agent.offlineAfterSec,
             });
             await fetchAgents();
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Failed to update agent');
+        } catch (err: unknown) {
+            setError(getAgentApiErrorMessage(err, 'Failed to update agent'));
         }
     };
 
     const issuedAgent = registrationAgentId
         ? agents.find((entry) => entry.id === registrationAgentId) || null
         : null;
-    const sortedAgents = [...agents].sort((left, right) => {
-        const priorityDiff = getAgentPriority(left) - getAgentPriority(right);
-        if (priorityDiff !== 0) {
-            return priorityDiff;
-        }
-
-        return new Date(right.lastSeen).getTime() - new Date(left.lastSeen).getTime();
-    });
-    const agentSummary = sortedAgents.reduce((acc, agent) => {
-        const flags = getAgentAttentionFlags(agent);
-        acc.total += 1;
-        if (flags.isOnline) acc.online += 1;
-        if (flags.isOutdated) acc.outdated += 1;
-        if (flags.needsAttention) acc.attention += 1;
-        return acc;
-    }, { total: 0, online: 0, outdated: 0, attention: 0 });
+    const sortedAgents = sortAgentsForAttention(agents);
+    const agentSummary = summarizeAgents(sortedAgents);
 
     const envSnippet = createdToken
-        ? `MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
-AGENT_TOKEN=${createdToken}
-ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane>
-AGENT_DEPLOYMENT_MODE=local-build`
+        ? buildAgentEnvSnippet(defaultServerUrl, createdToken)
         : '';
 
     const installScriptSnippet = createdToken
-        ? `git clone https://github.com/kursov-git/uptime-monitor-v2.git
-cd uptime-monitor-v2
-sudo MAIN_SERVER_URL="${defaultServerUrl || 'https://your-uptime-host.example.com'}" \\
-AGENT_TOKEN="${createdToken}" \\
-ENCRYPTION_KEY_1="<same-64-hex-ENCRYPTION_KEY-as-control-plane>" \\
-AGENT_DEPLOYMENT_MODE="local-build" \\
-bash scripts/install-agent.sh`
+        ? buildAgentInstallScript(defaultServerUrl, createdToken)
         : '';
 
     const systemdSnippet = createdToken
-        ? `sudo install -d -m 0755 /opt/uptime-agent
-sudo tee /opt/uptime-agent/.env >/dev/null <<'EOF'
-MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
-AGENT_TOKEN=${createdToken}
-ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane>
-AGENT_DEPLOYMENT_MODE=local-build
-EOF
-
-sudo bash scripts/install-agent.sh`
+        ? buildAgentSystemdSnippet(defaultServerUrl, createdToken)
         : '';
 
     const dockerRunSnippet = createdToken
-        ? `docker run -d \\
-  --name uptime-agent \\
-  --restart unless-stopped \\
-  --read-only \\
-  --tmpfs /tmp:size=64m,noexec,nosuid,nodev \\
-  --pids-limit 128 \\
-  --memory 256m \\
-  --cpus 0.50 \\
-  --cap-drop ALL \\
-  --security-opt no-new-privileges:true \\
-  -e MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'} \\
-  -e AGENT_TOKEN=${createdToken} \\
-  -e ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane> \\
-  -e AGENT_HTTP_TIMEOUT_MS=10000 \\
-  -e AGENT_BUFFER_MAX=1000 \\
-  -e AGENT_RESULT_MAX_BATCH=500 \\
-  registry.example.com/uptime-agent:tag`
+        ? buildAgentDockerRun(defaultServerUrl, createdToken)
         : '';
 
     const copySnippet = async (value: string, successLabel: string) => {

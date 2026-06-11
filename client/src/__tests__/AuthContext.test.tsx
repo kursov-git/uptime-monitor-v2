@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { authApi } from '../api';
+import { mockAxiosResponse } from './testUtils';
 
 const TestComponent = () => {
     const { user, isLoading } = useAuth();
@@ -57,9 +58,12 @@ describe('AuthContext', () => {
     });
 
     it('should fetch user data if the server session cookie is valid', async () => {
-        const spy = vi.spyOn(authApi, 'get').mockResolvedValueOnce({
-            data: { id: '1', username: 'admin_test', role: 'ADMIN' }
-        } as any);
+        const spy = vi.spyOn(authApi, 'get').mockResolvedValueOnce(mockAxiosResponse({
+            id: '1',
+            username: 'admin_test',
+            role: 'ADMIN',
+            createdAt: '2026-03-20T10:00:00.000Z',
+        }));
 
         render(
             <AuthProvider>
@@ -100,11 +104,9 @@ describe('AuthContext', () => {
         vi.spyOn(authApi, 'get').mockRejectedValueOnce({
             response: { status: 401 }
         });
-        const postSpy = vi.spyOn(authApi, 'post').mockResolvedValueOnce({
-            data: {
-                user: { id: '2', username: 'login_user', role: 'VIEWER' }
-            }
-        } as any);
+        const postSpy = vi.spyOn(authApi, 'post').mockResolvedValueOnce(mockAxiosResponse({
+            user: { id: '2', username: 'login_user', role: 'VIEWER' },
+        }));
 
         render(
             <AuthProvider>

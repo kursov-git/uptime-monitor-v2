@@ -297,6 +297,19 @@ Run browser e2e separately when the change touches deployed user flows or public
 CI=1 npm run test:e2e
 ```
 
+### Focused verification map
+
+Use the narrowest meaningful gate while iterating, then `npm run ci:local` before push:
+
+| Changed area | Focused command |
+|---|---|
+| shared checker logic | `npm run test:checker` |
+| agent config or runtime | `npm run test:agent` |
+| server routes, services, or env | `npm run test:server` |
+| client UI or API wrappers | `npm run test:client && npm run lint:client` |
+| public status or deployed user flows | focused client test, then `CI=1 npm run test:e2e` when browser coverage is required |
+| deploy scripts, compose, or runbook behavior | focused static/test check plus `./scripts/runtime-status.sh` on the target runtime when validating live state |
+
 ### Runtime diagnostics
 
 ```bash

@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react';
 import { publicApi, type PublicStatusResponse } from '../api';
 import type { PublicStatusBucket, PublicStatusDrilldownFailure, PublicStatusDrilldownResponse } from '@uptime-monitor/shared';
 import {
+    buildAvailabilitySeries,
+    formatAvailabilityValue,
+    formatDateLabel,
+    formatHourLabel,
+    formatHourRange,
+    formatMinuteLabel,
+    formatTimestamp,
+    getAverageUptime,
+    getIncidentLabel,
+    getIncidentSummary,
+    getIncidentTone,
+    getPublicHeadline,
+    getPublicStatusErrorMessage,
+    getServiceGroupLabel,
+    getServiceGroupStatus,
+    getStatusLabel,
+} from '../lib/publicStatusView';
+import type { AvailabilityPoint, PublicBucket } from '../lib/publicStatusView';
+import {
     Area,
     AreaChart,
     CartesianGrid,
@@ -11,154 +30,9 @@ import {
     YAxis,
 } from 'recharts';
 
-type PublicBucket = PublicStatusResponse['history24h'][number];
-
-function formatTimestamp(value: string | null): string {
-    if (!value) {
-        return 'No checks yet';
-    }
-
-    return new Date(value).toLocaleString();
-}
-
-function getStatusLabel(status: PublicStatusResponse['monitors'][number]['status']): string {
-    if (status === 'up') return 'Operational';
-    if (status === 'down') return 'Degraded';
-    if (status === 'paused') return 'Paused';
-    return 'Unknown';
-}
-
-function formatHourLabel(value: string): string {
-    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatHourRange(value: string): string {
-    const start = new Date(value);
-    const end = new Date(start.getTime() + 60 * 60 * 1000 - 1);
-    return `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-function formatMinuteLabel(value: string): string {
-    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDateLabel(value: string): string {
-    return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatAvailabilityValue(value: number | null): string {
-    return value === null ? '—' : `${value.toFixed(1)}%`;
-}
-
-function getIncidentTone(bucket: PublicBucket): 'operational' | 'degraded' | 'outage' | 'unknown' {
-    if (bucket.totalChecks === 0 || bucket.uptimePercent === null) {
-        return 'unknown';
-    }
-
-    if (bucket.uptimePercent === 100) {
-        return 'operational';
-    }
-
-    if (bucket.uptimePercent === 0) {
-        return 'outage';
-    }
-
-    return 'degraded';
-}
-
-function getIncidentLabel(bucket: PublicBucket): string {
-    const tone = getIncidentTone(bucket);
-    if (tone === 'operational') return 'Operational';
-    if (tone === 'outage') return 'Outage';
-    if (tone === 'degraded') return 'Partial outage';
-    return 'No data';
-}
-
-function getIncidentSummary(buckets: PublicBucket[]): string {
-    const impacted = buckets.filter((bucket) => {
-        const tone = getIncidentTone(bucket);
-        return tone === 'degraded' || tone === 'outage';
-    }).length;
-
-    const noData = buckets.filter((bucket) => getIncidentTone(bucket) === 'unknown').length;
-
-    if (impacted === 0 && noData === 0) {
-        return 'No incidents in 24h';
-    }
-
-    const parts: string[] = [];
-    if (impacted > 0) {
-        parts.push(`${impacted} impacted ${impacted === 1 ? 'hour' : 'hours'}`);
-    }
-    if (noData > 0) {
-        parts.push(`${noData} ${noData === 1 ? 'hour has' : 'hours have'} no data`);
-    }
-
-    return parts.join(' · ');
-}
-
-function getPublicHeadline(summary: PublicStatusResponse['summary'], monitorCount: number) {
-    if (monitorCount === 0) {
-        return {
-            tone: 'empty',
-            title: 'No public monitors yet',
-            description: 'Publish one or more monitors to expose a simple public-facing status view.',
-        };
-    }
-
-    if (summary.down > 0) {
-        return {
-            tone: 'down',
-            title: 'Some public services are down',
-            description: `${summary.down} ${summary.down === 1 ? 'monitor is' : 'monitors are'} currently failing public checks.`,
-        };
-    }
-
-    if (summary.unknown > 0) {
-        return {
-            tone: 'unknown',
-            title: 'Public status is incomplete',
-            description: `${summary.unknown} ${summary.unknown === 1 ? 'monitor has' : 'monitors have'} no recent public data yet.`,
-        };
-    }
-
-    if (summary.paused > 0) {
-        return {
-            tone: 'paused',
-            title: 'Public services are partly paused',
-            description: `${summary.paused} ${summary.paused === 1 ? 'monitor is' : 'monitors are'} intentionally paused.`,
-        };
-    }
-
-    return {
-        tone: 'up',
-        title: 'All public systems operational',
-        description: 'Every published monitor is currently passing its expected checks.',
-    };
-}
-
-function getServiceGroupLabel(serviceName: string | null): string {
-    return serviceName?.trim() || 'Standalone checks';
-}
-
-function getServiceGroupStatus(monitors: PublicStatusResponse['monitors']): PublicStatusResponse['monitors'][number]['status'] {
-    if (monitors.some((monitor) => monitor.status === 'down')) return 'down';
-    if (monitors.some((monitor) => monitor.status === 'unknown')) return 'unknown';
-    if (monitors.some((monitor) => monitor.status === 'up')) return 'up';
-    if (monitors.some((monitor) => monitor.status === 'paused')) return 'paused';
-    return 'unknown';
-}
-
-function getAverageUptime(monitors: PublicStatusResponse['monitors']): string {
-    const values = monitors
-        .map((monitor) => Number.parseFloat(monitor.uptimePercent24h))
-        .filter((value) => Number.isFinite(value));
-
-    if (values.length === 0) {
-        return '—';
-    }
-
-    return (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
+interface OverviewTooltipProps {
+    active?: boolean;
+    payload?: Array<{ payload: AvailabilityPoint }>;
 }
 
 function IncidentStrip({
@@ -249,10 +123,10 @@ export default function PublicStatusPage() {
             setLoading(true);
             setError('');
             try {
-                const res = await publicApi.get<PublicStatusResponse>('/status');
+                const res = await publicApi.get('/status');
                 setData(res.data);
-            } catch (err: any) {
-                setError(err.response?.data?.error || err.message || 'Failed to load public status');
+            } catch (err: unknown) {
+                setError(getPublicStatusErrorMessage(err, 'Failed to load public status'));
             } finally {
                 setLoading(false);
             }
@@ -273,22 +147,17 @@ export default function PublicStatusPage() {
         setDrilldownLoading(cacheKey);
         setDrilldownError('');
         try {
-            const res = await publicApi.get<PublicStatusDrilldownResponse>(`/status/${monitorId}/drilldown?start=${encodeURIComponent(timestamp)}`);
+            const res = await publicApi.get(`/status/${monitorId}/drilldown?start=${encodeURIComponent(timestamp)}`);
             setDrilldownCache((prev) => ({ ...prev, [cacheKey]: res.data }));
-        } catch (err: any) {
-            setDrilldownError(err.response?.data?.error || err.message || 'Failed to load drill-down');
+        } catch (err: unknown) {
+            setDrilldownError(getPublicStatusErrorMessage(err, 'Failed to load drill-down'));
         } finally {
             setDrilldownLoading(null);
         }
     };
 
     const summary = data?.summary ?? { up: 0, down: 0, paused: 0, unknown: 0 };
-    const availabilitySeries = data?.history24h.map((bucket) => ({
-        time: formatHourLabel(bucket.timestamp),
-        availability: bucket.uptimePercent,
-        responseTimeMs: bucket.avgResponseTimeMs,
-        checks: bucket.totalChecks,
-    })) ?? [];
+    const availabilitySeries = data ? buildAvailabilitySeries(data.history24h) : [];
     const latestAvailability = availabilitySeries[availabilitySeries.length - 1]?.availability ?? null;
     const headline = getPublicHeadline(summary, data?.monitorCount ?? 0);
     const serviceGroups = data
@@ -310,10 +179,10 @@ export default function PublicStatusPage() {
         })
         : [];
 
-    const OverviewTooltip = ({ active, payload }: any) => {
-        if (!active || !payload?.[0]) return null;
+    const OverviewTooltip = ({ active, payload }: OverviewTooltipProps) => {
+        const point = payload?.[0]?.payload;
+        if (!active || !point) return null;
 
-        const point = payload[0].payload;
         return (
             <div className="history-tooltip">
                 <div className="history-tooltip-time">{point.time}</div>

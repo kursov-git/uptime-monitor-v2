@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PublicStatusPage from '../pages/PublicStatusPage';
 import { publicApi } from '../api';
+import type { PublicStatusDrilldownResponse, PublicStatusResponse } from '../api';
+import { mockAxiosResponse } from './testUtils';
 
 function buildHistory24h() {
     const start = Date.UTC(2026, 2, 12, 0, 0, 0);
@@ -35,72 +37,70 @@ describe('PublicStatusPage', () => {
 
     it('renders public summary and availability chart sections', async () => {
         const history24h = buildHistory24h();
+        const statusResponse: PublicStatusResponse = {
+            generatedAt: '2026-03-12T23:45:00.000Z',
+            monitorCount: 1,
+            summary: {
+                up: 1,
+                down: 0,
+                paused: 0,
+                unknown: 0,
+            },
+            history24h,
+            monitors: [
+                {
+                    id: 'monitor-1',
+                    name: 'Homepage',
+                    serviceName: 'Website',
+                    url: 'https://example.com',
+                    method: 'GET',
+                    type: 'HTTP',
+                    dnsRecordType: 'A',
+                    isActive: true,
+                    status: 'up',
+                    uptimePercent24h: '95.8',
+                    history24h,
+                    lastCheck: {
+                        id: 'check-1',
+                        monitorId: 'monitor-1',
+                        timestamp: '2026-03-12T23:40:00.000Z',
+                        isUp: true,
+                        responseTimeMs: 148,
+                        statusCode: 200,
+                        error: null,
+                    },
+                },
+            ],
+        };
+        const drilldownResponse: PublicStatusDrilldownResponse = {
+            monitorId: 'monitor-1',
+            monitorName: 'Homepage',
+            windowStart: history24h[18].timestamp,
+            windowEnd: new Date(new Date(history24h[18].timestamp).getTime() + 60 * 60 * 1000).toISOString(),
+            bucketSizeMinutes: 5,
+            totalChecks: 4,
+            upChecks: 3,
+            uptimePercent: 75,
+            history: Array.from({ length: 12 }, (_, index) => ({
+                timestamp: new Date(new Date(history24h[18].timestamp).getTime() + index * 5 * 60 * 1000).toISOString(),
+                totalChecks: index === 4 ? 1 : 0,
+                upChecks: index === 4 ? 0 : 0,
+                uptimePercent: index === 4 ? 0 : null,
+                avgResponseTimeMs: index === 4 ? 480 : null,
+            })),
+            failures: [
+                {
+                    timestamp: new Date(new Date(history24h[18].timestamp).getTime() + 20 * 60 * 1000).toISOString(),
+                    responseTimeMs: 480,
+                    statusCode: 503,
+                    error: 'Service unavailable',
+                },
+            ],
+        };
 
         vi.spyOn(publicApi, 'get')
-            .mockResolvedValueOnce({
-                data: {
-                    generatedAt: '2026-03-12T23:45:00.000Z',
-                    monitorCount: 1,
-                    summary: {
-                        up: 1,
-                        down: 0,
-                        paused: 0,
-                        unknown: 0,
-                    },
-                    history24h,
-                    monitors: [
-                        {
-                            id: 'monitor-1',
-                            name: 'Homepage',
-                            serviceName: 'Website',
-                            url: 'https://example.com',
-                            method: 'GET',
-                            type: 'HTTP',
-                            dnsRecordType: 'A',
-                            isActive: true,
-                            status: 'up',
-                            uptimePercent24h: '95.8',
-                            history24h,
-                            lastCheck: {
-                                id: 'check-1',
-                                monitorId: 'monitor-1',
-                                timestamp: '2026-03-12T23:40:00.000Z',
-                                isUp: true,
-                                responseTimeMs: 148,
-                                statusCode: 200,
-                                error: null,
-                            },
-                        },
-                    ],
-                },
-            } as any)
-            .mockResolvedValueOnce({
-                data: {
-                    monitorId: 'monitor-1',
-                    monitorName: 'Homepage',
-                    windowStart: history24h[18].timestamp,
-                    windowEnd: new Date(new Date(history24h[18].timestamp).getTime() + 60 * 60 * 1000).toISOString(),
-                    bucketSizeMinutes: 5,
-                    totalChecks: 4,
-                    upChecks: 3,
-                    uptimePercent: 75,
-                    history: Array.from({ length: 12 }, (_, index) => ({
-                        timestamp: new Date(new Date(history24h[18].timestamp).getTime() + index * 5 * 60 * 1000).toISOString(),
-                        totalChecks: index === 4 ? 1 : 0,
-                        upChecks: index === 4 ? 0 : 0,
-                        uptimePercent: index === 4 ? 0 : null,
-                        avgResponseTimeMs: index === 4 ? 480 : null,
-                    })),
-                    failures: [
-                        {
-                            timestamp: new Date(new Date(history24h[18].timestamp).getTime() + 20 * 60 * 1000).toISOString(),
-                            responseTimeMs: 480,
-                            statusCode: 503,
-                            error: 'Service unavailable',
-                        },
-                    ],
-                },
-            } as any);
+            .mockResolvedValueOnce(mockAxiosResponse(statusResponse))
+            .mockResolvedValueOnce(mockAxiosResponse(drilldownResponse));
 
         render(<PublicStatusPage />);
 

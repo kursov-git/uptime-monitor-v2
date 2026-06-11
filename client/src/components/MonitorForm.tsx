@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Agent, Monitor, MonitorFormData, agentsApi } from '../api';
+import {
+    applyBodyAssertionType,
+    applyHttpMethod,
+    applyMonitorTypeDefaults,
+    buildInitialMonitorFormData,
+    buildMonitorSubmitData,
+    getAssertionHelpText,
+    getMonitorFormErrorMessage,
+    getTargetLabel,
+    getTargetPlaceholder,
+    parseAuthPayloadFields,
+} from '../lib/monitorFormModel';
 
 interface MonitorFormProps {
     monitor?: Monitor;
@@ -9,57 +21,12 @@ interface MonitorFormProps {
 }
 
 export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: MonitorFormProps) {
-    const monitorType = monitor?.type || 'HTTP';
     const [agents, setAgents] = useState<Agent[]>([]);
-    const [formData, setFormData] = useState<MonitorFormData>({
-        name: monitor?.name || '',
-        serviceName: monitor?.serviceName || '',
-        type: monitorType,
-        url: monitor?.url || '',
-        dnsRecordType: monitor?.dnsRecordType || 'A',
-        agentId: monitor?.agentId || '',
-        method: monitor?.method || 'GET',
-        intervalSeconds: monitor?.intervalSeconds || 60,
-        timeoutSeconds: monitor?.timeoutSeconds || 30,
-        expectedStatus: monitor?.expectedStatus || 200,
-        expectedBody: monitor?.expectedBody || '',
-        requestBody: monitor?.requestBody || '',
-        bodyAssertionType: monitor?.bodyAssertionType || (monitor?.expectedBody ? 'AUTO' : 'NONE'),
-        bodyAssertionPath: monitor?.bodyAssertionPath || '',
-        headers: monitor?.headers || '',
-        authMethod: monitor?.authMethod || 'NONE',
-        authUrl: monitor?.authUrl || '',
-        authPayload: monitor?.authPayload || '',
-        authTokenRegex: monitor?.authTokenRegex || '',
-        sslExpiryEnabled: monitor?.sslExpiryEnabled || false,
-        sslExpiryThresholdDays: monitor?.sslExpiryThresholdDays || 14,
-    });
-    const [loginUser, setLoginUser] = useState(() => {
-        if (!monitor?.authPayload) return '';
-        if (monitor.authMethod === 'BASIC') return monitor.authPayload.split(':')[0] || '';
-        try { const p = JSON.parse(monitor.authPayload); return p.username || p.email || p.login || ''; } catch { return ''; }
-    });
-    const [loginPass, setLoginPass] = useState(() => {
-        if (!monitor?.authPayload) return '';
-        if (monitor.authMethod === 'BASIC') {
-            const parts = monitor.authPayload.split(':');
-            return parts.slice(1).join(':') || '';
-        }
-        try { const p = JSON.parse(monitor.authPayload); return p.password || ''; } catch { return ''; }
-    });
-    const [loginExtra, setLoginExtra] = useState(() => {
-        if (!monitor?.authPayload) return '';
-        if (monitor.authMethod === 'BASIC') return '';
-        try {
-            const p = JSON.parse(monitor.authPayload);
-            const rest = { ...p };
-            delete rest.username;
-            delete rest.email;
-            delete rest.login;
-            delete rest.password;
-            return Object.keys(rest).length > 0 ? JSON.stringify(rest, null, 2) : '';
-        } catch { return ''; }
-    });
+    const [formData, setFormData] = useState<MonitorFormData>(() => buildInitialMonitorFormData(monitor));
+    const initialAuthFields = parseAuthPayloadFields(monitor);
+    const [loginUser, setLoginUser] = useState(initialAuthFields.loginUser);
+    const [loginPass, setLoginPass] = useState(initialAuthFields.loginPass);
+    const [loginExtra, setLoginExtra] = useState(initialAuthFields.loginExtra);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const isHttpMonitor = formData.type === 'HTTP';
@@ -68,72 +35,10 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
     const currentHttpMethod = String(formData.method || 'GET').toUpperCase();
     const showRequestBody = isHttpMonitor && !['GET', 'HEAD'].includes(currentHttpMethod);
 
-    const getTargetLabel = () => {
-        if (isTcpMonitor) return 'TCP Target';
-        if (isDnsMonitor) return 'DNS Target';
-        return 'URL';
-    };
-
-    const getTargetPlaceholder = () => {
-        if (isTcpMonitor) return 'tcp://db.example.com:5432';
-        if (isDnsMonitor) return 'dns://example.com';
-        return 'https://example.com';
-    };
-
-    const applyMonitorTypeDefaults = (nextType: MonitorFormData['type']) => {
-        setFormData(prev => {
-            if (nextType === 'TCP') {
-                return {
-                    ...prev,
-                    type: nextType,
-                    dnsRecordType: 'A',
-                    method: 'GET',
-                    expectedStatus: 200,
-                    expectedBody: '',
-                    requestBody: '',
-                    bodyAssertionType: 'NONE',
-                    bodyAssertionPath: '',
-                    headers: '',
-                    authMethod: 'NONE',
-                    authUrl: '',
-                    authPayload: '',
-                    authTokenRegex: '',
-                    sslExpiryEnabled: false,
-                    sslExpiryThresholdDays: 14,
-                };
-            }
-
-            if (nextType === 'DNS') {
-                return {
-                    ...prev,
-                    type: nextType,
-                    method: 'GET',
-                    expectedStatus: 200,
-                    requestBody: '',
-                    bodyAssertionType: 'NONE',
-                    bodyAssertionPath: '',
-                    headers: '',
-                    authMethod: 'NONE',
-                    authUrl: '',
-                    authPayload: '',
-                    authTokenRegex: '',
-                    sslExpiryEnabled: false,
-                    sslExpiryThresholdDays: 14,
-                };
-            }
-
-            return {
-                ...prev,
-                type: nextType,
-                method: prev.method || 'GET',
-            };
-        });
-    };
-
     useEffect(() => {
         const loadAgents = async () => {
             try {
-                const res = await agentsApi.get<Agent[]>('/');
+                const res = await agentsApi.get('/');
                 setAgents(res.data);
             } catch {
                 // Ignore if user has no access or API disabled.
@@ -146,65 +51,18 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         e.preventDefault();
         setError('');
 
-        let constructedPayload = formData.authPayload;
-        if (formData.authMethod === 'BASIC') {
-            constructedPayload = `${loginUser}:${loginPass}`;
-        } else if (formData.authMethod === 'FORM_LOGIN' || formData.authMethod === 'CSRF_FORM_LOGIN') {
-            let extraObj = {};
-            if (loginExtra.trim() !== '') {
-                try {
-                    extraObj = JSON.parse(loginExtra);
-                } catch {
-                    setError('Additional JSON Payload must be a valid JSON object');
-                    return;
-                }
-            }
-            const loginKey = loginUser.includes('@') ? 'email' : 'username';
-            constructedPayload = JSON.stringify({
-                [loginKey]: loginUser,
-                password: loginPass,
-                ...extraObj
-            });
+        const submitData = buildMonitorSubmitData({ formData, loginUser, loginPass, loginExtra });
+        if (!submitData.ok) {
+            setError(submitData.error);
+            return;
         }
 
         setSubmitting(true);
 
         try {
-            const normalizedAssertionType = isHttpMonitor ? (formData.bodyAssertionType || 'NONE') : 'NONE';
-            const normalizedExpectedBody = isHttpMonitor
-                ? (normalizedAssertionType === 'NONE' ? '' : formData.expectedBody)
-                : isDnsMonitor
-                    ? formData.expectedBody
-                    : '';
-            const normalizedRequestBody = showRequestBody ? formData.requestBody : '';
-            const normalizedAssertionPath = (
-                isHttpMonitor && (normalizedAssertionType === 'JSON_PATH_EQUALS' || normalizedAssertionType === 'JSON_PATH_CONTAINS')
-            )
-                ? formData.bodyAssertionPath
-                : '';
-
-            await onSubmit({
-                ...formData,
-                agentId: formData.agentId || null,
-                method: isHttpMonitor ? currentHttpMethod : 'GET',
-                authPayload: isHttpMonitor ? constructedPayload : '',
-                bodyAssertionType: normalizedAssertionType,
-                expectedBody: normalizedExpectedBody,
-                requestBody: normalizedRequestBody,
-                bodyAssertionPath: normalizedAssertionPath,
-                headers: isHttpMonitor ? formData.headers : '',
-                authMethod: isHttpMonitor ? formData.authMethod : 'NONE',
-                authUrl: isHttpMonitor ? formData.authUrl : '',
-                authTokenRegex: isHttpMonitor ? formData.authTokenRegex : '',
-                sslExpiryEnabled: isHttpMonitor ? formData.sslExpiryEnabled : false,
-                sslExpiryThresholdDays: isHttpMonitor ? formData.sslExpiryThresholdDays : 14,
-            });
-        } catch (err: any) {
-            const msg = err.response?.data?.errors?.[0]?.message
-                || err.response?.data?.error
-                || err.message
-                || 'Failed to save';
-            setError(msg);
+            await onSubmit(submitData.data);
+        } catch (err: unknown) {
+            setError(getMonitorFormErrorMessage(err));
         } finally {
             setSubmitting(false);
         }
@@ -219,17 +77,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
         ? 'Update target, execution, and validation settings without losing current history.'
         : 'Create a new synthetic check with grouped execution, assertion, and security settings.';
 
-    const assertionHelpText = formData.bodyAssertionType === 'AUTO'
-        ? 'Backward-compatible mode: tries regex first, then falls back to substring matching.'
-        : formData.bodyAssertionType === 'CONTAINS'
-            ? 'Marks the check down if the response body does not contain the provided text.'
-            : formData.bodyAssertionType === 'REGEX'
-                ? 'Marks the check down if the response body does not match the provided regular expression.'
-                : formData.bodyAssertionType === 'JSON_PATH_EQUALS'
-                    ? 'Parses the response as JSON and compares the selected path to the expected value.'
-                    : formData.bodyAssertionType === 'JSON_PATH_CONTAINS'
-                        ? 'Parses the response as JSON and checks whether the selected path contains the expected fragment.'
-                        : '';
+    const assertionHelpText = getAssertionHelpText(formData.bodyAssertionType);
 
     return (
         <div className="modal-overlay" data-testid="monitor-form-overlay">
@@ -297,7 +145,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                         <label>Monitor Type</label>
                                         <select
                                             value={formData.type}
-                                            onChange={e => applyMonitorTypeDefaults(e.target.value as MonitorFormData['type'])}
+                                            onChange={e => setFormData(prev => applyMonitorTypeDefaults(prev, e.target.value as MonitorFormData['type']))}
                                         >
                                             <option value="HTTP">HTTP / HTTPS</option>
                                             <option value="TCP">TCP Port</option>
@@ -306,13 +154,13 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                     </div>
 
                                     <div className="form-group">
-                                        <label>{getTargetLabel()}</label>
+                                        <label>{getTargetLabel(formData.type)}</label>
                                         <input
                                             data-testid="monitor-url-input"
                                             type="text"
                                             value={formData.url}
                                             onChange={e => update('url', e.target.value)}
-                                            placeholder={getTargetPlaceholder()}
+                                            placeholder={getTargetPlaceholder(formData.type)}
                                             required
                                         />
                                         <div className="help-text">
@@ -354,14 +202,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                             <label>Method</label>
                                             <select
                                                 value={formData.method}
-                                                onChange={e => {
-                                                    const nextMethod = e.target.value;
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        method: nextMethod,
-                                                        requestBody: ['GET', 'HEAD'].includes(nextMethod) ? '' : prev.requestBody,
-                                                    }));
-                                                }}
+                                                onChange={e => setFormData(prev => applyHttpMethod(prev, e.target.value))}
                                             >
                                                 <option value="GET">GET</option>
                                                 <option value="POST">POST</option>
@@ -446,17 +287,7 @@ export default function MonitorForm({ monitor, onSubmit, onCancel, onToggle }: M
                                                     <label>Assertion Mode</label>
                                                     <select
                                                         value={formData.bodyAssertionType}
-                                                        onChange={e => {
-                                                            const nextType = e.target.value as MonitorFormData['bodyAssertionType'];
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                bodyAssertionType: nextType,
-                                                                expectedBody: nextType === 'NONE' ? '' : prev.expectedBody,
-                                                                bodyAssertionPath: nextType === 'JSON_PATH_EQUALS' || nextType === 'JSON_PATH_CONTAINS'
-                                                                    ? prev.bodyAssertionPath
-                                                                    : '',
-                                                            }));
-                                                        }}
+                                                        onChange={e => setFormData(prev => applyBodyAssertionType(prev, e.target.value as MonitorFormData['bodyAssertionType']))}
                                                     >
                                                         <option value="NONE">None</option>
                                                         <option value="AUTO">Auto: regex or contains</option>

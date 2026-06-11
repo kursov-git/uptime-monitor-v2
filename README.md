@@ -305,6 +305,18 @@ Run browser e2e separately when a change touches deployed UI flows or public sta
 CI=1 npm run test:e2e
 ```
 
+### Focused checks
+
+Use focused commands while iterating, then `npm run ci:local` before push.
+
+| Changed area | Focused command |
+|---|---|
+| checker package | `npm run test:checker` |
+| agent config/runtime | `npm run test:agent` |
+| server code | `npm run test:server` |
+| client UI/API wrappers | `npm run test:client && npm run lint:client` |
+| public status or deployed UI flows | add `CI=1 npm run test:e2e` when browser coverage is required |
+
 ### Runtime diagnostics
 
 ```bash
