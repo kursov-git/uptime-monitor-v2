@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgentJobPayload, buildAgentJobsResponse, type AgentJobMonitorInput } from '../routes/agentRouteModel';
+import {
+    buildAcceptedAgentResults,
+    buildAgentJobPayload,
+    buildAgentJobsResponse,
+    buildAgentResultInput,
+    buildFlappingCheckContext,
+    type AgentJobMonitorInput,
+} from '../routes/agentRouteModel';
 
 function monitor(overrides: Partial<AgentJobMonitorInput> = {}): AgentJobMonitorInput {
     return {
@@ -81,6 +88,98 @@ describe('agentRouteModel', () => {
                     version: new Date('2026-06-11T02:00:00.000Z').getTime(),
                 },
             ],
+        });
+    });
+
+    it('maps accepted result payloads and rejects unassigned monitor results', () => {
+        const { acceptedResults, failed } = buildAcceptedAgentResults([
+            {
+                idempotencyKey: 'accepted-1',
+                monitorId: 'monitor-1',
+                checkedAt: '2026-06-11T12:00:00.000Z',
+                isUp: true,
+                responseTimeMs: 123,
+                statusCode: 200,
+                meta: {
+                    ssl: {
+                        expiresAt: '2026-07-01T00:00:00.000Z',
+                        daysRemaining: 20,
+                        issuer: 'Example CA',
+                        subject: 'example.test',
+                    },
+                },
+            },
+            {
+                idempotencyKey: 'rejected-1',
+                monitorId: 'foreign-monitor',
+                isUp: false,
+                responseTimeMs: 10,
+                error: 'not assigned',
+            },
+        ], new Set(['monitor-1']));
+
+        expect(acceptedResults).toHaveLength(1);
+        expect(acceptedResults[0]).toMatchObject({
+            idempotencyKey: 'accepted-1',
+            monitorId: 'monitor-1',
+            timestamp: new Date('2026-06-11T12:00:00.000Z'),
+            isUp: true,
+            responseTimeMs: 123,
+            statusCode: 200,
+            sslExpiresAt: new Date('2026-07-01T00:00:00.000Z'),
+            sslDaysRemaining: 20,
+            sslIssuer: 'Example CA',
+            sslSubject: 'example.test',
+        });
+        expect(failed).toEqual([{
+            idempotencyKey: 'rejected-1',
+            reason: 'MONITOR_NOT_ASSIGNED_TO_AGENT',
+        }]);
+    });
+
+    it('uses fallback timestamp for agent result payloads without checkedAt', () => {
+        const fallbackTimestamp = new Date('2026-06-11T12:30:00.000Z');
+
+        expect(buildAgentResultInput({
+            idempotencyKey: 'fallback-time',
+            monitorId: 'monitor-1',
+            isUp: false,
+            responseTimeMs: 456,
+            error: 'timeout',
+        }, fallbackTimestamp)).toMatchObject({
+            timestamp: fallbackTimestamp,
+            statusCode: null,
+            error: 'timeout',
+            sslExpiresAt: null,
+            sslDaysRemaining: null,
+            sslIssuer: null,
+            sslSubject: null,
+        });
+    });
+
+    it('builds flapping context from persisted agent result metadata', () => {
+        expect(buildFlappingCheckContext({
+            idempotencyKey: 'accepted-1',
+            monitorId: 'monitor-1',
+            timestamp: new Date('2026-06-11T12:00:00.000Z'),
+            isUp: true,
+            responseTimeMs: 123,
+            statusCode: 200,
+            error: null,
+            sslExpiresAt: new Date('2026-07-01T00:00:00.000Z'),
+            sslDaysRemaining: 20,
+            sslIssuer: 'Example CA',
+            sslSubject: 'example.test',
+        }, 'agent-a')).toEqual({
+            executorLabel: 'agent-a',
+            statusCode: 200,
+            responseTimeMs: 123,
+            ssl: {
+                expiresAt: '2026-07-01T00:00:00.000Z',
+                daysRemaining: 20,
+                issuer: 'Example CA',
+                subject: 'example.test',
+            },
         });
     });
 });

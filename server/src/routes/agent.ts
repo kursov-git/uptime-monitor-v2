@@ -4,7 +4,7 @@ import prisma from '../lib/prisma';
 import { authenticateAgent } from '../services/agentAuth';
 import { agentSseService } from '../services/agentSse';
 import { logAction } from '../services/auditService';
-import { persistAgentResults, type AgentResultInput } from '../services/agentResults';
+import { persistAgentResults } from '../services/agentResults';
 import { serverEnv } from '../lib/env';
 import { FlappingService } from '../services/flapping';
 import { TelegramNotifier } from '../services/telegram';
@@ -12,7 +12,7 @@ import { ZulipNotifier } from '../services/zulip';
 import { decrypt } from '../lib/crypto';
 import { resolveAgentGeo } from '../services/geoip';
 import { buildAgentOnlineMessage, htmlToNotifierText } from '../services/notificationMessages';
-import { buildAgentJobsResponse } from './agentRouteModel';
+import { buildAcceptedAgentResults, buildAgentJobsResponse, buildFlappingCheckContext } from './agentRouteModel';
 
 const resultItemSchema = z.object({
     idempotencyKey: z.string().min(8),
@@ -246,30 +246,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
 
         let acceptedCount = 0;
         let duplicateCount = 0;
-        const failed: Array<{ idempotencyKey: string; reason: string }> = [];
-
-        const acceptedResults: AgentResultInput[] = results
-            .filter((item) => {
-                if (allowedSet.has(item.monitorId)) {
-                    return true;
-                }
-
-                failed.push({ idempotencyKey: item.idempotencyKey, reason: 'MONITOR_NOT_ASSIGNED_TO_AGENT' });
-                return false;
-            })
-            .map((item) => ({
-                idempotencyKey: item.idempotencyKey,
-                monitorId: item.monitorId,
-                timestamp: item.checkedAt ? new Date(item.checkedAt) : new Date(),
-                isUp: item.isUp,
-                responseTimeMs: item.responseTimeMs,
-                statusCode: item.statusCode ?? null,
-                error: item.error ?? null,
-                sslExpiresAt: item.meta?.ssl?.expiresAt ? new Date(item.meta.ssl.expiresAt) : null,
-                sslDaysRemaining: item.meta?.ssl?.daysRemaining ?? null,
-                sslIssuer: item.meta?.ssl?.issuer ?? null,
-                sslSubject: item.meta?.ssl?.subject ?? null,
-            }));
+        const { acceptedResults, failed } = buildAcceptedAgentResults(results, allowedSet);
 
         const persisted = await persistAgentResults(prisma, agent.id, acceptedResults);
         acceptedCount += persisted.acceptedCount;
@@ -294,19 +271,7 @@ export default async function agentRoutes(fastify: FastifyInstance) {
                     monitor,
                     result.isUp,
                     result.error,
-                    {
-                        executorLabel: agent.name,
-                        statusCode: result.statusCode,
-                        responseTimeMs: result.responseTimeMs,
-                        ssl: result.sslDaysRemaining !== undefined || result.sslExpiresAt || result.sslIssuer || result.sslSubject
-                            ? {
-                                expiresAt: result.sslExpiresAt ? result.sslExpiresAt.toISOString() : null,
-                                daysRemaining: result.sslDaysRemaining ?? null,
-                                issuer: result.sslIssuer ?? null,
-                                subject: result.sslSubject ?? null,
-                            }
-                            : null,
-                    }
+                    buildFlappingCheckContext(result, agent.name)
                 );
             }
         }
