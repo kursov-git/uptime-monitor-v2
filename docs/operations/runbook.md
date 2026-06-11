@@ -1101,7 +1101,7 @@ docker compose -f docker-compose.split.yml logs --since=10m server
 4. Host env values:
 - `MAIN_SERVER_URL`
 - `AGENT_TOKEN`
-- `ENCRYPTION_KEY_1` when encrypted auth payloads exist
+- `ENCRYPTION_KEY_1` when encrypted auth payloads exist; it must match the control-plane `ENCRYPTION_KEY` value and be 64-character hex
 
 5. Check whether the control plane recently rolled and agents saw transient `502` or HTML error pages during restart.
 Transient reconnect noise around the rollout window is expected; sustained errors are not.
@@ -1137,7 +1137,12 @@ Agent:
 - `AGENT_BUFFER_MAX`
 - `AGENT_RESULT_MAX_BATCH`
 - `AGENT_MAX_CONCURRENCY`
-- `ENCRYPTION_KEY_1` where needed
+- `ENCRYPTION_KEY_1` where encrypted auth payloads are used
+
+Agent encryption notes:
+- deployment kit hosts should use `ENCRYPTION_KEY_1`
+- the value must be the same 64-character hex string as the control-plane `ENCRYPTION_KEY`
+- fallback `ENCRYPTION_KEY` is supported by the agent runtime for custom deployments, but is not the preferred deployment kit path
 
 ## Legacy Warnings
 

@@ -213,7 +213,10 @@ Defined and validated in `apps/agent/src/config.ts`.
 | `AGENT_BUFFER_MAX` | no | `200` |
 | `AGENT_RESULT_MAX_BATCH` | no | `50` |
 | `AGENT_MAX_CONCURRENCY` | no | `6` |
-| `ENCRYPTION_KEY_1` | optional but required for encrypted monitor auth payloads | none |
+| `ENCRYPTION_KEY_<version>` | optional but required for encrypted monitor auth payloads | none |
+| `ENCRYPTION_KEY` | optional fallback key for custom agent runtimes | none |
+
+Agent encryption keys must be 64-character hex strings. For deployment kit installs, use `ENCRYPTION_KEY_1` with the same 64-hex value as the control-plane `ENCRYPTION_KEY`; custom runtimes may use fallback `ENCRYPTION_KEY`.
 
 ## Agent Lifecycle
 

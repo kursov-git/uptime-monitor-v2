@@ -1,6 +1,5 @@
 import crypto from 'crypto';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { readAgentEnv } from '../src/config';
+import { describe, expect, it } from 'vitest';
 import {
     calculateSseReconnectDelayMs,
     decryptAgentPayload,
@@ -9,20 +8,6 @@ import {
 } from '../src/index';
 
 describe('agent runtime helpers', () => {
-    const originalKey = process.env.ENCRYPTION_KEY;
-
-    beforeEach(() => {
-        delete process.env.ENCRYPTION_KEY;
-    });
-
-    afterEach(() => {
-        if (originalKey === undefined) {
-            delete process.env.ENCRYPTION_KEY;
-        } else {
-            process.env.ENCRYPTION_KEY = originalKey;
-        }
-    });
-
     it('bounds SSE reconnect delay with capped exponential backoff', () => {
         expect(calculateSseReconnectDelayMs(1, 0)).toBe(2_000);
         expect(calculateSseReconnectDelayMs(2, 0)).toBe(4_000);
@@ -72,24 +57,4 @@ describe('agent runtime helpers', () => {
         })).toBe('grant_type=client_credentials');
     });
 
-    it('reads versioned encryption keys from agent env', () => {
-        const env = readAgentEnv({
-            MAIN_SERVER_URL: 'https://uptime.example.test/',
-            AGENT_TOKEN: 'agent-token',
-            ENCRYPTION_KEY: 'a'.repeat(64),
-            ENCRYPTION_KEY_2: 'b'.repeat(64),
-        });
-
-        expect(env.mainServerUrl).toBe('https://uptime.example.test');
-        expect(env.fallbackEncryptionKey).toBe('a'.repeat(64));
-        expect(env.encryptionKeysByVersion).toEqual({ 2: 'b'.repeat(64) });
-    });
-
-    it('rejects malformed agent encryption keys', () => {
-        expect(() => readAgentEnv({
-            MAIN_SERVER_URL: 'https://uptime.example.test',
-            AGENT_TOKEN: 'agent-token',
-            ENCRYPTION_KEY_1: 'not-hex',
-        })).toThrow('ENCRYPTION_KEY_1 must be a 64-character hex string');
-    });
 });

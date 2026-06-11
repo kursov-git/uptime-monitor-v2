@@ -195,7 +195,7 @@ export default function AgentsPage() {
     const envSnippet = createdToken
         ? `MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
 AGENT_TOKEN=${createdToken}
-ENCRYPTION_KEY_1=<same-64-hex-key-as-control-plane>
+ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane>
 AGENT_DEPLOYMENT_MODE=local-build`
         : '';
 
@@ -204,7 +204,7 @@ AGENT_DEPLOYMENT_MODE=local-build`
 cd uptime-monitor-v2
 sudo MAIN_SERVER_URL="${defaultServerUrl || 'https://your-uptime-host.example.com'}" \\
 AGENT_TOKEN="${createdToken}" \\
-ENCRYPTION_KEY_1="<same-64-hex-key-as-control-plane>" \\
+ENCRYPTION_KEY_1="<same-64-hex-ENCRYPTION_KEY-as-control-plane>" \\
 AGENT_DEPLOYMENT_MODE="local-build" \\
 bash scripts/install-agent.sh`
         : '';
@@ -214,7 +214,7 @@ bash scripts/install-agent.sh`
 sudo tee /opt/uptime-agent/.env >/dev/null <<'EOF'
 MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'}
 AGENT_TOKEN=${createdToken}
-ENCRYPTION_KEY_1=<same-64-hex-key-as-control-plane>
+ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane>
 AGENT_DEPLOYMENT_MODE=local-build
 EOF
 
@@ -234,7 +234,7 @@ sudo bash scripts/install-agent.sh`
   --security-opt no-new-privileges:true \\
   -e MAIN_SERVER_URL=${defaultServerUrl || 'https://your-uptime-host.example.com'} \\
   -e AGENT_TOKEN=${createdToken} \\
-  -e ENCRYPTION_KEY_1=<same-64-hex-key-as-control-plane> \\
+  -e ENCRYPTION_KEY_1=<same-64-hex-ENCRYPTION_KEY-as-control-plane> \\
   -e AGENT_HTTP_TIMEOUT_MS=10000 \\
   -e AGENT_BUFFER_MAX=1000 \\
   -e AGENT_RESULT_MAX_BATCH=500 \\

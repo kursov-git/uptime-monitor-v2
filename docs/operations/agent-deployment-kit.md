@@ -55,6 +55,8 @@ Optional tuning:
 - `AGENT_MAX_CONCURRENCY`
 - `AGENT_DEPLOYMENT_MODE` (`auto`, `local-build`, `image`)
 
+Agent encryption keys must be 64-character hex strings. The deployment kit uses the versioned agent key `ENCRYPTION_KEY_1`; set it to the same value as the control-plane `ENCRYPTION_KEY` when agents need to decrypt encrypted monitor auth payloads. The agent runtime also supports fallback `ENCRYPTION_KEY` for custom deployments.
+
 ## Install
 
 Preferred: run from a full repository checkout on the target host as root:
@@ -142,7 +144,7 @@ Use `deployment/agent/cloud-init-agent.yaml` as user-data only when you delibera
 Replace placeholders before provisioning:
 - `__MAIN_SERVER_URL__`
 - `__AGENT_TOKEN__`
-- `__ENCRYPTION_KEY_1__`
+- `__ENCRYPTION_KEY_1__` with the matching 64-hex key, or leave empty only when encrypted monitor auth payloads are not used
 
 ## Runtime Checks
 
