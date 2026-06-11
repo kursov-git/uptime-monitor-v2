@@ -17,6 +17,7 @@ import {
     summarizeCheckError,
 } from '../lib/monitorHistoryChart';
 import type { ChartPoint } from '../lib/monitorHistoryChart';
+import { buildMonitorHistorySummary, monitorHistoryStatusLabel } from '../lib/monitorHistorySummary';
 
 const DEFAULT_PAGE_SIZE = 50;
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
@@ -187,79 +188,28 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
     const chartSelectionStart = hasChartSelection ? Math.min(chartSelection.startIndex!, chartSelection.endIndex!) : null;
     const chartSelectionEnd = hasChartSelection ? Math.max(chartSelection.startIndex!, chartSelection.endIndex!) : null;
 
-    const uptimePercent = overallUptime;
-    const avgResponseTime = overallAvgRes;
-    const latestResult = results[0] || chartResults[0] || monitor.lastCheck || null;
-    const latestSslResult = [results[0], chartResults[0], monitor.lastCheck].find((result) =>
-        result && (
-            result.sslDaysRemaining !== null && result.sslDaysRemaining !== undefined
-            || result.sslExpiresAt
-            || result.sslIssuer
-            || result.sslSubject
-        )
-    ) || null;
-    const sslThresholdDays = monitor.sslExpiryThresholdDays ?? 14;
-    const latestSslFailure = latestResult?.error && /ssl|tls|certificate|eproto/i.test(latestResult.error)
-        ? latestResult.error
-        : null;
-    const sslSummary = monitor.sslExpiryEnabled
-        ? latestSslResult?.sslDaysRemaining !== null && latestSslResult?.sslDaysRemaining !== undefined
-            ? {
-                label: latestSslResult.sslDaysRemaining <= 0
-                    ? 'Expired'
-                    : `${latestSslResult.sslDaysRemaining} day${latestSslResult.sslDaysRemaining === 1 ? '' : 's'} left`,
-                expiresAt: latestSslResult.sslExpiresAt,
-                issuer: latestSslResult.sslIssuer,
-                subject: latestSslResult.sslSubject,
-                warning: latestSslResult.sslDaysRemaining <= sslThresholdDays,
-                note: null,
-            }
-            : latestSslFailure
-                ? {
-                    label: 'TLS handshake failed',
-                    expiresAt: null,
-                    issuer: null,
-                    subject: null,
-                    warning: true,
-                    note: 'Certificate details were not collected because the HTTPS handshake failed.',
-                    rawError: latestSslFailure,
-                }
-                : {
-                    label: 'Pending first HTTPS check',
-                    expiresAt: null,
-                    issuer: null,
-                    subject: null,
-                    warning: false,
-                    note: 'Certificate details will appear after the first successful HTTPS check.',
-                    rawError: null,
-                }
-        : null;
-
-    const totalPages = Math.ceil(total / pageSize);
-    const currentPage = Math.floor(offset / pageSize) + 1;
+    const historySummary = buildMonitorHistorySummary({
+        monitor,
+        results,
+        chartResults,
+        total,
+        pageSize,
+        offset,
+        overallUptime,
+        overallAvgRes,
+    });
+    const {
+        uptimePercent,
+        avgResponseTime,
+        latestResult,
+        sslSummary,
+        totalPages,
+        currentPage,
+        latestStatus,
+        monitorTypeLabel,
+        latestCheckedAt,
+    } = historySummary;
     const isZoomedRange = typeof timeRange === 'object';
-    const latestStatus = !monitor.isActive
-        ? 'paused'
-        : monitor.flappingState?.isFlapping
-            ? 'flapping'
-            : latestResult
-                ? (latestResult.isUp ? 'up' : 'down')
-                : 'unknown';
-    const latestStatusLabel: Record<string, string> = {
-        up: '● Up',
-        down: '● Down',
-        paused: '⏸ Paused',
-        unknown: '○ Unknown',
-        flapping: '▲ Flapping',
-    };
-    const monitorTypeLabel = monitor.type === 'DNS'
-        ? `DNS ${monitor.dnsRecordType}`
-        : monitor.type === 'TCP'
-            ? 'TCP'
-            : monitor.method;
-    const latestCheckedAt = latestResult
-        ? new Date(latestResult.timestamp).toLocaleString()
-        : 'No checks yet';
 
     const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
         const data = payload?.[0]?.payload;
@@ -402,7 +352,7 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
                 <div className="history-status-card">
                     <div className="history-status-panel">
                         <div className="history-status-label">Current status</div>
-                        <span className={`status-badge ${latestStatus}`}>{latestStatusLabel[latestStatus]}</span>
+                        <span className={`status-badge ${latestStatus}`}>{monitorHistoryStatusLabel[latestStatus]}</span>
                     </div>
                     <div className="history-status-meta">
                         <div>
