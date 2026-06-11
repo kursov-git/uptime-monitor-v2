@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { AxiosError, AxiosResponse, Method } from 'axios';
 import axiosRetry from 'axios-retry';
 import { wrapper } from 'axios-cookiejar-support';
 import dns from 'node:dns/promises';
@@ -12,13 +13,39 @@ export { assertSafeCheckTargets, getBlockedTargetReasonFromUrl } from './targetG
 const RETRY_CONFIG = {
     retries: 3,
     retryDelay: (retryCount: number) => retryCount * 1000,
-    retryCondition: (error: any) => {
+    retryCondition: (error: AxiosError) => {
         return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
             error.code === 'EAI_AGAIN' ||
             (error.message && error.message.includes('EAI_AGAIN')) ||
             error.code === 'ECONNRESET';
     }
 };
+
+type DnsRecordType = NonNullable<PerformCheckInput['dnsRecordType']>;
+type JsonObject = Record<string, unknown>;
+type ResponseWithSocket = AxiosResponse & {
+    socket?: unknown;
+    request?: {
+        socket?: unknown;
+        res?: {
+            socket?: unknown;
+        };
+    };
+};
+
+const SUPPORTED_DNS_RECORD_TYPES: ReadonlySet<string> = new Set(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']);
+const SUPPORTED_HTTP_METHODS: ReadonlySet<string> = new Set([
+    'GET',
+    'DELETE',
+    'HEAD',
+    'OPTIONS',
+    'POST',
+    'PUT',
+    'PATCH',
+    'PURGE',
+    'LINK',
+    'UNLINK',
+]);
 
 export interface PerformCheckInput {
     type?: 'HTTP' | 'TCP' | 'DNS';
@@ -79,25 +106,31 @@ function formatCertificateParty(input: Record<string, string> | undefined): stri
     return pairs.map(([key, value]) => `${key}=${value}`).join(', ');
 }
 
-function extractPeerCertificate(response: any): PeerCertificateLike | null {
+function hasPeerCertificateReader(value: unknown): value is { getPeerCertificate: () => unknown } {
+    return typeof value === 'object'
+        && value !== null
+        && 'getPeerCertificate' in value
+        && typeof value.getPeerCertificate === 'function';
+}
+
+function extractPeerCertificate(response: ResponseWithSocket): PeerCertificateLike | null {
     const socket = response?.request?.res?.socket
         || response?.request?.socket
         || response?.socket;
-    const getPeerCertificate = socket?.getPeerCertificate;
 
-    if (typeof getPeerCertificate !== 'function') {
+    if (!hasPeerCertificateReader(socket)) {
         return null;
     }
 
-    const certificate = getPeerCertificate.call(socket);
-    if (!certificate || Object.keys(certificate).length === 0) {
+    const certificate = socket.getPeerCertificate();
+    if (typeof certificate !== 'object' || certificate === null || Object.keys(certificate).length === 0) {
         return null;
     }
 
     return certificate as PeerCertificateLike;
 }
 
-function extractSslSnapshot(response: any): SslCheckSnapshot | null {
+function extractSslSnapshot(response: ResponseWithSocket): SslCheckSnapshot | null {
     const certificate = extractPeerCertificate(response);
     if (!certificate) {
         return null;
@@ -182,7 +215,7 @@ async function fetchSslSnapshotFromTls(targetUrl: string, timeoutMs: number): Pr
     });
 }
 
-async function resolveSslSnapshot(input: PerformCheckInput, response: any): Promise<SslCheckSnapshot | null> {
+async function resolveSslSnapshot(input: PerformCheckInput, response: ResponseWithSocket): Promise<SslCheckSnapshot | null> {
     if (!input.sslExpiryEnabled) {
         return null;
     }
@@ -203,13 +236,23 @@ function getJsonPathValue(input: unknown, path: string): unknown {
     const normalizedPath = path.replace(/\[(\d+)\]/g, '.$1');
     const parts = normalizedPath.split('.').map((part) => part.trim()).filter(Boolean);
 
-    let current: any = input;
+    let current: unknown = input;
     for (const part of parts) {
         if (current === null || current === undefined) {
             return undefined;
         }
 
-        current = current[part];
+        if (Array.isArray(current) && /^\d+$/.test(part)) {
+            current = current[Number.parseInt(part, 10)];
+            continue;
+        }
+
+        if (typeof current === 'object' && part in current) {
+            current = (current as Record<string, unknown>)[part];
+            continue;
+        }
+
+        return undefined;
     }
 
     return current;
@@ -329,7 +372,21 @@ async function performTcpCheck(input: PerformCheckInput, startTime: number): Pro
     };
 }
 
-function normalizeDnsAnswer(recordType: string, answer: unknown): string[] {
+function isSupportedDnsRecordType(value: string): value is DnsRecordType {
+    return SUPPORTED_DNS_RECORD_TYPES.has(value);
+}
+
+function normalizeDnsRecordType(value: PerformCheckInput['dnsRecordType']): DnsRecordType {
+    const normalized = String(value || 'A').toUpperCase();
+    return isSupportedDnsRecordType(normalized) ? normalized : 'A';
+}
+
+function normalizeHttpMethod(value: string | null | undefined): Method {
+    const normalized = String(value || 'GET').toUpperCase();
+    return SUPPORTED_HTTP_METHODS.has(normalized) ? normalized as Method : 'GET';
+}
+
+function normalizeDnsAnswer(recordType: DnsRecordType, answer: unknown): string[] {
     if (recordType === 'TXT') {
         return (answer as string[][]).map((chunks) => chunks.join(''));
     }
@@ -344,8 +401,8 @@ function normalizeDnsAnswer(recordType: string, answer: unknown): string[] {
 async function performDnsCheck(input: PerformCheckInput, startTime: number): Promise<PerformCheckResult> {
     const parsed = new URL(input.url);
     const hostname = parsed.hostname;
-    const recordType = String(input.dnsRecordType || 'A').toUpperCase() as 'A' | 'AAAA' | 'CNAME' | 'MX' | 'TXT' | 'NS';
-    const answers = normalizeDnsAnswer(recordType, await dns.resolve(hostname, recordType as any));
+    const recordType = normalizeDnsRecordType(input.dnsRecordType);
+    const answers = normalizeDnsAnswer(recordType, await dns.resolve(hostname, recordType));
 
     if (answers.length === 0) {
         return {
@@ -408,7 +465,7 @@ async function performHttpCheck(input: PerformCheckInput, startTime: number): Pr
         const b64 = Buffer.from(basicStr).toString('base64');
         headers.Authorization = `Basic ${b64}`;
     } else if ((input.authMethod === 'FORM_LOGIN' || input.authMethod === 'CSRF_FORM_LOGIN') && input.authUrl && input.authPayload) {
-        let parsedPayload: any = input.authPayload;
+        let parsedPayload: string | JsonObject = input.authPayload;
         try { parsedPayload = JSON.parse(input.authPayload); } catch { }
 
         let authRes;
@@ -482,11 +539,11 @@ async function performHttpCheck(input: PerformCheckInput, startTime: number): Pr
         }
     }
 
-    const method = String(input.method || 'GET').toUpperCase();
+    const method = normalizeHttpMethod(input.method);
     const canHaveBody = !['GET', 'HEAD'].includes(method);
 
     const response = await client({
-        method: method as any,
+        method,
         url: input.url,
         headers,
         data: canHaveBody && input.requestBody ? input.requestBody : undefined,
@@ -547,12 +604,12 @@ export async function performCheck(input: PerformCheckInput): Promise<PerformChe
         }
 
         return await performHttpCheck(input, startTime);
-    } catch (err: any) {
+    } catch (err: unknown) {
         return {
             isUp: false,
             responseTimeMs: Date.now() - startTime,
             statusCode: null,
-            error: err.message || 'Unknown error',
+            error: err instanceof Error ? err.message : 'Unknown error',
             ssl: null,
         };
     }

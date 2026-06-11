@@ -41,7 +41,7 @@ class SSEService {
         return true;
     }
 
-    broadcast(event: string, data: any) {
+    broadcast(event: string, data: unknown) {
         const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
         this.lastBroadcastAt = new Date().toISOString();
         for (const client of this.clients) {

@@ -83,7 +83,7 @@ export class TelegramNotifier {
                 lastError = typeof response.data?.description === 'string'
                     ? response.data.description
                     : 'Telegram API returned ok=false';
-            } catch (err: any) {
+            } catch (err: unknown) {
                 const classified = classifyTelegramError(err, baseUrl);
                 lastError = classified.message;
                 if (classified.retryable && attempt < retries - 1) {

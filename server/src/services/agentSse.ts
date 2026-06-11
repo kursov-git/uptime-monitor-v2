@@ -7,7 +7,7 @@ const MAX_EVENT_LOG = 1000;
 type AgentEvent = {
     id: number;
     event: string;
-    data: any;
+    data: unknown;
     createdAt: number;
 };
 
@@ -73,7 +73,7 @@ class AgentSSEService {
         }
     }
 
-    publish(event: string, data: any) {
+    publish(event: string, data: unknown) {
         const id = ++this.cursor;
         const payload: AgentEvent = {
             id,
@@ -122,7 +122,12 @@ class AgentSSEService {
     }
 
     private matchesAgent(evt: AgentEvent, agentId: string): boolean {
-        const targetAgentId = evt.data?.agentId as string | undefined;
+        const targetAgentId = typeof evt.data === 'object'
+            && evt.data !== null
+            && 'agentId' in evt.data
+            && typeof evt.data.agentId === 'string'
+            ? evt.data.agentId
+            : undefined;
         return !targetAgentId || targetAgentId === agentId;
     }
 

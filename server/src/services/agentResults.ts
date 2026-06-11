@@ -33,6 +33,10 @@ function splitEntries<T>(items: T[]): [T[], T[]] {
     return [items.slice(0, middle), items.slice(middle)];
 }
 
+function isPrismaUniqueConstraintError(err: unknown): boolean {
+    return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+}
+
 async function insertEntries(
     prisma: PrismaClient,
     entries: CheckResultCreateManyInput[]
@@ -51,9 +55,9 @@ async function insertEntries(
                 .map((entry) => entry.resultIdempotencyKey)
                 .filter((value): value is string => Boolean(value)),
         };
-    } catch (err: any) {
+    } catch (err: unknown) {
         if (entries.length === 1) {
-            if (err?.code === 'P2002') {
+            if (isPrismaUniqueConstraintError(err)) {
                 return {
                     acceptedCount: 0,
                     duplicateCount: 1,

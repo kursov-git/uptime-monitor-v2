@@ -12,6 +12,14 @@ export interface ZulipConfig {
     topic: string;
 }
 
+function getUnknownErrorMessage(err: unknown, fallback: string): string {
+    if (err instanceof Error) {
+        return err.message;
+    }
+
+    return fallback;
+}
+
 export class ZulipNotifier {
     async send(config: ZulipConfig, message: string, retries = 3): Promise<{ success: boolean; error?: string }> {
         let lastError = 'Unknown error';
@@ -42,8 +50,8 @@ export class ZulipNotifier {
                 if (response.data?.result === 'success') {
                     return { success: true };
                 }
-            } catch (err: any) {
-                lastError = err.message || 'Unknown Zulip API error';
+            } catch (err: unknown) {
+                lastError = getUnknownErrorMessage(err, 'Unknown Zulip API error');
                 if (attempt < retries - 1) {
                     const delay = 1000 * Math.pow(2, attempt);
                     zulipLogger.warn({ attempt: attempt + 1, retries, delay, error: lastError }, 'Zulip send failed, retrying');
