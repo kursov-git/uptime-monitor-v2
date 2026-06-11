@@ -10,9 +10,11 @@ import TimeRangeFilter, { TimeRangeValue, computeAbsoluteRange, resolveTimeRange
 import { useAuth } from '../contexts/AuthContext';
 import {
     buildChartTickIndexes,
+    buildChartPoints,
     detailCheckError,
     downsampleChartData,
-    formatChartTick,
+    formatChartPointsForSpan,
+    getChartSpanMs,
     getChartHoverIndex,
     summarizeCheckError,
 } from '../lib/monitorHistoryChart';
@@ -74,35 +76,10 @@ export default function MonitorHistory({ onBack }: { onBack: () => void }) {
         endIndex: null,
     });
     const deferredChartResults = useDeferredValue(chartResults);
-    const rawChartData = useMemo(() => {
-        const spanMs = deferredChartResults.length > 1
-            ? Math.abs(new Date(deferredChartResults[0].timestamp).getTime() - new Date(deferredChartResults[deferredChartResults.length - 1].timestamp).getTime())
-            : 0;
-
-        return [...deferredChartResults].reverse().map((r, index) => ({
-            index,
-            time: formatChartTick(new Date(r.timestamp).getTime(), spanMs),
-            timeLabel: new Date(r.timestamp).toLocaleString([], {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            }),
-            timestampMs: new Date(r.timestamp).getTime(),
-            responseTime: r.responseTimeMs,
-            isUp: r.isUp,
-            statusCode: r.statusCode,
-        }));
-    }, [deferredChartResults]);
+    const rawChartData = useMemo(() => buildChartPoints(deferredChartResults), [deferredChartResults]);
     const chartData = useMemo(() => downsampleChartData(rawChartData, MAX_RENDERED_CHART_POINTS), [rawChartData]);
-    const chartSpanMs = chartData.length > 1
-        ? chartData[chartData.length - 1].timestampMs - chartData[0].timestampMs
-        : 0;
-    const chartDataWithFormattedTicks = useMemo(() => chartData.map((point, index) => ({
-        ...point,
-        index,
-        time: formatChartTick(point.timestampMs, chartSpanMs),
-    })), [chartData, chartSpanMs]);
+    const chartSpanMs = getChartSpanMs(chartData);
+    const chartDataWithFormattedTicks = useMemo(() => formatChartPointsForSpan(chartData), [chartData]);
     const chartTickIndexes = useMemo(() => buildChartTickIndexes(chartDataWithFormattedTicks, chartSpanMs), [chartDataWithFormattedTicks, chartSpanMs]);
 
     const fetchHistory = useCallback(async () => {

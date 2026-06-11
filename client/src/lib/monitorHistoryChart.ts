@@ -1,3 +1,5 @@
+import type { CheckResult } from '../api';
+
 export interface ChartPoint {
     index: number;
     time: string;
@@ -24,6 +26,47 @@ export function formatChartTick(timestampMs: number, spanMs: number): string {
     }
 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+export function getChartSpanMs(points: Array<{ timestampMs: number }>): number {
+    return points.length > 1
+        ? points[points.length - 1].timestampMs - points[0].timestampMs
+        : 0;
+}
+
+export function buildChartPoints(results: CheckResult[]): ChartPoint[] {
+    const spanMs = results.length > 1
+        ? Math.abs(new Date(results[0].timestamp).getTime() - new Date(results[results.length - 1].timestamp).getTime())
+        : 0;
+
+    return [...results].reverse().map((result, index) => {
+        const timestampMs = new Date(result.timestamp).getTime();
+
+        return {
+            index,
+            time: formatChartTick(timestampMs, spanMs),
+            timeLabel: new Date(result.timestamp).toLocaleString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+            timestampMs,
+            responseTime: result.responseTimeMs,
+            isUp: result.isUp,
+            statusCode: result.statusCode,
+        };
+    });
+}
+
+export function formatChartPointsForSpan(points: ChartPoint[]): ChartPoint[] {
+    const spanMs = getChartSpanMs(points);
+
+    return points.map((point, index) => ({
+        ...point,
+        index,
+        time: formatChartTick(point.timestampMs, spanMs),
+    }));
 }
 
 export function downsampleChartData(points: ChartPoint[], maxPoints: number): ChartPoint[] {

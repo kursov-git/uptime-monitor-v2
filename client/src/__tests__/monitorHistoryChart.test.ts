@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+    buildChartPoints,
     buildChartTickIndexes,
     detailCheckError,
     downsampleChartData,
+    formatChartPointsForSpan,
+    getChartSpanMs,
     getChartHoverIndex,
     summarizeCheckError,
 } from '../lib/monitorHistoryChart';
+import type { CheckResult } from '../api';
 import type { ChartPoint } from '../lib/monitorHistoryChart';
 
 function point(index: number, overrides: Partial<ChartPoint> = {}): ChartPoint {
@@ -21,7 +25,51 @@ function point(index: number, overrides: Partial<ChartPoint> = {}): ChartPoint {
     };
 }
 
+function result(index: number, overrides: Partial<CheckResult> = {}): CheckResult {
+    return {
+        id: `result-${index}`,
+        monitorId: 'monitor-1',
+        timestamp: new Date(Date.UTC(2026, 0, 1, 0, index, 0)).toISOString(),
+        isUp: true,
+        responseTimeMs: 100 + index,
+        statusCode: 200,
+        error: null,
+        ...overrides,
+    };
+}
+
 describe('monitorHistoryChart helpers', () => {
+    it('builds chart points from newest-first check results in chronological order', () => {
+        const points = buildChartPoints([
+            result(2, { isUp: false, statusCode: 503 }),
+            result(1),
+            result(0),
+        ]);
+
+        expect(points.map((entry) => entry.index)).toEqual([0, 1, 2]);
+        expect(points.map((entry) => entry.timestampMs)).toEqual([
+            Date.UTC(2026, 0, 1, 0, 0, 0),
+            Date.UTC(2026, 0, 1, 0, 1, 0),
+            Date.UTC(2026, 0, 1, 0, 2, 0),
+        ]);
+        expect(points[2]).toMatchObject({
+            responseTime: 102,
+            isUp: false,
+            statusCode: 503,
+        });
+    });
+
+    it('computes chart span and reindexes formatted points after sampling', () => {
+        const formatted = formatChartPointsForSpan([
+            point(10, { timestampMs: 1_000 }),
+            point(20, { timestampMs: 61_000 }),
+        ]);
+
+        expect(getChartSpanMs(formatted)).toBe(60_000);
+        expect(formatted.map((entry) => entry.index)).toEqual([0, 1]);
+        expect(formatted.every((entry) => entry.time.length > 0)).toBe(true);
+    });
+
     it('downsamples dense data while preserving failures and response peaks', () => {
         const data = [
             point(0, { responseTime: 100 }),
