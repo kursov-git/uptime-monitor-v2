@@ -179,31 +179,46 @@ Operational note:
 
 ## Environment Variables
 
+This section is an operator inventory. The executable source of truth is:
+- server startup/env schema: `server/src/lib/env.ts`
+- server encryption key validation: `server/src/lib/crypto.ts`
+- Telegram notifier overrides: `server/src/services/telegram.ts`
+- split-compose init behavior: `docker-compose.split.yml`
+- agent runtime schema and key validation: `apps/agent/src/config.ts`
+
 ### Server
 
-Defined and validated in `server/src/lib/env.ts`.
+Core startup variables defined and validated in `server/src/lib/env.ts`:
 
 | Variable | Required | Notes |
 |---|---|---|
+| `NODE_ENV` | no | default `development`; production tightens secret validation |
 | `DATABASE_URL` | yes | currently expected to be SQLite in production compose |
 | `JWT_SECRET` | yes in production | required fail-closed in prod |
 | `CORS_ORIGINS` | no | comma-separated |
 | `HOST` | no | default `0.0.0.0` |
 | `PORT` | no | default `3000` |
+| `TRUST_PROXY` | no | boolean, default `false`; split compose sets `true` for the API behind nginx |
 | `ENABLE_AGENT_API` | no | default `true` |
 | `AGENT_SSE_ENABLED` | no | default `true` |
 | `ENABLE_BUILTIN_WORKER` | no | default `true` |
+| `ALLOW_PRIVATE_MONITOR_TARGETS` | no | boolean, default `false`; enables private/internal monitor targets intentionally |
 | `LOG_LEVEL` | no | default `info`, `warn` in tests |
 | `LOG_FORMAT` | no | `pretty` in dev, `json` in prod |
 | `SERVER_ROLE` | no | default `all` |
-| `DB_INIT_ON_START` | no | `auto` by default; use `false` for split background roles on SQLite |
-| `TELEGRAM_API_BASE_URL` | no | override Telegram endpoint, useful for relay/proxy when direct egress is blocked |
-| `TELEGRAM_TIMEOUT_MS` | no | request timeout for Telegram sends, default `5000` |
-| `ENCRYPTION_KEY` | operationally required in production | used for secret encryption |
+
+Other server-side runtime variables owned by narrower code/config:
+
+| Variable | Owner | Notes |
+|---|---|---|
+| `DB_INIT_ON_START` | `docker-compose.split.yml` | `auto` by default; use `false` for split background roles on SQLite |
+| `TELEGRAM_API_BASE_URL` | `server/src/services/telegram.ts` | override Telegram endpoint, useful for relay/proxy when direct egress is blocked |
+| `TELEGRAM_TIMEOUT_MS` | `server/src/services/telegram.ts` | request timeout for Telegram sends, default `5000` |
+| `ENCRYPTION_KEY` | `server/src/lib/crypto.ts` | operationally required in production; used for secret encryption |
 
 ### Agent
 
-Defined and validated in `apps/agent/src/config.ts`.
+Runtime variables defined and validated in `apps/agent/src/config.ts`:
 
 | Variable | Required | Default |
 |---|---|---|
@@ -213,6 +228,7 @@ Defined and validated in `apps/agent/src/config.ts`.
 | `AGENT_BUFFER_MAX` | no | `200` |
 | `AGENT_RESULT_MAX_BATCH` | no | `50` |
 | `AGENT_MAX_CONCURRENCY` | no | `6` |
+| `ALLOW_PRIVATE_MONITOR_TARGETS` | no | `false` |
 | `ENCRYPTION_KEY_<version>` | optional but required for encrypted monitor auth payloads | none |
 | `ENCRYPTION_KEY` | optional fallback key for custom agent runtimes | none |
 
