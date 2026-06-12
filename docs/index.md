@@ -84,6 +84,7 @@ Use this section for:
 Rules:
 - keep plans short-lived
 - move completed plans to `completed/` or delete them once absorbed into durable docs
+- completed plans are excluded from default `rg`; use `rg -uuu <pattern> docs/plans/completed` when searching them intentionally
 
 Current active plans:
 - none currently
@@ -108,6 +109,8 @@ Use this section only for:
 - historical context
 - template reuse
 - understanding how older rollout phases were approached
+
+Historical files are excluded from default `rg`; use `rg -uuu <pattern> docs/historical` when searching them intentionally.
 
 ## Documentation Policy
 
