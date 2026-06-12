@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { CheckWorker } from '../worker';
 import prisma from '../lib/prisma';
 import { performCheck } from '@uptime-monitor/checker';
-import { encrypt } from '../lib/crypto';
+import { decrypt, encrypt } from '../lib/crypto';
 
 vi.mock('@uptime-monitor/checker', () => ({
     performCheck: vi.fn(),
@@ -10,7 +10,6 @@ vi.mock('@uptime-monitor/checker', () => ({
 
 describe('CheckWorker', () => {
     let worker: CheckWorker;
-    const originalEncryptionKey = process.env.ENCRYPTION_KEY;
 
     beforeEach(async () => {
         worker = new CheckWorker(prisma);
@@ -22,11 +21,6 @@ describe('CheckWorker', () => {
 
     afterEach(() => {
         worker.stop();
-        if (originalEncryptionKey) {
-            process.env.ENCRYPTION_KEY = originalEncryptionKey;
-        } else {
-            delete process.env.ENCRYPTION_KEY;
-        }
         vi.restoreAllMocks();
     });
 
@@ -85,11 +79,14 @@ describe('CheckWorker', () => {
     });
 
     it('should decrypt auth payload before delegating to checker', async () => {
-        process.env.ENCRYPTION_KEY = 'b'.repeat(64);
+        const encryptionEnv = { ENCRYPTION_KEY: 'b'.repeat(64) };
+        worker = new CheckWorker(prisma, {
+            decryptAuthPayload: (payload) => decrypt(payload, encryptionEnv),
+        });
         const encryptedPayload = encrypt(JSON.stringify({
             username: 'worker_user',
             password: 'worker_pass',
-        }));
+        }), encryptionEnv);
 
         const monitor = await prisma.monitor.create({
             data: {

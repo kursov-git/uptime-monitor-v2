@@ -8,11 +8,16 @@ import { serverEnv } from './lib/env';
 
 const workerLogger = logger.child({ component: 'check-worker' });
 
+interface CheckWorkerOptions {
+    decryptAuthPayload?: (ciphertext: string) => string;
+}
+
 export class CheckWorker {
     private prisma: PrismaClient;
     private timers: Map<string, NodeJS.Timeout> = new Map();
     private syncInterval: NodeJS.Timeout | null = null;
     private flappingService: FlappingService;
+    private decryptAuthPayload: (ciphertext: string) => string;
     private running = false;
     private lastRefreshAt: string | null = null;
     private lastRefreshDurationMs: number | null = null;
@@ -22,9 +27,10 @@ export class CheckWorker {
     private lastCheckMonitorName: string | null = null;
     private lastCheckError: string | null = null;
 
-    constructor(prisma: PrismaClient) {
+    constructor(prisma: PrismaClient, options: CheckWorkerOptions = {}) {
         this.prisma = prisma;
         this.flappingService = new FlappingService(prisma);
+        this.decryptAuthPayload = options.decryptAuthPayload ?? decrypt;
     }
 
     async start() {
@@ -143,7 +149,7 @@ export class CheckWorker {
     }
 
     async runMonitorCheck(monitor: Monitor) {
-        const authPayload = monitor.authPayload ? decrypt(monitor.authPayload) : null;
+        const authPayload = monitor.authPayload ? this.decryptAuthPayload(monitor.authPayload) : null;
         const result = await performCheck({
             type: monitor.type as 'HTTP' | 'TCP' | 'DNS',
             url: monitor.url,
