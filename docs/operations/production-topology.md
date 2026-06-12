@@ -20,7 +20,7 @@ Pi-side SSH material:
 Pi-side aliases:
 - `uptime-main` -> `claudeops@144.31.61.49:2332`
 - `uptime-agent-cloudruvm1` -> `claudeops@82.202.137.51:2332`
-- `uptime-agent-ruvdskzn` -> `claudeops@193.124.118.92:2332`
+- `uptime-agent-ruvdskzn` -> `claudeops@193.124.118.92:2332` retained only for incident investigation if the host reappears; do not treat it as a trusted live agent
 
 VPS-side access state:
 - user: `claudeops`
@@ -163,30 +163,32 @@ Operator alias:
 - `ruvdskzn`
 
 Role:
-- remote agent host
+- revoked historical remote agent host
 
-Current deployment mode:
-- docker compose + systemd (`local-build`)
+Current production state:
+- no longer trusted as a live agent
+- physically lost according to the `2026-06-11` incident record
+- control-plane agent record is retained for history/investigation
+- agent access is revoked and should remain revoked
 
-Current runtime characteristics:
-- service: `uptime-agent.service`
-- install dir: `/opt/uptime-agent`
-- env file: `/opt/uptime-agent/.env`
-- compose file: `/opt/uptime-agent/docker-compose.yml`
-- container: `uptime-agent`
-- local update checkout: `/home/skris/uptime-agent`
-- expected `MAIN_SERVER_URL=https://ping-agent.ru`
-- SSH port: `2332`
-- current runtime understands SSL expiry metadata collection for assigned HTTPS monitors
-- current runtime understands monitor request bodies for assigned body-capable HTTP checks
+Do not:
+- assign active monitors to this agent
+- rotate it back into service
+- run ordinary update/deploy workflows against it
+
+For evidence and incident follow-up, read:
+- `docs/operations/changelog-operations.md`
+- `docs/operations/incident-audit-2026-06-11-ruvdskzn-afc.md`
 
 ## Current Expected Agent Inventory
 
 Expected live agents in the control plane:
 - `cloudruvm1`
-- `ruvdskzn`
 
-Both should normally report:
+Expected retained non-live records:
+- `ruvdskzn` — revoked after the `2026-06-11` incident and not trusted for checks
+
+Live agents should normally report:
 - `status=ONLINE`
 - `agentVersion=1.0.0`
 
@@ -235,7 +237,7 @@ Live-host note:
 
 ## Agent Update Workflow On Current Hosts
 
-For `cloudruvm1` and `ruvdskzn` today:
+For `cloudruvm1` today:
 1. back up:
    - `/opt/uptime-agent`
    - `/home/skris/uptime-agent`
@@ -254,6 +256,8 @@ For `cloudruvm1` and `ruvdskzn` today:
    - `docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env ps`
    - `docker logs --tail=100 uptime-agent`
 5. verify control-plane heartbeat, results, and `agentVersion`
+
+Do not use this workflow for `ruvdskzn`; provision a replacement host instead.
 
 ## Backups
 
@@ -291,7 +295,8 @@ Container logs:
 - `ssh uptime-main 'sudo docker logs --tail=50 uptime-server-api'`
 
 Check recent agent activity:
-- look for `agentSse.currentClients: 2` in runtime health (both agents connected)
+- look for connected trusted agents in `agentSse.currentClients`
+- compare runtime state with the expected inventory above before assuming an agent outage
 - recent worker logs for check results via `sudo docker logs --tail=20 uptime-server-worker`
 
 ### Control plane (legacy/root user, for reference)

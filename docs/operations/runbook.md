@@ -93,7 +93,7 @@ Interpretation:
   - `cluster.retention.status.lastBusyRetryCount` — SQLite lock retries (non-zero means write contention)
   - `cluster.agentOfflineMonitor.status.lastMarkedOfflineCount` — agents marked offline in last poll
 - `streams.browserSse.currentClients` — browser UI clients connected (1 in normal ops)
-- `streams.agentSse.currentClients` — agent SSE connections (2 expected for cloudruvm1 + ruvdskzn)
+- `streams.agentSse.currentClients` — connected trusted agent SSE clients; compare with `docs/operations/production-topology.md` before assuming a fixed count
 - `streams.agentSse.totalDisconnected` — cumulative disconnections; spikes suggest network issues
 - `caches.publicStatus` — cache hit/miss/stale-serve counts; TTL is 5 seconds
 - `cluster` is the authoritative health view in split runtime; `services` only reflects the API process itself
@@ -192,13 +192,15 @@ Run from the Pi as `skris`:
 ```bash
 ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'
 ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'
-ssh uptime-agent-ruvdskzn 'hostname; whoami; sudo -n true && echo sudo_ok'
 ```
 
 Expected result:
 - `uptime-main` returns `onedashmsk`, `claudeops`, `sudo_ok`
 - `uptime-agent-cloudruvm1` returns `cloudruvm1`, `claudeops`, `sudo_ok`
-- `uptime-agent-ruvdskzn` returns `ruvdskzn`, `claudeops`, `sudo_ok`
+
+Do not use `uptime-agent-ruvdskzn` for ordinary operations. It is retained only
+for incident investigation if the physically lost host reappears; the
+control-plane agent was revoked on `2026-06-11`.
 
 Current Pi-side files:
 - `/home/skris/.ssh/claude_uptime_ops_ed25519`
@@ -212,7 +214,8 @@ Current VPS-side files:
 
 Do not paste the private key into prompts, docs, repository files, or chat.
 Claude Code should reach the hosts through `ssh uptime-main`,
-`ssh uptime-agent-cloudruvm1`, and `ssh uptime-agent-ruvdskzn`.
+and `ssh uptime-agent-cloudruvm1`. Check `docs/operations/production-topology.md`
+before using any agent-host alias that is not listed as a trusted live host.
 
 ## TLS And Let's Encrypt
 
@@ -911,7 +914,8 @@ Current production hosts also keep a repo checkout under `/home/skris/uptime-age
 
 ## Current Agent Update Flow
 
-For the current production agent hosts:
+For the current trusted production agent hosts listed in
+`docs/operations/production-topology.md`:
 
 1. back up:
    - `/opt/uptime-agent`
@@ -1148,3 +1152,4 @@ Agent encryption notes:
 
 - do not assume a live agent host uses registry-image mode; production currently uses `local-build`
 - do not assume port `22`; use `2332`
+- do not run ordinary update/deploy workflows against revoked historical agent hosts such as `ruvdskzn`

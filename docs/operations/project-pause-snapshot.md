@@ -10,11 +10,16 @@ Snapshot commit:
 
 **Project resumed on 2026-05-14.**
 - resume commit: `45442c2`
-- infrastructure health check: all 5 control-plane services healthy, both agents ONLINE
+- infrastructure health check at resume time: all 5 control-plane services healthy; then-known agents `cloudruvm1` and `ruvdskzn` were ONLINE
 - new docs since resume: `docs/architecture/architectural-review-2026-05-14.md`, claudeops access section in topology, cluster telemetry reference in runbook
 - latest changelog: `docs/operations/changelog-operations.md` (2026-05-14 entries)
 
-Current project mode:
+This file is a dated return-from-pause snapshot, not the current operational
+source of truth. For current host roles and agent inventory, read
+`docs/operations/production-topology.md` and then
+`docs/operations/changelog-operations.md`.
+
+Project mode at resume:
 - active codebase
 - production deployed
 - intentionally paused for a period
@@ -30,9 +35,9 @@ It is reconstructing:
 
 This file is the short answer to those questions.
 
-## Current Product Shape
+## Product Shape At Resume
 
-The project currently is:
+At resume, the project was:
 - a self-hosted uptime monitor
 - split control plane
 - optional remote agents
@@ -74,7 +79,7 @@ Strategic mode:
 Important product rule already recorded:
 - do not promote a strategic epic without at least a lightweight competitor scan and an explicit differentiator
 
-## Current Production Topology
+## Production Topology At Resume
 
 Control plane:
 - host alias: `onedashmsk`
@@ -91,7 +96,7 @@ Restricted surfaces:
 - `/health`
 - `/health/runtime`
 
-Current remote agents:
+Remote agents at resume:
 - `cloudruvm1`
 - `ruvdskzn`
 
@@ -100,7 +105,7 @@ Agent runtime model:
 - `local-build` deployment kit
 - expected `MAIN_SERVER_URL=https://ping-agent.ru`
 
-## Current Operational Facts
+## Operational Facts At Resume
 
 - SSH is expected on port `2332`
 - `client`-only rollout should not recreate `uptime-server-api`
@@ -110,7 +115,7 @@ Agent runtime model:
 - latest pause-time control-plane DB backup:
   - `/data/backups/uptime-20260313T125318Z.db`
 
-## Current Known Deliberate Gaps
+## Known Deliberate Gaps At Resume
 
 These are not surprises.
 They were intentionally left for later or for strategic mode:

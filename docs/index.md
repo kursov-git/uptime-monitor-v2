@@ -44,7 +44,6 @@ Current source-of-truth documents:
 - `docs/operations/agent-deployment-kit.md`
 - `docs/operations/changelog-operations.md`
 - `docs/operations/umami-synthetic-analytics.md`
-- `docs/operations/project-pause-snapshot.md`
 - `docs/operations/returning-to-project.md`
 
 Use this section for:
@@ -54,6 +53,10 @@ Use this section for:
 - TLS, edge, and runtime operations
 - returning after a pause
 - operational history with real production impact
+
+Dated operational snapshots such as
+`docs/operations/project-pause-snapshot.md` are context only; for current host
+roles and agent inventory, use `docs/operations/production-topology.md`.
 
 ### `product/`
 
