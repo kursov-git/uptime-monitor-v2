@@ -24,12 +24,12 @@ Use the current operational docs instead:
 
 Last updated: 2026-03-11
 
-This file is the current high-level technical assessment.
-It is not a line-by-line audit log; it captures the important remaining risks after the recent hardening and rollout work.
+This section is the high-level technical assessment from the 2026-03-11 snapshot.
+It is not a line-by-line audit log; it captures the important risks that remained at that time.
 
-## Current Assessment
+## March 2026 Snapshot Assessment
 
-Overall state:
+Snapshot overall state:
 - the project is in workable production shape
 - core control-plane and agent-plane flows are implemented and deployed
 - CI is meaningful
@@ -45,7 +45,7 @@ Strong areas:
 - production logging discipline
 - healthy test coverage in the important paths
 
-## Remaining Findings
+## Historical Findings
 
 ### High
 
@@ -73,7 +73,7 @@ Recommendation:
 ### Medium
 
 #### 3. Deployment methods are mixed across production
-Current state:
+Snapshot state:
 - control plane uses split docker compose
 - existing production agents use native Node.js + systemd
 - repo also ships a docker-based agent deployment kit
@@ -95,7 +95,7 @@ Recommendation:
 ### Low
 
 #### 5. No formal protocol version negotiation yet
-Current state:
+Snapshot state:
 - agents report `agentVersion`
 - control plane stores and displays it
 - no explicit protocol compatibility enforcement
@@ -115,7 +115,7 @@ These were previously meaningful risks and have been materially improved:
 - lack of safe agent deletion semantics
 - lack of version visibility for deployed agents
 
-## Recommended Next Technical Moves
+## Historical Recommended Next Technical Moves
 
 1. add observability for the agent plane and worker lag
 2. introduce a Postgres deployment path
