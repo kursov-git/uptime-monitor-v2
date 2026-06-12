@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import axiosRetry from 'axios-retry';
 import { performCheck } from '../../../packages/checker/src';
+import { checkInput } from './checkerTestUtils';
 
 type MockAxiosInstance = ReturnType<typeof vi.fn> & {
     interceptors: {
@@ -80,18 +81,7 @@ describe('checker', () => {
             headers: {},
         });
 
-        const result = await performCheck({
-            url: 'https://example.com/api',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        const result = await performCheck(checkInput());
 
         expect(result.isUp).toBe(true);
         expect(result.statusCode).toBe(200);
@@ -116,20 +106,10 @@ describe('checker', () => {
             },
         });
 
-        const result = await performCheck({
-            url: 'https://example.com/api',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
+        const result = await performCheck(checkInput({
             sslExpiryEnabled: true,
             sslExpiryThresholdDays: 14,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(result.ssl).toMatchObject({
@@ -172,20 +152,10 @@ describe('checker', () => {
             return socket;
         });
 
-        const result = await performCheck({
-            url: 'https://example.com/api',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
+        const result = await performCheck(checkInput({
             sslExpiryEnabled: true,
             sslExpiryThresholdDays: 14,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(mockTlsConnect).toHaveBeenCalledTimes(1);
@@ -203,18 +173,7 @@ describe('checker', () => {
             headers: {},
         });
 
-        const result = await performCheck({
-            url: 'https://example.com/api',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        const result = await performCheck(checkInput());
 
         expect(result.isUp).toBe(false);
         expect(result.statusCode).toBe(500);
@@ -228,18 +187,9 @@ describe('checker', () => {
             headers: {},
         });
 
-        await performCheck({
+        await performCheck(checkInput({
             url: 'https://example.com/retry',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(axiosRetry).toHaveBeenCalledTimes(1);
         const [, retryConfig] = vi.mocked(axiosRetry).mock.calls[0];
@@ -255,19 +205,12 @@ describe('checker', () => {
             headers: {},
         });
 
-        await performCheck({
+        await performCheck(checkInput({
             url: 'https://example.com/api/send',
             method: 'POST',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
             requestBody: '{"beep":"boop"}',
             headers: '{"Content-Type":"application/json"}',
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         const lastCall = mockAxiosInstance.mock.calls[mockAxiosInstance.mock.calls.length - 1][0];
         expect(lastCall.method).toBe('POST');
@@ -281,21 +224,14 @@ describe('checker', () => {
             headers: {},
         });
 
-        await performCheck({
+        await performCheck(checkInput({
             url: 'https://example.com/protected',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
             authMethod: 'BASIC',
-            authUrl: null,
             authPayload: JSON.stringify({
                 username: 'worker_user',
                 password: 'worker_pass',
             }),
-            authTokenRegex: null,
-        });
+        }));
 
         const lastCall = mockAxiosInstance.mock.calls[mockAxiosInstance.mock.calls.length - 1][0];
         const expectedBasic = Buffer.from('worker_user:worker_pass').toString('base64');
@@ -320,18 +256,14 @@ describe('checker', () => {
                 headers: {},
             });
 
-        await performCheck({
+        await performCheck(checkInput({
             url: 'https://service.example.com/endpoint',
-            method: 'GET',
             timeoutSeconds: 10,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
             authMethod: 'CSRF_FORM_LOGIN',
             authUrl: 'https://service.example.com/login',
             authPayload: JSON.stringify({ username: 'alice', password: 'secret' }),
             authTokenRegex: '"token":"([^"]+)"',
-        });
+        }));
 
         expect(mockAxiosInstance).toHaveBeenCalledTimes(3);
 
@@ -354,18 +286,9 @@ describe('checker', () => {
     });
 
     it('blocks direct loopback targets before issuing a request', async () => {
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             url: 'http://127.0.0.1/internal',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(false);
         expect(result.statusCode).toBeNull();
@@ -376,18 +299,9 @@ describe('checker', () => {
     it('blocks hostname targets that resolve to private addresses', async () => {
         mockLookup.mockResolvedValueOnce([{ address: '10.0.0.5', family: 4 }]);
 
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             url: 'https://private.example.com/health',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(false);
         expect(result.statusCode).toBeNull();
@@ -402,20 +316,12 @@ describe('checker', () => {
             headers: {},
         });
 
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             url: 'https://example.com/body',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
             expectedBody: 'healthy',
             bodyAssertionType: 'CONTAINS',
             bodyAssertionPath: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(result.error).toBeNull();
@@ -432,20 +338,12 @@ describe('checker', () => {
             headers: {},
         });
 
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             url: 'https://example.com/json',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
             expectedBody: 'ok',
             bodyAssertionType: 'JSON_PATH_EQUALS',
             bodyAssertionPath: 'data.status',
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(result.error).toBeNull();
@@ -470,19 +368,10 @@ describe('checker', () => {
             return socket;
         });
 
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             type: 'TCP',
             url: 'tcp://redis.example.com:6379',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
-            expectedBody: null,
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(result.statusCode).toBeNull();
@@ -493,20 +382,12 @@ describe('checker', () => {
     it('performs DNS checks and matches expected answers', async () => {
         mockResolve.mockResolvedValueOnce(['1.1.1.1', '1.0.0.1']);
 
-        const result = await performCheck({
+        const result = await performCheck(checkInput({
             type: 'DNS',
             url: 'dns://example.com',
             dnsRecordType: 'A',
-            method: 'GET',
-            timeoutSeconds: 5,
-            expectedStatus: 200,
             expectedBody: '1.1.1.1',
-            headers: null,
-            authMethod: 'NONE',
-            authUrl: null,
-            authPayload: null,
-            authTokenRegex: null,
-        });
+        }));
 
         expect(result.isUp).toBe(true);
         expect(result.error).toBeNull();
