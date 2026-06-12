@@ -4,6 +4,36 @@ This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 It is chronological history, not the current topology source; use `docs/operations/production-topology.md` for current host roles and trusted agent inventory.
 
+## 2026-06-12
+
+### Security audit and host patch pass
+
+Hosts:
+- `onedashmsk`
+- `cloudruvm1`
+- `ruvdskzn`
+- `vultr`
+
+Changes:
+- patched `onedashmsk` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
+- rebooted `onedashmsk` and verified split-runtime services plus `/health/runtime`
+- found that `ufw.service` was masked on `onedashmsk` by old cloud-init user-data
+- unmasked, enabled, and started UFW on `onedashmsk`
+- rebooted `onedashmsk` a second time to prove UFW persistence
+- patched `cloudruvm1` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
+- rebooted `cloudruvm1` and verified `uptime-agent`
+- checked `ruvdskzn`; SSH to `193.124.118.92:2332` timed out, matching the current revoked/lost host boundary
+- patched `vultr`; did not reboot it because it was the active operator/Codex runtime host
+
+Operational result:
+- `onedashmsk`: pending apt upgrades `0`, reboot required `no`, UFW active and enabled, expected public ports only
+- `cloudruvm1`: pending apt upgrades `0`, reboot required `no`, UFW active, `uptime-agent` running
+- public `https://ping-agent.ru/status` and `/api/public/status` returned `200`
+- external `/health/runtime` remained denied with `403`
+
+Audit artifact:
+- `docs/operations/security-audit-2026-06-12.md`
+
 ## 2026-06-11
 
 ### `ruvdskzn` agent emergency revoke
