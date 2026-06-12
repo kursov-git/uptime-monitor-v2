@@ -11,7 +11,7 @@ Snapshot commit:
 **Project resumed on 2026-05-14.**
 - resume commit: `45442c2`
 - infrastructure health check at resume time: all 5 control-plane services healthy; then-known agents `cloudruvm1` and `ruvdskzn` were ONLINE
-- new docs since resume: `docs/architecture/architectural-review-2026-05-14.md`, claudeops access section in topology, cluster telemetry reference in runbook
+- new docs since resume: `docs/historical/architectural-review-2026-05-14.md`, claudeops access section in topology, cluster telemetry reference in runbook
 - latest changelog: `docs/operations/changelog-operations.md` (2026-05-14 entries)
 
 This file is a dated return-from-pause snapshot, not the current operational

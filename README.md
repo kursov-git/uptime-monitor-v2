@@ -356,7 +356,7 @@ Read `docs/operations/production-topology.md` before touching production.
 Important current facts:
 - SSH is expected on port `2332`
 - current control plane is deployed in split-runtime compose mode
-- current production agents are dockerized and managed by `systemd + docker compose`
+- trusted live production agents are dockerized and managed by `systemd + docker compose`; historical revoked agent records are operational context only
 - public status page is served from the same `client` container as the main UI
 - the same repository deployment kit is used for future greenfield agent hosts
 

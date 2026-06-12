@@ -57,6 +57,9 @@ Use this section for:
 Dated operational snapshots such as
 `docs/operations/project-pause-snapshot.md` are context only; for current host
 roles and agent inventory, use `docs/operations/production-topology.md`.
+They are excluded from default `rg`; use
+`rg -uuu <pattern> docs/operations/project-pause-snapshot.md` when searching
+them intentionally.
 
 ### `product/`
 
@@ -106,6 +109,7 @@ Current contents:
 - `docs/historical/v2-rollback-runbook.md`
 - `docs/historical/v2-canary-signoff.md`
 - `docs/historical/v2-issues-seed.md`
+- `docs/historical/architectural-review-2026-05-14.md`
 - `docs/historical/code-review-2026-03-11.md`
 
 Use this section only for:

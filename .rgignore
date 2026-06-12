@@ -1,5 +1,6 @@
 # Keep default ripgrep results focused on current source-of-truth files.
-# Use `rg -uuu <pattern> docs/historical docs/plans/completed` when searching
-# archived rollout context or completed execution records intentionally.
+# Use `rg -uuu <pattern> <path>` when searching archived rollout context,
+# completed execution records, or dated operational snapshots intentionally.
 docs/historical/
 docs/plans/completed/
+docs/operations/project-pause-snapshot.md

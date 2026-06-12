@@ -13,12 +13,12 @@ Read these files first:
 2. `README.md`
 3. `docs/index.md`
 4. `docs/architecture/harness-documentation-model.md`
-5. `docs/operations/project-pause-snapshot.md`
-6. `docs/operations/production-topology.md`
+5. `docs/operations/production-topology.md`
+6. `docs/operations/project-pause-snapshot.md` only for dated return-from-pause context
 7. `docs/operations/runbook.md`
 8. `docs/product/lean-roadmap.md`
 9. `docs/product/strategic-roadmap.md`
-10. `docs/architecture/architectural-review-2026-05-14.md` (latest review)
+10. `docs/historical/architectural-review-2026-05-14.md` only for dated review context
 
 Goal:
 - restore repo context
@@ -69,9 +69,9 @@ Before touching infra or rollout logic, reconfirm:
 - current deployment mode for control plane and agents
 
 Primary references:
-- `docs/operations/project-pause-snapshot.md`
 - `docs/operations/production-topology.md`
 - `docs/operations/runbook.md`
+- `docs/operations/project-pause-snapshot.md` only for dated resume context
 
 ## 5. Reconfirm Product Mode
 

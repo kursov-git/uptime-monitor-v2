@@ -73,6 +73,7 @@ Historical or template documents are not the primary source of truth:
 - `docs/historical/v2-rollback-runbook.md`
 - `docs/historical/v2-canary-signoff.md`
 - `docs/historical/v2-issues-seed.md`
+- `docs/historical/architectural-review-2026-05-14.md`
 - `docs/historical/code-review-2026-03-11.md`
 
 Use them only for historical context, not for current operational decisions.
@@ -103,6 +104,7 @@ Use them only for historical context, not for current operational decisions.
 │   │   └── strategic-roadmap.md
 │   ├── historical/
 │   │   ├── v2-*.md                     # historical rollout/planning templates
+│   │   ├── architectural-review-2026-05-14.md
 │   │   └── code-review-2026-03-11.md   # historical technical assessment, not current truth
 │   └── plans/
 │       ├── active/
@@ -174,7 +176,7 @@ Important operational facts:
 
 Search hygiene:
 - use `rg` or `rg --files` for source inventory; default search excludes ignored generated/runtime paths and archived docs
-- use `rg -uuu` only when intentionally reading historical plans, completed plans, or ignored local artifacts
+- use `rg -uuu` only when intentionally reading historical plans, completed plans, dated operational snapshots, or ignored local artifacts
 
 ## Safe Workflow For AI Agents
 

@@ -2,6 +2,7 @@
 
 This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
+It is chronological history, not the current topology source; use `docs/operations/production-topology.md` for current host roles and trusted agent inventory.
 
 ## 2026-06-11
 
@@ -72,7 +73,7 @@ What was checked:
 Documentation updates:
 - `production-topology.md`: added compose project location (`/root/uptime-monitor`), docker volumes, cluster telemetry schema, observed production env vars, claudeops-compatible diagnostic commands
 - `runbook.md`: expanded runtime health interpretation with full cluster/stats/caches field reference, added claudeops-specific health check commands
-- `docs/architecture/architectural-review-2026-05-14.md`: new architectural review with 9 prioritized recommendations
+- `docs/historical/architectural-review-2026-05-14.md`: new architectural review with 9 prioritized recommendations
 
 ### Claude Code VPS ops access
 
