@@ -26,6 +26,7 @@ export interface ServerEnv {
     nodeEnv: 'development' | 'test' | 'production';
     databaseUrl: string;
     jwtSecret: string;
+    jwtSecretUsesDefault: boolean;
     corsOrigins: string[];
     host: string;
     port: number;
@@ -50,12 +51,15 @@ function defaultJwtSecret(nodeEnv: ServerEnv['nodeEnv']): string {
 export function readServerEnv(source: NodeJS.ProcessEnv = process.env): ServerEnv {
     const raw = rawEnvSchema.parse(source);
     const nodeEnv = raw.NODE_ENV ?? 'development';
-    const jwtSecret = raw.JWT_SECRET?.trim() || defaultJwtSecret(nodeEnv);
+    const configuredJwtSecret = raw.JWT_SECRET?.trim();
+    const jwtSecretUsesDefault = !configuredJwtSecret;
+    const jwtSecret = configuredJwtSecret || defaultJwtSecret(nodeEnv);
 
     return {
         nodeEnv,
         databaseUrl: raw.DATABASE_URL,
         jwtSecret,
+        jwtSecretUsesDefault,
         corsOrigins: raw.CORS_ORIGINS
             ? raw.CORS_ORIGINS.split(',').map((entry) => entry.trim()).filter(Boolean)
             : ['http://localhost:5173'],

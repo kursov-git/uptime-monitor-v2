@@ -15,6 +15,7 @@ describe('readServerEnv', () => {
         expect(env.logLevel).toBe('info');
         expect(env.serverRole).toBe('all');
         expect(env.jwtSecret).toBe('development-secret-change-in-production');
+        expect(env.jwtSecretUsesDefault).toBe(true);
     });
 
     it('requires JWT_SECRET in production', () => {
@@ -48,6 +49,7 @@ describe('readServerEnv', () => {
         expect(env.logFormat).toBe('json');
         expect(env.logLevel).toBe('debug');
         expect(env.serverRole).toBe('worker');
+        expect(env.jwtSecretUsesDefault).toBe(false);
         expect(env.corsOrigins).toEqual(['http://a.local', 'http://b.local']);
     });
 });

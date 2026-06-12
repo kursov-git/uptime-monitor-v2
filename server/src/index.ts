@@ -165,7 +165,7 @@ async function startBackgroundRole(role: Exclude<ServerRole, 'all' | 'api'>) {
 
 async function start() {
     try {
-        if (!process.env.JWT_SECRET && env.nodeEnv !== 'production') {
+        if (env.jwtSecretUsesDefault && env.nodeEnv !== 'production') {
             logger.warn('Using default JWT secret. This is not suitable for production.');
         }
         validateEncryptionConfig();
@@ -224,7 +224,7 @@ async function shutdown(signal: string) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-if (process.env.NODE_ENV !== 'test') {
+if (env.nodeEnv !== 'test') {
     start();
 }
 
