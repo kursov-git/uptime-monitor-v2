@@ -34,9 +34,9 @@ Roadmap policy:
 
 ## Current State Summary
 
-As of 2026-04-02:
+As of 2026-06-11:
 - control plane is production-ready and deployed in split-runtime mode
-- remote agents are deployed and reporting version `1.0.0`
+- trusted live remote agents are deployed and reporting version `1.0.0`; historical revoked agent records may still exist in the control plane
 - public status page is live at `/status` with selected monitors, 24h uptime summary, and a derived incident timeline
 - HTTPS monitors can optionally track certificate expiry and emit warning/recovery notifications without marking the monitor `DOWN`
 - ordinary HTTP/HTTPS monitors can now send raw request bodies for body-capable methods, with parity between builtin worker and remote agents
@@ -169,8 +169,12 @@ Important operational facts:
 - SSH is expected on port `2332`, not `22`
 - current operator workstation uses SSH aliases for the main hosts
 - control plane is currently deployed in split-runtime compose mode
-- current remote production agents are running as dockerized `systemd + docker compose` services using the repository deployment kit in `local-build` mode
+- trusted live remote production agents are running as dockerized `systemd + docker compose` services using the repository deployment kit in `local-build` mode
 - the same docker-based deployment kit is the canonical path for future agent hosts as well
+
+Search hygiene:
+- use `rg` or `rg --files` for source inventory; default search excludes ignored generated/runtime paths and archived docs
+- use `rg -uuu` only when intentionally reading historical plans, completed plans, or ignored local artifacts
 
 ## Safe Workflow For AI Agents
 

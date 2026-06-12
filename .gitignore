@@ -8,6 +8,7 @@ node_modules/
 dist/
 server/dist/
 client/dist/
+*.tsbuildinfo
 
 # Database
 *.db
