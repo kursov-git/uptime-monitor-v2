@@ -4,7 +4,7 @@ export type ServerRole = (typeof SERVER_ROLES)[number] | 'all';
 
 const SERVER_ROLE_SET = new Set<string>(SERVER_ROLES);
 
-export function resolveServerRole(raw = process.env.SERVER_ROLE): ServerRole {
+export function resolveServerRole(raw?: string): ServerRole {
     const normalized = (raw || 'all').trim().toLowerCase();
 
     if (normalized === 'all') {
