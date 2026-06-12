@@ -11,12 +11,19 @@ export interface TelegramConfig {
     chatId: string;
 }
 
-function normalizeTelegramBaseUrl(raw = process.env.TELEGRAM_API_BASE_URL): string {
+interface TelegramNotifierOptions {
+    env?: {
+        TELEGRAM_API_BASE_URL?: string;
+        TELEGRAM_TIMEOUT_MS?: string;
+    };
+}
+
+function normalizeTelegramBaseUrl(raw?: string): string {
     const trimmed = raw?.trim();
     return trimmed ? trimmed.replace(/\/+$/, '') : DEFAULT_TELEGRAM_API_BASE_URL;
 }
 
-function resolveTelegramTimeoutMs(raw = process.env.TELEGRAM_TIMEOUT_MS): number {
+function resolveTelegramTimeoutMs(raw?: string): number {
     const parsed = Number.parseInt(raw ?? '', 10);
     return Number.isFinite(parsed) && parsed >= 1000 ? parsed : DEFAULT_TELEGRAM_TIMEOUT_MS;
 }
@@ -63,9 +70,12 @@ function classifyTelegramError(err: unknown, baseUrl: string): { message: string
 }
 
 export class TelegramNotifier {
+    constructor(private readonly options: TelegramNotifierOptions = {}) {}
+
     async send(config: TelegramConfig, message: string, retries = 3): Promise<{ success: boolean; error?: string }> {
-        const baseUrl = normalizeTelegramBaseUrl();
-        const timeout = resolveTelegramTimeoutMs();
+        const env = this.options.env ?? process.env;
+        const baseUrl = normalizeTelegramBaseUrl(env.TELEGRAM_API_BASE_URL);
+        const timeout = resolveTelegramTimeoutMs(env.TELEGRAM_TIMEOUT_MS);
         let lastError = 'Unknown error';
         for (let attempt = 0; attempt < retries; attempt++) {
             try {

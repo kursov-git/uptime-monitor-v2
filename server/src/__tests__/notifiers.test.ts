@@ -41,7 +41,6 @@ describe('Notification Notifiers', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.unstubAllEnvs();
         mockedPost.mockReset();
         mockedSleep.mockReset();
         mockedSleep.mockResolvedValue(undefined);
@@ -84,14 +83,31 @@ describe('Notification Notifiers', () => {
     });
 
     it('TelegramNotifier supports TELEGRAM_API_BASE_URL override', async () => {
-        vi.stubEnv('TELEGRAM_API_BASE_URL', 'https://telegram-relay.internal/');
         mockedPost.mockResolvedValueOnce(mockAxiosResponse({ ok: true }));
-        const notifier = new TelegramNotifier();
+        const notifier = new TelegramNotifier({
+            env: {
+                TELEGRAM_API_BASE_URL: 'https://telegram-relay.internal/',
+            },
+        });
 
         const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
 
         expect(result).toEqual({ success: true });
         expect(mockedPost.mock.calls[0][0]).toBe('https://telegram-relay.internal/bottoken/sendMessage');
+    });
+
+    it('TelegramNotifier supports TELEGRAM_TIMEOUT_MS override', async () => {
+        mockedPost.mockResolvedValueOnce(mockAxiosResponse({ ok: true }));
+        const notifier = new TelegramNotifier({
+            env: {
+                TELEGRAM_TIMEOUT_MS: '9000',
+            },
+        });
+
+        const result = await notifier.send({ botToken: 'token', chatId: 'chat' }, 'hello', 1);
+
+        expect(result).toEqual({ success: true });
+        expect(mockedPost.mock.calls[0][2]).toEqual({ timeout: 9000 });
     });
 
     it('TelegramNotifier does not retry on network egress timeout', async () => {
