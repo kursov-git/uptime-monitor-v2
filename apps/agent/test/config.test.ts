@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { readAgentEnv } from '../src/config';
 
+function agentEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+    return {
+        MAIN_SERVER_URL: 'https://uptime.example.test',
+        AGENT_TOKEN: 'agent-token',
+        ...overrides,
+    };
+}
+
 describe('agent config', () => {
     it('reads required env values and applies defaults', () => {
-        const env = readAgentEnv({
+        const env = readAgentEnv(agentEnv({
             MAIN_SERVER_URL: 'https://uptime.example.test/',
-            AGENT_TOKEN: 'agent-token',
-        });
+        }));
 
         expect(env).toMatchObject({
             mainServerUrl: 'https://uptime.example.test',
@@ -22,15 +29,13 @@ describe('agent config', () => {
     });
 
     it('reads tuning values and private-target flag', () => {
-        const env = readAgentEnv({
-            MAIN_SERVER_URL: 'https://uptime.example.test',
-            AGENT_TOKEN: 'agent-token',
+        const env = readAgentEnv(agentEnv({
             AGENT_HTTP_TIMEOUT_MS: '10000',
             AGENT_BUFFER_MAX: '1000',
             AGENT_RESULT_MAX_BATCH: '500',
             AGENT_MAX_CONCURRENCY: '12',
             ALLOW_PRIVATE_MONITOR_TARGETS: 'true',
-        });
+        }));
 
         expect(env.httpTimeoutMs).toBe(10000);
         expect(env.bufferMax).toBe(1000);
@@ -40,23 +45,31 @@ describe('agent config', () => {
     });
 
     it('reads versioned and fallback encryption keys', () => {
-        const env = readAgentEnv({
-            MAIN_SERVER_URL: 'https://uptime.example.test',
-            AGENT_TOKEN: 'agent-token',
+        const env = readAgentEnv(agentEnv({
             ENCRYPTION_KEY: 'a'.repeat(64),
             ENCRYPTION_KEY_2: 'b'.repeat(64),
-        });
+        }));
 
         expect(env.fallbackEncryptionKey).toBe('a'.repeat(64));
         expect(env.encryptionKeysByVersion).toEqual({ 2: 'b'.repeat(64) });
     });
 
-    it('rejects malformed encryption keys', () => {
-        expect(() => readAgentEnv({
-            MAIN_SERVER_URL: 'https://uptime.example.test',
-            AGENT_TOKEN: 'agent-token',
+    it('rejects malformed versioned encryption keys', () => {
+        expect(() => readAgentEnv(agentEnv({
             ENCRYPTION_KEY_1: 'not-hex',
-        })).toThrow('ENCRYPTION_KEY_1 must be a 64-character hex string');
+        }))).toThrow('ENCRYPTION_KEY_1 must be a 64-character hex string');
+    });
+
+    it('rejects malformed fallback encryption keys', () => {
+        expect(() => readAgentEnv(agentEnv({
+            ENCRYPTION_KEY: 'not-hex',
+        }))).toThrow('ENCRYPTION_KEY must be a 64-character hex string');
+    });
+
+    it('rejects non-positive versioned encryption key names', () => {
+        expect(() => readAgentEnv(agentEnv({
+            ENCRYPTION_KEY_0: 'a'.repeat(64),
+        }))).toThrow('ENCRYPTION_KEY_0 must use a positive key version');
     });
 
     it('requires main server URL and agent token', () => {
