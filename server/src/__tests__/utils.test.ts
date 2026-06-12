@@ -1,23 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { envBool } from '../lib/utils';
+import { envBool, parseBoolEnv } from '../lib/utils';
 
-describe('envBool', () => {
-    it('returns default value when env var is undefined', () => {
-        delete process.env.TEST_BOOL_UNDEF;
-        expect(envBool('TEST_BOOL_UNDEF', true)).toBe(true);
-        expect(envBool('TEST_BOOL_UNDEF', false)).toBe(false);
+describe('parseBoolEnv', () => {
+    it('returns the default when value is undefined', () => {
+        expect(parseBoolEnv(undefined, true)).toBe(true);
+        expect(parseBoolEnv(undefined, false)).toBe(false);
     });
 
     it('parses truthy values', () => {
-        process.env.TEST_BOOL_TRUE = 'TRUE';
-        expect(envBool('TEST_BOOL_TRUE', false)).toBe(true);
-
-        process.env.TEST_BOOL_ON = 'on';
-        expect(envBool('TEST_BOOL_ON', false)).toBe(true);
+        expect(parseBoolEnv('TRUE', false)).toBe(true);
+        expect(parseBoolEnv('on', false)).toBe(true);
+        expect(parseBoolEnv('yes', false)).toBe(true);
+        expect(parseBoolEnv('1', false)).toBe(true);
     });
 
     it('returns false for non-truthy values', () => {
-        process.env.TEST_BOOL_FALSE = '0';
-        expect(envBool('TEST_BOOL_FALSE', true)).toBe(false);
+        expect(parseBoolEnv('0', true)).toBe(false);
+        expect(parseBoolEnv('false', true)).toBe(false);
+        expect(parseBoolEnv('', true)).toBe(false);
+    });
+});
+
+describe('envBool', () => {
+    it('reads a named value from the provided source', () => {
+        expect(envBool('FEATURE_FLAG', false, { FEATURE_FLAG: 'true' })).toBe(true);
+        expect(envBool('FEATURE_FLAG', true, { FEATURE_FLAG: 'off' })).toBe(false);
+    });
+
+    it('uses the default when the named value is absent', () => {
+        expect(envBool('FEATURE_FLAG', true, {})).toBe(true);
+        expect(envBool('FEATURE_FLAG', false, {})).toBe(false);
     });
 });

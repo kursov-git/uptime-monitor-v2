@@ -7,6 +7,10 @@ export function parseBoolEnv(raw: string | undefined, defaultValue: boolean): bo
     return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
 }
 
-export function envBool(name: string, defaultValue: boolean): boolean {
-    return parseBoolEnv(process.env[name], defaultValue);
+export function envBool(
+    name: string,
+    defaultValue: boolean,
+    source: Record<string, string | undefined> = process.env,
+): boolean {
+    return parseBoolEnv(source[name], defaultValue);
 }
