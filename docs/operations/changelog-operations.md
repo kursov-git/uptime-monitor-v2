@@ -4,6 +4,39 @@ This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 It is chronological history, not the current topology source; use `docs/operations/production-topology.md` for current host roles and trusted agent inventory.
 
+## 2026-06-24
+
+### Security audit and host patch pass
+
+Hosts:
+- `onedashmsk`
+- `cloudruvm1`
+- `ruvdskzn`
+- `vultr`
+
+Changes:
+- patched `onedashmsk` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
+- installed `onedashmsk` phased `kpartx` and `multipath-tools` updates with `APT::Get::Always-Include-Phased-Updates=true`
+- verified `onedashmsk` split-runtime services and `/health/runtime`
+- patched `cloudruvm1` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
+- verified `cloudruvm1` `uptime-agent` after the control-plane Docker restart backoff cleared
+- checked `ruvdskzn`; it initially timed out, then came back after an apparent hard power-on, was patched to `0` pending apt upgrades, rebooted, and remained revoked/not trusted
+- verified `ruvdskzn` after slow boot: reboot required `no`, `dpkg --audit` empty, UFW/fail2ban active, SSH hardening intact, public listener only `2332/tcp`
+- found `ruvdskzn` local `uptime-agent.service` failed with timeout after reboot; no agent container was running, and control-plane revoke remained in force
+- measured `ruvdskzn` boot at `13min 42.169s` and observed intermittent SSH banner timeouts after boot; do not return it to live use without provider/storage health confirmation, stable boot/SSH behavior, and fresh agent token provisioning
+- patched `vultr`; did not reboot it because it was the active operator/Codex runtime host
+
+Operational result:
+- `onedashmsk`: pending apt upgrades `0`, reboot required `no`, UFW active and enabled, expected public ports only
+- `cloudruvm1`: pending apt upgrades `0`, reboot required `no`, UFW active, `uptime-agent` running
+- `ruvdskzn`: pending apt upgrades `0`, reboot required `no`, still revoked in the control plane, slow/unstable SSH behavior observed, local agent service failed timeout
+- `vultr`: pending apt upgrades `0`, reboot required `yes`
+- public `https://ping-agent.ru/status` and `/api/public/status` returned `200`
+- external `/health/runtime` remained denied with `403`
+
+Audit artifact:
+- `docs/operations/security-audit-2026-06-24.md`
+
 ## 2026-06-12
 
 ### Security audit and host patch pass
