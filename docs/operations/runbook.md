@@ -192,15 +192,13 @@ Run from the Pi as `skris`:
 ```bash
 ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'
 ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'
+ssh uptime-agent-ruvdsekb 'hostname; whoami; sudo -n true && echo sudo_ok'
 ```
 
 Expected result:
 - `uptime-main` returns `onedashmsk`, `claudeops`, `sudo_ok`
 - `uptime-agent-cloudruvm1` returns `cloudruvm1`, `claudeops`, `sudo_ok`
-
-Do not use `uptime-agent-ruvdsekb` for ordinary operations. It is retained only
-for investigation/re-provisioning after the snapshot migration to
-`170.168.1.74`; the control-plane agent was revoked on `2026-06-11`.
+- `uptime-agent-ruvdsekb` returns `ruvdsekb`, `claudeops`, `sudo_ok`
 
 Current Pi-side files:
 - `/home/skris/.ssh/claude_uptime_ops_ed25519`
@@ -1152,4 +1150,3 @@ Agent encryption notes:
 
 - do not assume a live agent host uses registry-image mode; production currently uses `local-build`
 - do not assume port `22`; use `2332`
-- do not run ordinary update/deploy workflows against revoked historical agent hosts such as `ruvdsekb`

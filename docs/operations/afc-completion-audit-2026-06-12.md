@@ -2,6 +2,9 @@
 
 Date: 2026-06-12
 
+Current-status note:
+- This is a point-in-time AFC audit. Its `ruvdsekb` revoked-agent statements were superseded on `2026-07-03`; use `docs/operations/production-topology.md` for the current trusted agent inventory and `docs/operations/changelog-operations.md` for the recovery history.
+
 Scope:
 - repository: `uptime-monitor-v2`
 - standard: `$agent-friendly-code` Baseline
@@ -113,7 +116,7 @@ Assessment: complete.
 
 Evidence:
 - No remaining current-doc conflict was found for the former architecture review snapshot path.
-- No current entry doc now treats `ruvdsekb` as a trusted live agent.
+- As of this audit date, no current entry doc treated `ruvdsekb` as a trusted live agent.
 - Generated/cache/database artifacts are ignored and no tracked ignored artifacts remain.
 
 Assessment: complete.
@@ -128,7 +131,7 @@ Closed quick wins:
 - Historical and dated docs are quarantined from default search.
 - Agent env docs are aligned to `apps/agent/src/config.ts`.
 - `apps/agent/test/config.test.ts` covers agent config behavior.
-- `ruvdsekb` is documented as revoked historical inventory, not a trusted live agent.
+- As of this audit date, `ruvdsekb` was documented as revoked historical inventory, not a trusted live agent.
 
 Assessment: complete.
 

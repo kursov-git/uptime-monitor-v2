@@ -20,7 +20,7 @@ Pi-side SSH material:
 Pi-side aliases:
 - `uptime-main` -> `claudeops@144.31.61.49:2332`
 - `uptime-agent-cloudruvm1` -> `claudeops@82.202.137.51:2332`
-- `uptime-agent-ruvdsekb` -> `claudeops@170.168.1.74:2332` retained only for investigation/re-provisioning; do not treat it as a trusted live agent
+- `uptime-agent-ruvdsekb` -> `claudeops@170.168.1.74:2332`
 
 VPS-side access state:
 - user: `claudeops`
@@ -163,21 +163,29 @@ Operator alias:
 - `ruvdsekb`
 
 Role:
-- snapshot-migrated remote agent host, currently revoked
+- remote agent host
 
 Current production state:
-- no longer trusted as a live agent
 - migrated from the former datacenter snapshot to `170.168.1.74`
 - host OS hostname is `ruvdsekb`
 - control-plane agent record was renamed to `ruvdsekb`
-- control-plane agent record is retained for history/investigation
-- agent access is revoked and should remain revoked
+- returned to live agent service on `2026-07-03`
+- fresh agent token was provisioned after the old revoked token was discarded
+- control-plane record is `ONLINE` with `agentVersion=1.0.0`
+- currently has only an inactive assigned monitor (`Портал дилера`), so the runtime can be online with `Loaded 0 jobs`
 
-Do not:
-- assign active monitors to this agent
-- rotate it back into service
-- run ordinary update/deploy workflows against it
-- reuse the revoked token; provision a fresh token before any deliberate return to service
+Current deployment mode:
+- docker compose + systemd (`local-build`)
+
+Current runtime characteristics:
+- service: `uptime-agent.service`
+- install dir: `/opt/uptime-agent`
+- env file: `/opt/uptime-agent/.env`
+- compose file: `/opt/uptime-agent/docker-compose.yml`
+- container: `uptime-agent`
+- local update checkout: `/home/skris/uptime-agent`
+- expected `MAIN_SERVER_URL=https://ping-agent.ru`
+- SSH port: `2332`
 
 For evidence and incident follow-up, read:
 - `docs/operations/changelog-operations.md`
@@ -187,9 +195,7 @@ For evidence and incident follow-up, read:
 
 Expected live agents in the control plane:
 - `cloudruvm1`
-
-Expected retained non-live records:
-- `ruvdsekb` — snapshot-migrated to `170.168.1.74`, still revoked and not trusted for checks
+- `ruvdsekb`
 
 Live agents should normally report:
 - `status=ONLINE`
@@ -240,7 +246,7 @@ Live-host note:
 
 ## Agent Update Workflow On Current Hosts
 
-For `cloudruvm1` today:
+For `cloudruvm1` and `ruvdsekb` today:
 1. back up:
    - `/opt/uptime-agent`
    - `/home/skris/uptime-agent`
@@ -259,9 +265,6 @@ For `cloudruvm1` today:
    - `docker compose -f /opt/uptime-agent/docker-compose.yml --env-file /opt/uptime-agent/.env ps`
    - `docker logs --tail=100 uptime-agent`
 5. verify control-plane heartbeat, results, and `agentVersion`
-
-Do not use this workflow for `ruvdsekb`; provision a replacement host instead.
-
 ## Backups
 
 ### Control plane

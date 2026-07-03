@@ -6,6 +6,28 @@ It is chronological history, not the current topology source; use `docs/operatio
 
 ## 2026-07-03
 
+### `ruvdsekb` returned to live agent service
+
+Host:
+- `ruvdsekb`
+
+Changes:
+- verified SSH access to `170.168.1.74:2332`
+- backed up the agent install dir and checkout:
+  - `/home/skris/uptime-agent-opt-backup-20260703T084032Z.tgz`
+  - `/home/skris/uptime-agent-checkout-backup-20260703T084032Z.tgz`
+- synced the current agent code subset into `/home/skris/uptime-agent`
+- generated a fresh agent token on the host and wrote it to `/opt/uptime-agent/.env`
+- updated the control-plane `ruvdsekb` token hash and cleared `revokedAt`
+- recorded an `AGENT_TOKEN_ROTATED` audit entry with reason `ruvdsekb-reprovision`
+- rebuilt and restarted the local-build `uptime-agent:local` container
+
+Operational result:
+- `ruvdsekb` reports `ONLINE` with `agentVersion=1.0.0`
+- `/health/runtime` reports `streams.agentSse.currentClients=2`
+- the agent currently loads `0` jobs because its only assigned monitor, `Портал дилера`, is inactive
+- do not reuse the old revoked token; the live host now uses the fresh token provisioned during this recovery
+
 ### `ruvdsekb` snapshot migration rename
 
 Host:
