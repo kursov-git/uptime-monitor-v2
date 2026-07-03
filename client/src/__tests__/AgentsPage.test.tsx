@@ -37,7 +37,7 @@ describe('AgentsPage', () => {
             },
             {
                 id: 'agent-2',
-                name: 'ruvdskzn',
+                name: 'ruvdsekb',
                 status: 'ONLINE',
                 agentVersion: '1.0.0',
                 heartbeatIntervalSec: 30,
@@ -92,7 +92,7 @@ describe('AgentsPage', () => {
         expect(screen.getByText('203.0.113.10')).toBeInTheDocument();
         expect(screen.getByText(/Россия, Москва|Russia, Москва|Россия, Moscow|Russia, Moscow/)).toBeInTheDocument();
         expect(screen.getByText(/Россия, Казань|Russia, Казань/)).toBeInTheDocument();
-        const headings = screen.getAllByText(/cloudruvm1|ruvdskzn|euwest-old/).map((entry) => entry.textContent);
+        const headings = screen.getAllByText(/cloudruvm1|ruvdsekb|euwest-old/).map((entry) => entry.textContent);
         expect(headings[0]).toBe('euwest-old');
     });
 });

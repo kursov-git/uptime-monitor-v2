@@ -20,7 +20,7 @@ Pi-side SSH material:
 Pi-side aliases:
 - `uptime-main` -> `claudeops@144.31.61.49:2332`
 - `uptime-agent-cloudruvm1` -> `claudeops@82.202.137.51:2332`
-- `uptime-agent-ruvdskzn` -> `claudeops@193.124.118.92:2332` retained only for incident investigation if the host reappears; do not treat it as a trusted live agent
+- `uptime-agent-ruvdsekb` -> `claudeops@170.168.1.74:2332` retained only for investigation/re-provisioning; do not treat it as a trusted live agent
 
 VPS-side access state:
 - user: `claudeops`
@@ -157,17 +157,19 @@ Current runtime characteristics:
 - current runtime understands SSL expiry metadata collection for assigned HTTPS monitors
 - current runtime understands monitor request bodies for assigned body-capable HTTP checks
 
-### Agent Host: `ruvdskzn`
+### Agent Host: `ruvdsekb`
 
 Operator alias:
-- `ruvdskzn`
+- `ruvdsekb`
 
 Role:
-- revoked historical remote agent host
+- snapshot-migrated remote agent host, currently revoked
 
 Current production state:
 - no longer trusted as a live agent
-- physically lost according to the `2026-06-11` incident record
+- migrated from the former datacenter snapshot to `170.168.1.74`
+- host OS hostname is `ruvdsekb`
+- control-plane agent record was renamed to `ruvdsekb`
 - control-plane agent record is retained for history/investigation
 - agent access is revoked and should remain revoked
 
@@ -175,10 +177,11 @@ Do not:
 - assign active monitors to this agent
 - rotate it back into service
 - run ordinary update/deploy workflows against it
+- reuse the revoked token; provision a fresh token before any deliberate return to service
 
 For evidence and incident follow-up, read:
 - `docs/operations/changelog-operations.md`
-- `docs/operations/incident-audit-2026-06-11-ruvdskzn-afc.md`
+- `docs/operations/incident-audit-2026-06-11-ruvdsekb-afc.md`
 
 ## Current Expected Agent Inventory
 
@@ -186,7 +189,7 @@ Expected live agents in the control plane:
 - `cloudruvm1`
 
 Expected retained non-live records:
-- `ruvdskzn` — revoked after the `2026-06-11` incident and not trusted for checks
+- `ruvdsekb` — snapshot-migrated to `170.168.1.74`, still revoked and not trusted for checks
 
 Live agents should normally report:
 - `status=ONLINE`
@@ -257,7 +260,7 @@ For `cloudruvm1` today:
    - `docker logs --tail=100 uptime-agent`
 5. verify control-plane heartbeat, results, and `agentVersion`
 
-Do not use this workflow for `ruvdskzn`; provision a replacement host instead.
+Do not use this workflow for `ruvdsekb`; provision a replacement host instead.
 
 ## Backups
 

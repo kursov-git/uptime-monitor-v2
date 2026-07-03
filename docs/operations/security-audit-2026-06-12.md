@@ -5,7 +5,7 @@ Date: 2026-06-12 UTC
 Scope:
 - `onedashmsk` / `144.31.61.49` - live control plane
 - `cloudruvm1` / `82.202.137.51` - live remote agent
-- `ruvdskzn` / `193.124.118.92` - retained only as historical/revoked agent host
+- `ruvdsekb` / `170.168.1.74` - retained only as historical/revoked agent host
 - `vultr` - operator/control workspace host, checked because previous multi-host audits included it
 
 ## Summary
@@ -18,7 +18,7 @@ Confirmed after remediation:
 - public `https://ping-agent.ru/status` returned `200`
 - public `https://ping-agent.ru/api/public/status` returned `200`
 - external `https://ping-agent.ru/health/runtime` returned `403`
-- `ruvdskzn` did not respond on SSH port `2332`; this matches the current revoked/lost host boundary and it was not returned to service
+- `ruvdsekb` did not respond on SSH port `2332`; this matches the current revoked/lost host boundary and it was not returned to service
 
 ## Changes Applied
 
@@ -175,7 +175,7 @@ Live uptime runtime hosts:
 - `cloudruvm1`: patched, rebooted, agent running, no reboot pending
 
 Historical host:
-- `ruvdskzn`: unreachable on SSH port `2332`, retained as revoked/lost, not trusted
+- `ruvdsekb`: unreachable on SSH port `2332`, retained as revoked/lost, not trusted
 
 Operator host:
 - `vultr`: patched, not rebooted, follow-up required

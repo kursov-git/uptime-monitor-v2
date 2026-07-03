@@ -4,6 +4,40 @@ This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 It is chronological history, not the current topology source; use `docs/operations/production-topology.md` for current host roles and trusted agent inventory.
 
+## 2026-07-03
+
+### `ruvdsekb` snapshot migration rename
+
+Host:
+- `ruvdsekb`
+
+Previous identity:
+- legacy pre-migration name
+
+Changes:
+- verified SSH access on the new IP `170.168.1.74:2332` using the existing admin key
+- renamed the guest OS hostname from provider-generated `ruvds-na2tq` to `ruvdsekb`
+- updated `/etc/hostname`, `/etc/hosts`, and the local admin key comment
+- renamed the local operator SSH alias/key to `ruvdsekb`
+- took a control-plane SQLite backup before the production DB rename:
+  - `/data/backups/uptime-before-ruvdsekb-rename-20260703T082035Z.db`
+- renamed the retained control-plane agent record to `ruvdsekb`
+- updated the retained control-plane agent IP to `170.168.1.74`
+- recorded an `AGENT_RENAMED` audit entry
+- updated repository docs and test fixtures to use `ruvdsekb`
+
+Operational result:
+- host-level storage/boot symptoms were no longer present after migration:
+  - boot time: `7.290s`
+  - IO PSI `full avg10`: `1.88`
+  - disk write latency sample: `1.4ms`
+- UFW still exposes only `2332/tcp`
+- systemd state: `running`
+- failed units: `0`
+- Docker and `uptime-agent.service` are active locally
+- the `uptime-agent` container still restarts because the old token remains revoked and receives `403 {"error":"Agent token revoked"}`
+- control-plane record remains `OFFLINE` and revoked; do not reuse the old token
+
 ## 2026-06-24
 
 ### Security audit and host patch pass
@@ -11,7 +45,7 @@ It is chronological history, not the current topology source; use `docs/operatio
 Hosts:
 - `onedashmsk`
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 - `vultr`
 
 Changes:
@@ -20,16 +54,16 @@ Changes:
 - verified `onedashmsk` split-runtime services and `/health/runtime`
 - patched `cloudruvm1` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
 - verified `cloudruvm1` `uptime-agent` after the control-plane Docker restart backoff cleared
-- checked `ruvdskzn`; it initially timed out, then came back after an apparent hard power-on, was patched to `0` pending apt upgrades, rebooted, and remained revoked/not trusted
-- verified `ruvdskzn` after slow boot: reboot required `no`, `dpkg --audit` empty, UFW/fail2ban active, SSH hardening intact, public listener only `2332/tcp`
-- found `ruvdskzn` local `uptime-agent.service` failed with timeout after reboot; no agent container was running, and control-plane revoke remained in force
-- measured `ruvdskzn` boot at `13min 42.169s` and observed intermittent SSH banner timeouts after boot; do not return it to live use without provider/storage health confirmation, stable boot/SSH behavior, and fresh agent token provisioning
+- checked `ruvdsekb`; it initially timed out, then came back after an apparent hard power-on, was patched to `0` pending apt upgrades, rebooted, and remained revoked/not trusted
+- verified `ruvdsekb` after slow boot: reboot required `no`, `dpkg --audit` empty, UFW/fail2ban active, SSH hardening intact, public listener only `2332/tcp`
+- found `ruvdsekb` local `uptime-agent.service` failed with timeout after reboot; no agent container was running, and control-plane revoke remained in force
+- measured `ruvdsekb` boot at `13min 42.169s` and observed intermittent SSH banner timeouts after boot; do not return it to live use without provider/storage health confirmation, stable boot/SSH behavior, and fresh agent token provisioning
 - patched `vultr`; did not reboot it because it was the active operator/Codex runtime host
 
 Operational result:
 - `onedashmsk`: pending apt upgrades `0`, reboot required `no`, UFW active and enabled, expected public ports only
 - `cloudruvm1`: pending apt upgrades `0`, reboot required `no`, UFW active, `uptime-agent` running
-- `ruvdskzn`: pending apt upgrades `0`, reboot required `no`, still revoked in the control plane, slow/unstable SSH behavior observed, local agent service failed timeout
+- `ruvdsekb`: pending apt upgrades `0`, reboot required `no`, still revoked in the control plane, slow/unstable SSH behavior observed, local agent service failed timeout
 - `vultr`: pending apt upgrades `0`, reboot required `yes`
 - public `https://ping-agent.ru/status` and `/api/public/status` returned `200`
 - external `/health/runtime` remained denied with `403`
@@ -44,7 +78,7 @@ Audit artifact:
 Hosts:
 - `onedashmsk`
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 - `vultr`
 
 Changes:
@@ -55,7 +89,7 @@ Changes:
 - rebooted `onedashmsk` a second time to prove UFW persistence
 - patched `cloudruvm1` with `apt-get update`, `full-upgrade`, `autoremove`, and `autoclean`
 - rebooted `cloudruvm1` and verified `uptime-agent`
-- checked `ruvdskzn`; SSH to `193.124.118.92:2332` timed out, matching the current revoked/lost host boundary
+- checked `ruvdsekb`; SSH to `170.168.1.74:2332` timed out, matching the current revoked/lost host boundary
 - patched `vultr`; did not reboot it because it was the active operator/Codex runtime host
 
 Operational result:
@@ -69,35 +103,35 @@ Audit artifact:
 
 ## 2026-06-11
 
-### `ruvdskzn` agent emergency revoke
+### `ruvdsekb` agent emergency revoke
 
 Host:
 - `onedashmsk`
 
 Affected agent host:
-- `ruvdskzn`
+- `ruvdsekb`
 
 Reason:
-- `ruvdskzn` should be treated as physically lost and no longer trusted.
+- `ruvdsekb` should be treated as physically lost and no longer trusted.
 
 Changes:
 - took a control-plane SQLite backup before the live DB write:
   - `/data/backups/uptime-20260611T142517Z.db`
-- revoked the `ruvdskzn` control-plane agent by setting `revokedAt`
+- revoked the `ruvdsekb` control-plane agent by setting `revokedAt`
 - kept the agent record present for investigation/history
 - recorded an `AGENT_REVOKED` audit entry with `manual-incident-response`
 - wrote the incident audit:
-  - `docs/operations/incident-audit-2026-06-11-ruvdskzn-afc.md`
+  - `docs/operations/incident-audit-2026-06-11-ruvdsekb-afc.md`
 
 Production state after revoke:
 - agent id: `aeddef30-9d3e-4340-a36c-9183aa13f34f`
 - agent status: `OFFLINE`
 - `revokedAt`: `2026-06-11T14:26:07.360Z`
 - last seen before revoke: `2026-06-11T06:54:26.231Z`
-- last seen IP: `193.124.118.92`
+- last seen IP: `170.168.1.74`
 
 Affected monitor inventory:
-- one assigned monitor remained on `ruvdskzn`:
+- one assigned monitor remained on `ruvdsekb`:
   - `Портал дилера`
   - `https://dealer.alutech24.com/ru/orders`
   - `isActive=false`
@@ -105,7 +139,7 @@ Affected monitor inventory:
   - stored auth payload contains username/password fields
 
 Operational result:
-- the old `ruvdskzn` agent token should now receive `403` on agent routes
+- the old `ruvdsekb` agent token should now receive `403` on agent routes
 - no `CheckResult` rows were present for this agent at the time of review
 
 Follow-up required:
@@ -119,7 +153,7 @@ Follow-up required:
 Hosts:
 - `onedashmsk`
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Repository:
 - `uptime-monitor-v2`
@@ -143,14 +177,14 @@ Documentation updates:
 Hosts:
 - `onedashmsk`
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Changes:
 - created a dedicated Pi-side SSH key for Claude Code uptime operations
 - created the `claudeops` user on all three uptime VPS hosts
 - granted `claudeops` `NOPASSWD:ALL` through `/etc/sudoers.d/90-claudeops`
 - allowed `claudeops` through the existing `AllowUsers` SSH policy with `/etc/ssh/sshd_config.d/98-claudeops-allowusers.conf`
-- added Pi SSH aliases for `uptime-main`, `uptime-agent-cloudruvm1`, and `uptime-agent-ruvdskzn`
+- added Pi SSH aliases for `uptime-main`, `uptime-agent-cloudruvm1`, and `uptime-agent-ruvdsekb`
 
 Operational result:
 - Claude Code on the Pi can deploy and maintain the control plane and remote agents without using the human admin SSH keys
@@ -159,7 +193,7 @@ Operational result:
 Verification:
 - `ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'`
 - `ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'`
-- `ssh uptime-agent-ruvdskzn 'hostname; whoami; sudo -n true && echo sudo_ok'`
+- `ssh uptime-agent-ruvdsekb 'hostname; whoami; sudo -n true && echo sudo_ok'`
 
 ## 2026-04-20
 
@@ -374,7 +408,7 @@ Host:
 
 Related agent hosts:
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Changes:
 - deployed first-class monitor `type` support with `HTTP`, `TCP`, and `DNS`
@@ -401,7 +435,7 @@ Host:
 
 Related agent hosts:
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Changes:
 - deployed monitor-level raw `requestBody` support for ordinary synthetic HTTP/HTTPS checks
@@ -478,7 +512,7 @@ Verification:
 
 Hosts:
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Changes:
 - migrated both live agent hosts from native `node + systemd` to `docker compose + systemd`
@@ -490,9 +524,9 @@ Backups taken before migration:
 - `cloudruvm1`: `/home/skris/uptime-agent-backup-20260312T102320Z.tgz`
 - `cloudruvm1`: `/etc/uptime-agent.env.20260312T102320Z.bak`
 - `cloudruvm1`: `/etc/systemd/system/uptime-agent.service.20260312T102320Z.bak`
-- `ruvdskzn`: `/home/skris/uptime-agent-backup-20260312T102720Z.tgz`
-- `ruvdskzn`: `/etc/uptime-agent.env.20260312T102720Z.bak`
-- `ruvdskzn`: `/etc/systemd/system/uptime-agent.service.20260312T102720Z.bak`
+- `ruvdsekb`: `/home/skris/uptime-agent-backup-20260312T102720Z.tgz`
+- `ruvdsekb`: `/etc/uptime-agent.env.20260312T102720Z.bak`
+- `ruvdsekb`: `/etc/systemd/system/uptime-agent.service.20260312T102720Z.bak`
 
 Post-migration runtime:
 - `uptime-agent.service` is now the docker/systemd unit on both hosts
@@ -596,7 +630,7 @@ Backup taken before rollout:
 
 Hosts:
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 Changes:
 - agent runtime updated to report `agentVersion=1.0.0`
@@ -605,11 +639,11 @@ Changes:
 
 Backups taken before update:
 - `cloudruvm1`: `/home/skris/uptime-agent-backup-20260311T063226Z.tgz`
-- `ruvdskzn`: `/home/skris/uptime-agent-backup-20260311T063301Z.tgz`
+- `ruvdsekb`: `/home/skris/uptime-agent-backup-20260311T063301Z.tgz`
 
 Post-update control-plane state:
 - `cloudruvm1` -> `ONLINE`, `agentVersion=1.0.0`
-- `ruvdskzn` -> `ONLINE`, `agentVersion=1.0.0`
+- `ruvdsekb` -> `ONLINE`, `agentVersion=1.0.0`
 
 ### Agent inventory cleanup
 
@@ -624,7 +658,7 @@ Reason:
 Result:
 - control-plane agent inventory reduced to the two active agents:
   - `cloudruvm1`
-  - `ruvdskzn`
+  - `ruvdsekb`
 
 ### SSH access normalization
 
@@ -635,7 +669,7 @@ Operational rule confirmed:
 Known host aliases in active use:
 - `onedashmsk`
 - `cloudruvm1`
-- `ruvdskzn`
+- `ruvdsekb`
 
 ## Usage Rules
 

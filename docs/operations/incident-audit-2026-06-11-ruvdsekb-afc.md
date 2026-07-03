@@ -1,22 +1,22 @@
-# Incident Audit: `ruvdskzn` AFC
+# Incident Audit: `ruvdsekb` AFC
 
 Audit date:
 - `2026-06-11`
 
 Scope:
 - production control plane on `onedashmsk`
-- remote agent identity `ruvdskzn`
+- remote agent identity `ruvdsekb`
 - current agent inventory, monitor secret exposure, public edge controls, and live runtime health
 
 Interpretation:
-- `AFC` is treated here as after-forfeiture/compromise review for the physically lost `ruvdskzn` agent host.
+- `AFC` is treated here as after-forfeiture/compromise review for the physically lost `ruvdsekb` agent host.
 
 Secrets policy:
 - raw tokens, passwords, cookies, private keys, and decrypted payload values were not written into this report.
 
 ## Executive Summary
 
-The immediate control-plane containment action is complete: `ruvdskzn` is revoked and offline in production.
+The immediate control-plane containment action is complete: `ruvdsekb` is revoked and offline in production.
 
 Confirmed remaining actions:
 - rotate the external Dealer Portal credential used by the `Портал дилера` monitor
@@ -48,11 +48,11 @@ Current edge env:
 
 Agent SSH reachability from the operator host:
 - `ssh cloudruvm1` timed out on port `2332`
-- `ssh ruvdskzn` timed out on port `2332`
+- `ssh ruvdsekb` timed out on port `2332`
 
 ## Agent Inventory
 
-### `ruvdskzn`
+### `ruvdsekb`
 
 Production state:
 - id: `aeddef30-9d3e-4340-a36c-9183aa13f34f`
@@ -60,7 +60,7 @@ Production state:
 - revoked: yes
 - `revokedAt`: `2026-06-11T14:26:07.360Z`
 - last seen: `2026-06-11T06:54:26.231Z`
-- last seen IP: `193.124.118.92`
+- last seen IP: `170.168.1.74`
 - result count: `0`
 - assigned monitor count: `1`
 
@@ -97,7 +97,7 @@ Active monitors assigned to offline `cloudruvm1`:
 Inactive monitor assigned to `cloudruvm1` with request headers/body:
 - `stat.alutech24.com`
 
-Inactive monitor assigned to revoked `ruvdskzn` with stored auth payload:
+Inactive monitor assigned to revoked `ruvdsekb` with stored auth payload:
 - `Портал дилера`
 - URL: `https://dealer.alutech24.com/ru/orders`
 - auth method: `CSRF_FORM_LOGIN`
@@ -127,16 +127,16 @@ Confirmed from repository docs and deployment scripts:
 - the repository deployment kit does not copy SSH private keys, control-plane TLS private keys, or cross-node access certificates to agent hosts
 
 Assessment:
-- no project evidence indicates that `ruvdskzn` intentionally contained a private SSH key or certificate that grants access to `onedashmsk`, `cloudruvm1`, or other nodes
+- no project evidence indicates that `ruvdsekb` intentionally contained a private SSH key or certificate that grants access to `onedashmsk`, `cloudruvm1`, or other nodes
 - because the physical disk is unavailable, this cannot prove that no operator ever placed ad hoc keys on the host outside the documented deployment path
-- the documented blast radius remains the `ruvdskzn` agent identity, its local agent `.env`, its local repo/runtime files, and any monitor payloads it fetched or could decrypt while active
+- the documented blast radius remains the `ruvdsekb` agent identity, its local agent `.env`, its local repo/runtime files, and any monitor payloads it fetched or could decrypt while active
 
 ## Findings
 
 ### F1 - High - Dealer Portal credential must be treated as compromised
 
 Evidence:
-- `ruvdskzn` was physically lost and had one assigned monitor with `CSRF_FORM_LOGIN` auth payload.
+- `ruvdsekb` was physically lost and had one assigned monitor with `CSRF_FORM_LOGIN` auth payload.
 - `server/src/routes/agent.ts` returns active assigned jobs with `authPayloadEncrypted`, headers, request body, and auth settings to the authenticated agent (`/api/agent/jobs`).
 - The affected monitor is inactive now, but the host should be assumed to have had historical access to its local environment and any job payloads fetched while it was alive.
 
@@ -219,11 +219,11 @@ Fix:
 
 ## Things That Look Correct
 
-- `ruvdskzn` is revoked in production.
+- `ruvdsekb` is revoked in production.
 - `/health` and `/health/runtime` are externally restricted.
 - `/api/agent/jobs` rejects unauthenticated requests.
 - revoked agent tokens are rejected by code path via `revokedAt`.
-- no stored check results were present for `ruvdskzn` at review time.
+- no stored check results were present for `ruvdsekb` at review time.
 - public and API responses include useful security headers and HSTS.
 
 ## Recommended Order

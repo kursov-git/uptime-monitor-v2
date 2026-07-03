@@ -198,9 +198,9 @@ Expected result:
 - `uptime-main` returns `onedashmsk`, `claudeops`, `sudo_ok`
 - `uptime-agent-cloudruvm1` returns `cloudruvm1`, `claudeops`, `sudo_ok`
 
-Do not use `uptime-agent-ruvdskzn` for ordinary operations. It is retained only
-for incident investigation if the physically lost host reappears; the
-control-plane agent was revoked on `2026-06-11`.
+Do not use `uptime-agent-ruvdsekb` for ordinary operations. It is retained only
+for investigation/re-provisioning after the snapshot migration to
+`170.168.1.74`; the control-plane agent was revoked on `2026-06-11`.
 
 Current Pi-side files:
 - `/home/skris/.ssh/claude_uptime_ops_ed25519`
@@ -289,7 +289,7 @@ Example:
 
 ```bash
 ADMIN_ALLOWLIST=203.0.113.10,198.51.100.0/24
-AGENT_ALLOWLIST=82.202.137.51,193.124.118.92
+AGENT_ALLOWLIST=82.202.137.51,170.168.1.74
 RUNTIME_HEALTH_ALLOWLIST=203.0.113.10
 ```
 
@@ -1152,4 +1152,4 @@ Agent encryption notes:
 
 - do not assume a live agent host uses registry-image mode; production currently uses `local-build`
 - do not assume port `22`; use `2332`
-- do not run ordinary update/deploy workflows against revoked historical agent hosts such as `ruvdskzn`
+- do not run ordinary update/deploy workflows against revoked historical agent hosts such as `ruvdsekb`

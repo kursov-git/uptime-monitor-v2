@@ -105,7 +105,7 @@ Evidence:
 - `docs/operations/production-topology.md` documents current control-plane and agent topology, trusted vs revoked agents, split runtime, backups, and live checks.
 - `docs/operations/runbook.md` documents runtime health, backup/restore, deploy/update, env and secret handling, and revoked historical agent rules.
 - `docs/operations/agent-deployment-kit.md` documents the canonical agent deployment kit.
-- `docs/operations/incident-audit-2026-06-11-ruvdskzn-afc.md` documents the `ruvdskzn` revoke and incident boundary.
+- `docs/operations/incident-audit-2026-06-11-ruvdsekb-afc.md` documents the `ruvdsekb` revoke and incident boundary.
 
 Assessment: complete.
 
@@ -113,7 +113,7 @@ Assessment: complete.
 
 Evidence:
 - No remaining current-doc conflict was found for the former architecture review snapshot path.
-- No current entry doc now treats `ruvdskzn` as a trusted live agent.
+- No current entry doc now treats `ruvdsekb` as a trusted live agent.
 - Generated/cache/database artifacts are ignored and no tracked ignored artifacts remain.
 
 Assessment: complete.
@@ -128,7 +128,7 @@ Closed quick wins:
 - Historical and dated docs are quarantined from default search.
 - Agent env docs are aligned to `apps/agent/src/config.ts`.
 - `apps/agent/test/config.test.ts` covers agent config behavior.
-- `ruvdskzn` is documented as revoked historical inventory, not a trusted live agent.
+- `ruvdsekb` is documented as revoked historical inventory, not a trusted live agent.
 
 Assessment: complete.
 

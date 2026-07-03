@@ -5,7 +5,7 @@ Date: 2026-06-24 UTC
 Scope:
 - `onedashmsk` / `144.31.61.49` - live control plane
 - `cloudruvm1` / `82.202.137.51` - live remote agent
-- `ruvdskzn` / `193.124.118.92` - retained only as historical/revoked agent host
+- `ruvdsekb` / `170.168.1.74` - retained only as historical/revoked agent host
 - `vultr` - operator/control workspace host
 
 ## Summary
@@ -19,7 +19,7 @@ Confirmed after remediation:
 - public `https://ping-agent.ru/status` returned `200`
 - public `https://ping-agent.ru/api/public/status` returned `200`
 - external `https://ping-agent.ru/health/runtime` returned `403`
-- `ruvdskzn` initially did not respond, then came back on SSH port `2332` after an apparent hard power-on; it was patched and rebooted, but remained revoked/not trusted and its local `uptime-agent.service` failed to start after reboot
+- `ruvdsekb` initially did not respond, then came back on SSH port `2332` after an apparent hard power-on; it was patched and rebooted, but remained revoked/not trusted and its local `uptime-agent.service` failed to start after reboot
 
 ## Changes Applied
 
@@ -133,12 +133,12 @@ Not remediated in this pass:
 
 This host is not the live `uptime-monitor-v2` runtime host, but it remains relevant as the operator workspace and still needs a separate controlled reboot and SSH forwarding hardening pass.
 
-### `ruvdskzn`
+### `ruvdsekb`
 
 Initial state:
-- first checks to `193.124.118.92:2332` timed out
+- first checks to `170.168.1.74:2332` timed out
 - after the operator reported that the provider panel showed the host online, the host became reachable:
-  - hostname: `ruvdskzn`
+  - hostname: `ruvdsekb`
   - user: `skris`
   - sudo: passwordless sudo worked
   - uptime at first successful check: about 5 minutes
@@ -158,10 +158,10 @@ Security baseline before patching:
 - listening public port: `2332`
 
 Control-plane state:
-- `ruvdskzn` remained revoked in the control plane:
+- `ruvdsekb` remained revoked in the control plane:
   - `status=OFFLINE`
   - `lastSeen=2026-06-11T06:54:26.231Z`
-  - `lastSeenIp=193.124.118.92`
+  - `lastSeenIp=170.168.1.74`
   - `revokedAt=2026-06-11T14:26:07.360Z`
   - assigned monitors: `1`
 - agent logs on the host repeatedly showed:
@@ -238,7 +238,7 @@ Slow-boot evidence:
 - later diagnostic SSH attempts still intermittently failed with `Connection timed out during banner exchange`
 
 Assessment:
-- `ruvdskzn` was patched to `0` pending apt upgrades before the reboot attempt
+- `ruvdsekb` was patched to `0` pending apt upgrades before the reboot attempt
 - it came back after a slow boot and no longer requires reboot
 - it must still be treated as not trusted and not live
 - the observed slowness is host/platform/runtime level, not just an `uptime-agent` application issue
@@ -279,7 +279,7 @@ Facts:
 Assessment:
 - this is outside the live uptime runtime hosts but still matters for the broader operator host posture
 
-### Open - `ruvdskzn` agent service failed after controlled reboot
+### Open - `ruvdsekb` agent service failed after controlled reboot
 
 Facts:
 - the host came back after the provider panel showed it online
@@ -310,7 +310,7 @@ Live uptime runtime hosts:
 - `cloudruvm1`: patched, no reboot pending, agent running
 
 Historical host:
-- `ruvdskzn`: patched, rebooted, still revoked/not trusted, slow/unstable SSH behavior observed, local `uptime-agent.service` failed timeout
+- `ruvdsekb`: patched, rebooted, still revoked/not trusted, slow/unstable SSH behavior observed, local `uptime-agent.service` failed timeout
 
 Operator host:
 - `vultr`: patched, not rebooted, follow-up required

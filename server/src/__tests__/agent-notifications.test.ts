@@ -50,7 +50,7 @@ describe('Agent notification flows', () => {
         const rawToken = 'remote-agent-token';
         const agent = await prisma.agent.create({
             data: {
-                name: 'ruvdskzn',
+                name: 'ruvdsekb',
                 tokenHash: hashAgentToken(rawToken),
             },
         });
@@ -83,7 +83,7 @@ describe('Agent notification flows', () => {
 
         expect(response.statusCode).toBe(200);
         expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('Check source: ruvdskzn');
+        expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('Check source: ruvdsekb');
         expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('HTTP status: 503');
         expect(mockedAxios.post.mock.calls[0]?.[1]?.text).toContain('/monitors/');
 
@@ -190,7 +190,7 @@ describe('Agent notification flows', () => {
         const previousLastSeen = new Date('2026-03-11T06:00:00.000Z');
         const agent = await prisma.agent.create({
             data: {
-                name: 'ruvdskzn',
+                name: 'ruvdsekb',
                 tokenHash: hashAgentToken(rawToken),
                 status: 'ONLINE',
                 lastSeen: previousLastSeen,
