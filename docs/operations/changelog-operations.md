@@ -6,6 +6,25 @@ It is chronological history, not the current topology source; use `docs/operatio
 
 ## 2026-11-19
 
+### `cloudruvm1` retired
+
+Host:
+- `cloudruvm1` (`82.202.137.51`), control plane `uptime-main`
+
+Why:
+- the VM was deleted by cloud.ru for non-payment in 2026-10; the agent was last seen 2026-07-08 and SSH timed out on 2026-11-19
+- owner decision: decommissioned, not to be reconnected
+
+Changes:
+- control-plane DB backup: `/data/backups/uptime-20261119-pre-cloudruvm1-revoke.db`
+- agent `cloudruvm1` revoked (`revokedAt=2026-11-19T04:40:04Z`, `status=OFFLINE`) with an `AGENT_REVOKED` audit entry giving the reason; the record is kept as history, not deleted
+- its only assigned monitor, `stat.alutech24.com`, was already inactive and is left as is
+- Pi: `uptime-agent-cloudruvm1` removed from `~/.ssh/config` (backup `~/backups/config/2026-11-19-cloudruvm1-retire/`); the `known_hosts` entry is kept so a reused IP fails loudly instead of being trusted
+- docs: topology, runbook, Pi handoff notes and host_security state updated
+
+Rollback:
+- set `revokedAt=null` on the agent (a new host would need a fresh token anyway)
+
 ### nginx2root: control-plane nginx patched, SCTP blocked
 
 Host:
@@ -32,7 +51,7 @@ Rollback:
 - SCTP: delete `/etc/modprobe.d/nginx2root-disable-sctp.conf`
 
 Not covered:
-- `cloudruvm1` is offline since 2026-07-08 and did not answer SSH on 2026-11-19; agents run Node without nginx
+- `cloudruvm1` was offline since 2026-07-08 and did not answer SSH (retired the same day, see above); agents run Node without nginx
 - the SCTP kernel bug itself has no patch; the guard only blocks module loading
 
 ## 2026-07-03

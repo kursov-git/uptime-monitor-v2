@@ -191,13 +191,11 @@ Run from the Pi as `skris`:
 
 ```bash
 ssh uptime-main 'hostname; whoami; sudo -n true && echo sudo_ok'
-ssh uptime-agent-cloudruvm1 'hostname; whoami; sudo -n true && echo sudo_ok'
 ssh uptime-agent-ruvdsekb 'hostname; whoami; sudo -n true && echo sudo_ok'
 ```
 
 Expected result:
 - `uptime-main` returns `onedashmsk`, `claudeops`, `sudo_ok`
-- `uptime-agent-cloudruvm1` returns `cloudruvm1`, `claudeops`, `sudo_ok`
 - `uptime-agent-ruvdsekb` returns `ruvdsekb`, `claudeops`, `sudo_ok`
 
 Current Pi-side files:
@@ -211,8 +209,8 @@ Current VPS-side files:
 - `/etc/ssh/sshd_config.d/98-claudeops-allowusers.conf`
 
 Do not paste the private key into prompts, docs, repository files, or chat.
-Claude Code should reach the hosts through `ssh uptime-main`,
-and `ssh uptime-agent-cloudruvm1`. Check `docs/operations/production-topology.md`
+Claude Code should reach the hosts through `ssh uptime-main`
+and `ssh uptime-agent-ruvdsekb` (`cloudruvm1` is retired since 2026-11-19). Check `docs/operations/production-topology.md`
 before using any agent-host alias that is not listed as a trusted live host.
 
 ## TLS And Let's Encrypt

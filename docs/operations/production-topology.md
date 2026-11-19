@@ -19,7 +19,6 @@ Pi-side SSH material:
 
 Pi-side aliases:
 - `uptime-main` -> `claudeops@144.31.61.49:2332`
-- `uptime-agent-cloudruvm1` -> `claudeops@82.202.137.51:2332`
 - `uptime-agent-ruvdsekb` -> `claudeops@170.168.1.74:2332`
 
 VPS-side access state:
@@ -138,28 +137,13 @@ Current synthetic HTTP monitor capabilities:
 - request bodies are supported in both builtin worker and remote-agent execution paths
 - JSON payload validation is enforced at save time when monitor headers declare `Content-Type: application/json`
 
-### Agent Host: `cloudruvm1`
+### Retired Agent Host: `cloudruvm1`
 
-Operator alias:
-- `cloudruvm1`
-
-Role:
-- remote agent host
-
-Current deployment mode:
-- docker compose + systemd (`local-build`)
-
-Current runtime characteristics:
-- service: `uptime-agent.service`
-- install dir: `/opt/uptime-agent`
-- env file: `/opt/uptime-agent/.env`
-- compose file: `/opt/uptime-agent/docker-compose.yml`
-- container: `uptime-agent`
-- local update checkout: `/home/skris/uptime-agent`
-- expected `MAIN_SERVER_URL=https://ping-agent.ru`
-- SSH port: `2332`
-- current runtime understands SSL expiry metadata collection for assigned HTTPS monitors
-- current runtime understands monitor request bodies for assigned body-capable HTTP checks
+Decommissioned 2026-11-19: the VM (`82.202.137.51`) was deleted by cloud.ru
+for non-payment in 2026-10; it had been offline since 2026-07-08. The agent is
+revoked in the control plane (`AGENT_REVOKED`, record kept as history) and is
+not to be reconnected. Its only assigned monitor, `stat.alutech24.com`, is
+inactive. The Pi SSH alias was removed.
 
 ### Agent Host: `ruvdsekb`
 
@@ -198,8 +182,10 @@ For evidence and incident follow-up, read:
 ## Current Expected Agent Inventory
 
 Expected live agents in the control plane:
-- `cloudruvm1`
 - `ruvdsekb`
+
+Retired (revoked, not to be reconnected):
+- `cloudruvm1` (2026-11-19)
 
 Live agents should normally report:
 - `status=ONLINE`
@@ -250,7 +236,7 @@ Live-host note:
 
 ## Agent Update Workflow On Current Hosts
 
-For `cloudruvm1` and `ruvdsekb` today:
+For `ruvdsekb` today:
 1. back up:
    - `/opt/uptime-agent`
    - `/home/skris/uptime-agent`
