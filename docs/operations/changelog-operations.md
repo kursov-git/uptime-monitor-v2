@@ -4,6 +4,37 @@ This file records meaningful operational changes in running environments.
 It is intended for future operators and AI agents that need a compact history of what changed in production and on the managed hosts.
 It is chronological history, not the current topology source; use `docs/operations/production-topology.md` for current host roles and trusted agent inventory.
 
+## 2026-11-19
+
+### nginx2root: control-plane nginx patched, SCTP blocked
+
+Host:
+- `uptime-main` (`onedashmsk`)
+
+Why:
+- nginx2root (Xint, 2026-11-18): five unauthenticated RCE CVEs in nginx 1.9.5–1.31.8, fixed in 1.31.9; root on the host via a separate SCTP kernel bug, including escape from a Docker container
+- production ran nginx 1.31.2 (floating `nginx:alpine` frozen at the 2026-07-13 build) with `http2 on` and upstream proxying, so CVE-2026-123007 and CVE-2026-123633 applied; resolver/mirror, HTTP/3 and mail-proxy preconditions are absent
+
+Changes:
+- `client/Dockerfile`: `FROM nginx:alpine` -> `FROM nginx:1.31.9-alpine`; only that file was synced to `/root/uptime-monitor/client/` (the server tree already matched the repo for client build inputs)
+- `docker compose -f docker-compose.split.yml up -d --build client`; only `uptime-client` was recreated
+- new `/etc/modprobe.d/nginx2root-disable-sctp.conf` with `install sctp /bin/false` (`CONFIG_IP_SCTP=m`, module was not loaded)
+- no DB backup: the client-only rollout does not touch the database
+
+Verified:
+- `nginx -v` -> `nginx/1.31.9` (`nginx-1.31.9-r1`), `nginx -t` ok; `https://ping-agent.ru/` 200 over HTTP/2, `server: nginx/1.31.9`
+- agent `ruvdsekb` heartbeat continued after the restart
+- `modprobe sctp` fails on the install rule; an unprivileged SCTP socket gets `EPROTONOSUPPORT`. The test load pulled in `udp_tunnel`/`ip6_udp_tunnel` (refcount 0); they were unloaded again
+
+Rollback:
+- image: `uptime-monitor-client:pre-nginx2root` (`sha256:1f0fd751…`); retag it as `uptime-monitor-client:latest` and `docker compose -f docker-compose.split.yml up -d --no-build client`
+- Dockerfile: `/root/backups/config/2026-11-19-nginx2root/root/uptime-monitor/client/Dockerfile`
+- SCTP: delete `/etc/modprobe.d/nginx2root-disable-sctp.conf`
+
+Not covered:
+- `cloudruvm1` is offline since 2026-07-08 and did not answer SSH on 2026-11-19; agents run Node without nginx
+- the SCTP kernel bug itself has no patch; the guard only blocks module loading
+
 ## 2026-07-03
 
 ### `ruvdsekb` returned to live agent service

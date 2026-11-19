@@ -20,7 +20,7 @@ RUN npm --prefix packages/shared run build
 WORKDIR /app/client
 RUN npm run build
 
-FROM nginx:alpine
+FROM nginx:1.31.9-alpine
 # Copy built dist from the workspace client
 COPY --from=build /app/client/dist /usr/share/nginx/html
 COPY client/nginx.conf /opt/uptime-monitor/nginx/https.conf.template

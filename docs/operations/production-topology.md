@@ -114,6 +114,10 @@ Current production setting:
 - `/api/agent/*` currently remains public-by-necessity for the two public VPS agents; `AGENT_ALLOWLIST` is the next practical tightening step
 - `/health` and `/health/runtime` are denied externally by default unless `RUNTIME_HEALTH_ALLOWLIST` is explicitly populated
 
+nginx version and host kernel guard:
+- the `client` image pins its nginx base (`FROM nginx:1.31.9-alpine` in `client/Dockerfile`); a floating `nginx:alpine` stayed at the version of the last build. Bump the tag on nginx security releases and rebuild only `client`
+- the control-plane host refuses to load the SCTP module (`/etc/modprobe.d/nginx2root-disable-sctp.conf`, `install sctp /bin/false`): the published nginx2root root chain needs it, and nothing here uses SCTP
+
 Current public domain:
 - `ping-agent.ru`
 - `www.ping-agent.ru`
